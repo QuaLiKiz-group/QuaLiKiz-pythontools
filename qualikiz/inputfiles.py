@@ -12,7 +12,7 @@ from warnings import warn
 
 import numpy as np
 import scipy as sc
-# import scipy.optimize
+import scipy.optimize
 
 
 class Particle(dict):
@@ -138,9 +138,17 @@ class QuaLiKizXpoint(dict):
         """ Set density of 1st ion to maintian quasineutrality """
         if len(self['ions']) > 1:
             ions = filter(lambda x: x['type'] < 3, self['ions'][1:])
-            self['ions'][0]['n'] = (1 -
+            n0 = (1 -
                                     sum(ion['n'] * ion['Z'] for ion in ions) /
                                     self['ions'][0]['Z'])
+            if 0 > n0 or n0 > 1:
+                raise Exception('Given Zeff results in unphysical n_0/n_e = ' +
+                                str(n0) +
+                                ' with Z = ' +
+                                str([ion['Z'] for ion in self['ions']]) +
+                                ' and n = ' +
+                                str([ion['n'] for ion in self['ions']]))
+            self['ions'][0]['n'] = n0
 
     def normalize_gradient(self):
         """ Set density gradient of 1st ion to maintian quasineutrality """
@@ -167,15 +175,29 @@ class QuaLiKizXpoint(dict):
 
     def match_zeff(self, zeff):
         """ Adjust ni1 to match the given Zeff """
-        ions = filter(lambda x: x['type'] < 3, self['ions'][2:])
         if len(self['ions']) > 1:
-            self['ions'][1]['n'] = ((zeff -
-                                     self['ions'][0]['n'] *
-                                     self['ions'][0]['Z'] ** 2 -
-                                     sum(ion['n'] * ion['Z'] ** 2
-                                         for ion in ions)) /
-                                    self['ions'][1]['Z'] ** 2)
+            ions = filter(lambda x: x['type'] < 3, self['ions'][2:])
+            sum1 = sum(ion['n'] * ion['Z'] ** 2 for ion in ions)
+            ions = filter(lambda x: x['type'] < 3, self['ions'][2:])
+            sum2 = (sum(ion['n'] * ion['Z'] for ion in ions) * 
+                    self['ions'][0]['Z'])
+            n1 = ((zeff - self['ions'][0]['Z'] - sum1 + sum2) /
+                                    (self['ions'][1]['Z'] ** 2 -
+                                     self['ions'][1]['Z'] *
+                                     self['ions'][0]['Z']))
+            if 0 > n1 or n1 > 1:
+                raise Exception('Given Zeff results in unphysical n_1/n_e = ' +
+                                str(n1) +
+                                ' with Z = ' +
+                                str([ion['Z'] for ion in self['ions']]) +
+                                ' and n = ' +
+                                str([ion['n'] for ion in self['ions']]))
+            self['ions'][1]['n'] = n1
+            self.normalize_density()
+            self.normalize_gradient()
         # Sanity check
+        # print ('Zeff = ' + str(zeff))
+        # print ([ion['n'] for ion in self['ions']])
         # print (np.isclose(self.calc_zeff(), zeff))
 
     def calc_zeff(self):
@@ -309,46 +331,37 @@ class QuaLiKizXpoint(dict):
             if key[-1].isdigit():
                 ionnumber = int(key[-1])
                 key = key[:-2]
-                if (key == 'n' or key == 'Z') and self['norm']['ninorm1']:
-                    self['ions'][ionnumber][key] = value
-                    self.normalize_density()
-                elif key == 'An' and self['norm']['Ani1']:
-                    self['ions'][ionnumber][key] = value
-                    self.normalize_gradient()
-                else:
-                    self['ions'][ionnumber][key] = value
-                if ((key == 'n' or key == 'Z' or key == 'An')
-                   and self['norm']['QN_grad']):
-                    self.check_quasi()
+                self['ions'][ionnumber][key] = value
+                if key == 'n' or key == 'Z' or key == 'An':
+                    if self['norm']['ninorm1']:
+                        self.normalize_density()
+                    if self['norm']['Ani1']:
+                        self.normalize_gradient()
+                    if self['norm']['QN_grad']:
+                        self.check_quasi()
             else:
                 key = key[:-1]
-                if (key == 'n' or key == 'Zi') and self['norm']['ninorm1']:
-                    self['ions'].__setitem__(key, value)
-                    self.normalize_density()
-                elif key == 'An' and self['norm']['Ani1']:
-                    self['ions'].__setitem__(key, value)
-                    self.normalize_gradient()
-                else:
-                    self['ions'].__setitem__(key, value)
-                if ((key == 'n' or key == 'Z' or key == 'An')
-                   and self['norm']['QN_grad']):
-                    self.check_quasi()
+                self['ions'].__setitem__(key, value)
+                if key == 'n' or key == 'Z' or key == 'An':
+                    if self['norm']['ninorm1']:
+                        self.normalize_density()
+                    if self['norm']['Ani1']:
+                        self.normalize_gradient()
+                    if self['norm']['QN_grad']:
+                        self.check_quasi()
 
             if (key not in Ion.keynames) and (key not in Particle.keynames):
                 raise Exception(key + ' does not exist!')
         elif key.endswith('e'):
             key = key[:-1]
-            if (key == 'n' or key == 'Zi') and self['norm']['ninorm1']:
-                self['elec'].__setitem__(key, value)
-                self.normalize_density()
-            elif key == 'An' and self['norm']['Ani1']:
-                self['elec'].__setitem__(key, value)
-                self.normalize_gradient()
-            else:
-                self['elec'].__setitem__(key, value)
-            if ((key == 'n' or key == 'Z' or key == 'An')
-               and self['norm']['QN_grad']):
-                self.check_quasi()
+            self['elec'].__setitem__(key, value)
+            if key == 'n' or key == 'Z' or key == 'An':
+                if self['norm']['ninorm1']:
+                    self.normalize_density()
+                if self['norm']['Ani1']:
+                    self.normalize_gradient()
+                if self['norm']['QN_grad']:
+                    self.check_quasi()
         elif key in self.Geometry.in_args + self.Geometry.extra_args:
             if key == 'x' and self['norm']['x_rho']:
                 self['geometry'].__setitem__('rho', value)
@@ -357,6 +370,8 @@ class QuaLiKizXpoint(dict):
             self['geometry'].__setitem__(key, value)
         elif key == 'Zeff':
             self.match_zeff(value)
+            if self['norm']['ninorm1']:
+                self.check_quasi()
         elif key == 'Nustar':
             self.match_nustar(value)
         elif key == 'Ti_Te_rel':
