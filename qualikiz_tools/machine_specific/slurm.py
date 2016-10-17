@@ -5,6 +5,8 @@ License: CeCILL v2.1
 """
 from warnings import warn
 cores_per_node = 24
+vcores_per_task = None
+
 
 class Sbatch:
     """ Defines a batch job
@@ -56,7 +58,7 @@ class Sbatch:
                  stdout=default_stdout, stderr=default_stderr,
                  filesystem='SCRATCH', partition='regular',
                  qos='normal', HT=True,
-                 vcores_per_task=None):
+                 vcores_per_task=2):
         """ Initialize Edison batch job
         Arguments:
             - srun_instances: List of Srun instances included in the Sbatch job

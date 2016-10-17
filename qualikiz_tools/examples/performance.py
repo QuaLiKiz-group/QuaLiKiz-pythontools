@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Copyright Dutch Institute for Fundamental Energy Research (2016)
 Contributors: Karel van de Plassche (karelvandeplassche@gmail.com)
@@ -11,23 +12,21 @@ from collections import OrderedDict
 
 import numpy as np
 
-from qualikiz.qualikizrun import QuaLiKizBatch, QuaLiKizRun
-from qualikiz.inputfiles import QuaLiKizPlan
+from qualikiz_tools.qualikiz_io.qualikizrun import QuaLiKizBatch, QuaLiKizRun
+from qualikiz_tools.qualikiz_io.inputfiles import QuaLiKizPlan
+from qualikiz_tools import __path__ as PATH  
+PATH = PATH[0]
 
-dirname = 'runs'
 if len(sys.argv) == 2:
     if sys.argv[1] != '':
         dirname = sys.argv[1]
-
-# We know where this script lives, so we can find the rootdir like this
-rootdir = os.path.abspath(
-    os.path.join(os.path.abspath(inspect.getfile(inspect.currentframe())),
-                 '../../../'))
+# We assume the QuaLiKiz_pythontoolsdir lives inside the QuaLiKiz root
+rootdir = os.path.dirname(PATH)
 
 # Find some of the paths we need
 runsdir = os.path.join(rootdir, dirname)
-bindir = os.path.join(rootdir, 'QuaLiKiz+pat')
-templatepath = os.path.join(rootdir, 'QuaLiKiz-pythontools/qualikiz/parameters_template.json')
+bindir = os.path.join(rootdir, '../QuaLiKiz+pat')
+templatepath = os.path.join(rootdir, 'qualikiz_tools/qualikiz_io/parameters_template.json')
 
 # Load the default QuaLiKiz plan we will use as base
 qualikiz_plan_base = QuaLiKizPlan.from_json(templatepath)

@@ -16,9 +16,10 @@ threads_per_task = 2  # Stuck as per QuaLiKiz code
 threads_per_vcore = 1  # Never give one (virtual) CPU more than one task
 vcores_per_task = int(threads_per_task / threads_per_vcore)  # == 2
 
-from .edisonbatch import Srun, Sbatch
-from . import inputfiles
-from .inputfiles import QuaLiKizPlan
+from ..machine_specific.slurm import Srun, Sbatch
+from ..qualikiz_io.inputfiles import QuaLiKizPlan
+from . import __path__ as ROOT
+ROOT = ROOT[0]
 
 
 warnings.simplefilter('always', UserWarning)
@@ -51,7 +52,8 @@ class QuaLiKizBatch:
                  stdout=Sbatch.default_stdout,
                  stderr=Sbatch.default_stderr,
                  filesystem='SCRATCH', partition='regular',
-                 qos='normal', HT=True):
+                 qos='normal', HT=True,
+                 vcores_per_task=vcores_per_task):
         """ Initialize a batch
         Arguments:
             - batchsdir: Parent directory of the batch directory.
@@ -122,7 +124,8 @@ class QuaLiKizBatch:
                              stdout=Sbatch.default_stdout,
                              stderr=Sbatch.default_stderr,
                              filesystem='SCRATCH', partition='regular',
-                             qos='normal', HT=True):
+                             qos='normal', HT=True,
+                             vcores_per_task=vcores_per_task):
         """ Generate the batch script
         Currently only supports edison-style run scripts.
 
@@ -163,7 +166,8 @@ class QuaLiKizBatch:
             batch = Sbatch(runclasslist, self.name, tasks, maxtime,
                            stdout=stdout, stderr=stderr,
                            filesystem=filesystem, partition=partition,
-                           qos=qos, HT=HT)
+                           qos=qos, HT=HT,
+                           vcores_per_task=vcores_per_task)
         return batch
 
     @classmethod
@@ -326,7 +330,7 @@ class QuaLiKizRun:
         - inputdir:       Relative path to the input folder
     """
     parameterspath = 'parameters.json'
-    pythondir = os.path.realpath(os.path.dirname(__file__))
+    pythondir = os.path.realpath(os.path.dirname(ROOT))
     pythonreldir = os.path.basename(pythondir)
     outputdir = 'output'
     primitivedir = 'output/primitive'
@@ -369,7 +373,7 @@ class QuaLiKizRun:
         # Load the default parameters if no plan is defined
         if qualikiz_plan is None:
             templatepath = os.path.join(self.pythondir,
-                                        'parameters_template.json')
+                                        'qualikiz_io/parameters_template.json')
             qualikiz_plan = QuaLiKizPlan.from_json(templatepath)
         self.qualikiz_plan = qualikiz_plan
 
@@ -387,13 +391,12 @@ class QuaLiKizRun:
 
         create_folder_prompt(rundir, overwrite=overwrite)
 
-        os.chdir(rundir)
-
         self._create_output_folders(rundir)
         os.makedirs(os.path.join(rundir, self.inputdir), exist_ok=True)
         # Check if the binary we are trying to link to exists
-        if not os.path.exists(self.binaryrelpath):
-            warn('Warning! Binary at ' + self.binaryrelpath + ' does not ' +
+        absbindir = os.path.join(rundir, self.binaryrelpath)
+        if not os.path.exists(absbindir):
+            warn('Warning! Binary at ' + absbindir + ' does not ' +
                  'exist! Run will fail!')
         # Create link to binary
         binarybasepath = os.path.basename(self.binaryrelpath)
@@ -403,7 +406,7 @@ class QuaLiKizRun:
         os.symlink(self.pythondir,
                    os.path.join(rundir, self.pythonreldir))
         # Create link to run script
-        os.symlink(os.path.join(self.pythondir, 'run.py'),
+        os.symlink(os.path.join(self.pythondir, 'qualikiz_io/run.py'),
                    os.path.join(rundir, 'run.py'))
         # Create a parameters file
         self.qualikiz_plan.to_json(os.path.join(rundir, self.parameterspath))
@@ -422,7 +425,7 @@ class QuaLiKizRun:
         """
         parameterspath = os.path.join(self.rundir, 'parameters.json')
 
-        plan = inputfiles.QuaLiKizPlan.from_json(parameterspath)
+        plan = QuaLiKizPlan.from_json(parameterspath)
         input_binaries = plan.setup()
         inputdir = os.path.join(self.rundir, self.inputdir)
 
@@ -436,9 +439,12 @@ class QuaLiKizRun:
     def inputbinaries_exist(self):
         """ Check if the input binaries exist """
         input_binary = os.path.join(self.rundir, self.inputdir, 'R0.bin')
+        exist = True
         if not os.path.exists(input_binary):
             warn('Warning! Input binary at ' + input_binary + ' does not ' +
                  'exist! Run will fail! Please generate input binaries!')
+            exist = False
+        return exist
 
     def estimate_walltime(self, cores):
         """ Estimate the walltime needed to run

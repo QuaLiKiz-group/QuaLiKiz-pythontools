@@ -35,7 +35,7 @@ class Particle(dict):
             type: 1:  active
                   2:  adiabatic
                   3:  passing at ion scales
-            anise:    Temperature anisotropy T_perp / T_para at LFS
+            anis:    Temperature anisotropy T_perp / T_para at LFS
             danisdr: Radial gradient of temperature anisotropy
 
             kwargs (ion only):
@@ -69,6 +69,14 @@ class IonList(list):
     """
     def __init__(self, *args):
         super().__init__(args)
+
+    def __getitem__(self, key):
+        if isinstance(key, int) or isinstance(key, slice):
+            return super().__getitem__(key)
+        if key in Ion.keynames + Particle.keynames:
+            return [ion[key] for ion in self]
+        else:
+            raise NotImplementedError('getting of ' + key)
 
     def __setitem__(self, key, value):
         for ion in self:
@@ -138,11 +146,10 @@ class QuaLiKizXpoint(dict):
         """ Set density of 1st ion to maintian quasineutrality """
         if len(self['ions']) > 1:
             ions = filter(lambda x: x['type'] < 3, self['ions'][1:])
-            n0 = (1 -
-                                    sum(ion['n'] * ion['Z'] for ion in ions) /
-                                    self['ions'][0]['Z'])
+            n0 = ((1 - sum(ion['n'] * ion['Z'] for ion in ions)) /
+                  self['ions'][0]['Z'])
             if 0 > n0 or n0 > 1:
-                raise Exception('Given Zeff results in unphysical n_0/n_e = ' +
+                raise Exception('Quasineutrality results in unphysical n_0/n_e = ' +
                                 str(n0) +
                                 ' with Z = ' +
                                 str([ion['Z'] for ion in self['ions']]) +
@@ -226,9 +233,24 @@ class QuaLiKizXpoint(dict):
         # Sanity check
         # print(np.isclose(nustar_calc, nustar))
 
+    def calc_nustar(self):
+        zeff = self.calc_zeff()
+        c1 = (6.9224e-5 * zeff * self['elec']['n'] * self['geometry']['qx'] *
+              self['geometry']['Ro'] *
+              (self['geometry']['Rmin'] * self['geometry']['x'] /
+               self['geometry']['Ro']) ** -1.5)
+        c2 = 15.2 - 0.5 * np.log(0.1 * self['elec']['n'])
+        return c1 / self['elec']['T'] ** 2 * (c2 + np.log(self['elec']['T']))
+
     def match_tite(self, tite):
         """ Set all Ions temperature to match the given Ti/Te """
         self['ions']['T'] = tite * self['elec']['T']
+
+    def calc_tite(self):
+        for ion in self['ions'][0:]:
+            if ion['T'] != self['ions'][0]['T']:
+                raise Exception('Ions have non-equal temperatures')
+        return self['ions'][0]['T'] / self['elec']['T']
 
     class Meta(dict):
         """ Wraps variables that stay constant during the QuaLiKiz run """
@@ -318,6 +340,45 @@ class QuaLiKizXpoint(dict):
             self['Aupar'] = Autor / np.sqrt(1+(epsilon/qx)**2)
             self['gammaE'] = -epsilon/qx*Autor
 
+    def __getitem__(self, key):
+        """ Get value from nested dict
+        Use this method to get a value in the QuaLiKizRun class.
+        It adds some extra abstraction for the multi-layered structure
+        of the QuaLiKizRun class. You can get a specific internal variable,
+        or get an Electron variable by appending 'e', or get all Ions
+        by appending 'i'. You can also get a specific Ion with
+        'i#', for example 'i1'
+        """
+        if key == 'Zeff':
+            return self.calc_zeff()
+        elif key == 'Nustar':
+            return self.calc_nustar()
+        elif key == 'Ti_Te_rel':
+            return self.calc_tite()
+        elif key in self.Geometry.in_args + self.Geometry.extra_args:
+            return self['geometry'].__getitem__(key)
+        elif key in ['kthetarhos']:
+            return self['special'].__getitem__(key)
+        elif key in self.Meta.keynames:
+            return self['meta'].__getitem__(key)
+        elif key in ['ninorm1', 'Ani1', 'QN_grad', 'x_rho']:
+            return self['norm'].__getitem__(key)
+        elif key in ['geometry', 'special', 'meta', 'norm', 'ions', 'elec']:
+            return super().__getitem__(key)
+        elif key.endswith('i') or (key[-1].isdigit() and key[-2] == 'i'):
+            if key[-1].isdigit():
+                ionnumber = int(key[-1])
+                key = key[:-2]
+                return self['ions'][ionnumber].__getitem__(key)
+            else:
+                key = key[:-1]
+                return self['ions'].__getitem__(key)
+        elif key.endswith('e'):
+            key = key[:-1]
+            return self['elec'].__getitem__(key)
+        else:
+            raise NotImplementedError('getting of ' + key)
+
     def __setitem__(self, key, value):
         """ Set value in nested dict
         Use this method to set a value in the QuaLiKizRun class.
@@ -327,7 +388,29 @@ class QuaLiKizXpoint(dict):
         by appending 'i'. You can also set a specific Ion with
         'i#', for example 'i1'
         """
-        if key.endswith('i') or key[-1].isdigit():
+        if key == 'Zeff':
+            self.match_zeff(value)
+            if self['norm']['ninorm1']:
+                self.check_quasi()
+        elif key == 'Nustar':
+            self.match_nustar(value)
+        elif key == 'Ti_Te_rel':
+            self.match_tite(value)
+        elif key in self.Geometry.in_args + self.Geometry.extra_args:
+            if key == 'x' and self['norm']['x_rho']:
+                self['geometry'].__setitem__('rho', value)
+            if key == 'rho' and self['norm']['x_rho']:
+                self['geometry'].__setitem__('x', value)
+            self['geometry'].__setitem__(key, value)
+        elif key in ['kthetarhos']:
+            self['special'].__setitem__(key, value)
+        elif key in self.Meta.keynames:
+            self['meta'].__setitem__(key, value)
+        elif key in ['ninorm1', 'Ani1', 'QN_grad', 'x_rho']:
+            self['norm'].__setitem__(key, value)
+        elif key in ['geometry', 'special', 'meta', 'norm', 'ions', 'elec']:
+            super().__setitem__(key, value)
+        elif key.endswith('i') or (key[-1].isdigit() and key[-2] == 'i'):
             if key[-1].isdigit():
                 ionnumber = int(key[-1])
                 key = key[:-2]
@@ -351,7 +434,7 @@ class QuaLiKizXpoint(dict):
                         self.check_quasi()
 
             if (key not in Ion.keynames) and (key not in Particle.keynames):
-                raise Exception(key + ' does not exist!')
+                raise NotImplementedError('setting of ' + key + '=' + str(value))
         elif key.endswith('e'):
             key = key[:-1]
             self['elec'].__setitem__(key, value)
@@ -362,22 +445,8 @@ class QuaLiKizXpoint(dict):
                     self.normalize_gradient()
                 if self['norm']['QN_grad']:
                     self.check_quasi()
-        elif key in self.Geometry.in_args + self.Geometry.extra_args:
-            if key == 'x' and self['norm']['x_rho']:
-                self['geometry'].__setitem__('rho', value)
-            if key == 'rho' and self['norm']['x_rho']:
-                self['geometry'].__setitem__('x', value)
-            self['geometry'].__setitem__(key, value)
-        elif key == 'Zeff':
-            self.match_zeff(value)
-            if self['norm']['ninorm1']:
-                self.check_quasi()
-        elif key == 'Nustar':
-            self.match_nustar(value)
-        elif key == 'Ti_Te_rel':
-            self.match_tite(value)
         else:
-            super().__setitem__(key, value)
+            raise NotImplementedError('setting of ' + key + '=' + str(value))
 
 
 class QuaLiKizPlan(dict):

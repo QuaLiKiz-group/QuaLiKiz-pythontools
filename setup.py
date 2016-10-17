@@ -7,7 +7,7 @@ from subprocess import call
 
 from setuptools import Command, find_packages, setup
 
-from qualikiz_pythontools import __version__
+from qualikiz_tools import __version__
 
 
 this_dir = abspath(dirname(__file__))
@@ -28,7 +28,8 @@ class RunTests(Command):
 
     def run(self):
         """Run all tests!"""
-        errno = call(['py.test', '--cov=skele', '--cov-report=term-missing'])
+        errno = call(['py.test', '--cov=qualikiz_tools', '--cov-report=term-missing',
+                      '--ignore=lib/'])
         raise SystemExit(errno)
 
 
@@ -51,7 +52,7 @@ setup(
     ],
     keywords = 'cli',
     packages = find_packages(exclude=['docs', 'tests*']),
-    install_requires = ['docopt'],
+    install_requires = ['docopt', 'tabulate'],
     extras_require = {
         'test': ['coverage', 'pytest', 'pytest-cov'],
     },

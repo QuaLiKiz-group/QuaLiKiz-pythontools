@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Copyright Dutch Institute for Fundamental Energy Research (2016)
 Contributors: Karel van de Plassche (karelvandeplassche@gmail.com)
