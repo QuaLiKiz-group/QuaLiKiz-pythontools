@@ -16,4 +16,6 @@ if command.startswith('input'):
     batch.generate_input()
 
 if command.endswith('go'):
+    batch.clean()
     batch.queue_batch()
+
