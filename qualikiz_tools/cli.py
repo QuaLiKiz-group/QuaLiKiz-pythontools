@@ -63,6 +63,10 @@ def main():
         #print (docopt(create.__doc__, argv=argv))
         create.run(passing)
         #Create(argv).run()
+    elif args['<command>'] == 'dump':
+        from qualikiz_tools.commands import dump
+        #print (docopt(create.__doc__, argv=argv))
+        dump.run(passing)
     elif args['<command>'] == 'hello':
         from qualikiz_tools.commands import hello
         hello.run(passing)
