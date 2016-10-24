@@ -121,7 +121,6 @@ class TestQuaLiKizRun(TestCase):
         self.assertTrue(os.path.exists(os.path.join(rundir, 'input')))
         self.assertTrue(os.path.exists(os.path.join(rundir, 'testQuaLiKiz')))
         self.assertTrue(os.path.exists(os.path.join(rundir, 'qualikiz_tools')))
-        self.assertTrue(os.path.exists(os.path.join(rundir, 'run.py')))
         self.assertTrue(os.path.exists(os.path.join(rundir, 'parameters.json')))
 
     def test_generate_input(self):

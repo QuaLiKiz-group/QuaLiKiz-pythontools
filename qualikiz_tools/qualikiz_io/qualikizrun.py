@@ -107,6 +107,12 @@ class QuaLiKizBatch:
         batchpath = os.path.join(batchdir, self.scriptname)
         create_folder_prompt(batchdir, overwrite=overwrite_batch)
         self.batch.to_file(batchpath)
+        # Create link to python scripts
+        os.symlink(QuaLiKizRun.pythondir,
+                   os.path.join(batchdir, QuaLiKizRun.pythonreldir))
+        # Create link to run script
+        os.symlink(os.path.join(QuaLiKizRun.pythondir, 'qualikiz_io/run.py'),
+                   os.path.join(batchdir, 'run.py'))
         for run in self.runlist:
             run.prepare(overwrite=overwrite_runs)
 
@@ -403,11 +409,9 @@ class QuaLiKizRun:
         os.symlink(self.binaryrelpath,
                    os.path.join(rundir, binarybasepath))
         # Create link to python scripts
-        os.symlink(self.pythondir,
-                   os.path.join(rundir, self.pythonreldir))
-        # Create link to run script
-        os.symlink(os.path.join(self.pythondir, 'qualikiz_io/run.py'),
-                   os.path.join(rundir, 'run.py'))
+        if not os.path.exists(os.path.join(rundir, self.pythonreldir)):
+            os.symlink(self.pythondir,
+                       os.path.join(rundir, self.pythonreldir))
         # Create a parameters file
         self.qualikiz_plan.to_json(os.path.join(rundir, self.parameterspath))
 
@@ -460,7 +464,7 @@ class QuaLiKizRun:
         should depend on the dimxn per core.
         """
         dimxn = self.qualikiz_plan.calculate_dimxn()
-        cpus_per_dimxn = 1.8
+        cpus_per_dimxn = 1
         return dimxn * cpus_per_dimxn
 
     def calculate_tasks(self, cores, HT=True):
