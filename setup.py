@@ -52,7 +52,7 @@ setup(
     ],
     keywords = 'cli',
     packages = find_packages(exclude=['docs', 'tests*']),
-    install_requires = ['docopt', 'tabulate'],
+    install_requires = ['netCDF4', 'xarray', 'docopt', 'tabulate'],
     extras_require = {
         'test': ['coverage', 'pytest', 'pytest-cov'],
     },
