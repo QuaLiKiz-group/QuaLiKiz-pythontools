@@ -132,15 +132,18 @@ class QuaLiKizXpoint(dict):
 
         self['norm'] = {}
         self['norm']['ninorm1'] = kwargs.get('ninorm1', True)
-        if self['norm']['ninorm1']:
-            self.normalize_density()
+        #if self['norm']['ninorm1']:),
+        #    self.normalize_density()
         self['norm']['Ani1'] = kwargs.get('Ani1', True)
-        if self['norm']['Ani1']:
-            self.normalize_gradient()
+        #if self['norm']['Ani1']:
+        #    self.normalize_gradient()
         self['norm']['QN_grad'] = kwargs.get('QN_grad', True)
-        if self['norm']['QN_grad']:
-            self.check_quasi()
+        #if self['norm']['QN_grad']:
+        #    self.check_quasi()
         self['norm']['x_rho'] = kwargs.get('x_rho', True)
+        self['norm']['An_equal'] =  kwargs.get('An_equal', False)
+        self['norm']['recalc_Nustar'] =  kwargs.get('recalc_Nustar', False)
+        self['norm']['recalc_Ti_Te_rel'] =  kwargs.get('recalc_Ti_Te_rel', False)
 
     def normalize_density(self):
         """ Set density of 1st ion to maintian quasineutrality """
@@ -166,6 +169,9 @@ class QuaLiKizXpoint(dict):
                                           for ion in ions)) /
                                      (self['ions'][0]['Z'] *
                                       self['ions'][0]['n']))
+
+    def equalize_gradient(self):
+        self['ions']['An'] = self['elec']['An']
 
     def check_quasi(self):
         """ Check if quasineutrality is maintained """
@@ -200,8 +206,8 @@ class QuaLiKizXpoint(dict):
                                 ' and n = ' +
                                 str([ion['n'] for ion in self['ions']]))
             self['ions'][1]['n'] = n1
-            self.normalize_density()
-            self.normalize_gradient()
+            self.normalize_density() #Set n0
+            #self.normalize_gradient()
         # Sanity check
         # print ('Zeff = ' + str(zeff))
         # print ([ion['n'] for ion in self['ions']])
@@ -251,6 +257,12 @@ class QuaLiKizXpoint(dict):
             if ion['T'] != self['ions'][0]['T']:
                 raise Exception('Ions have non-equal temperatures')
         return self['ions'][0]['T'] / self['elec']['T']
+
+    def match_epsilon(self, epsilon):
+        self['geometry']['x'] = self['geometry']['Ro'] * epsilon / self['geometry']['Rmin']
+
+    def calc_epsilon(self):
+        return self['geometry']['x'] * self['geometry']['Rmin'] / self['geometry']['Ro']
 
     class Meta(dict):
         """ Wraps variables that stay constant during the QuaLiKiz run """
@@ -390,8 +402,6 @@ class QuaLiKizXpoint(dict):
         """
         if key == 'Zeff':
             self.match_zeff(value)
-            if self['norm']['ninorm1']:
-                self.check_quasi()
         elif key == 'Nustar':
             self.match_nustar(value)
         elif key == 'Ti_Te_rel':
@@ -415,36 +425,15 @@ class QuaLiKizXpoint(dict):
                 ionnumber = int(key[-1])
                 key = key[:-2]
                 self['ions'][ionnumber][key] = value
-                if key == 'n' or key == 'Z' or key == 'An':
-                    if self['norm']['ninorm1']:
-                        self.normalize_density()
-                    if self['norm']['Ani1']:
-                        self.normalize_gradient()
-                    if self['norm']['QN_grad']:
-                        self.check_quasi()
             else:
                 key = key[:-1]
                 self['ions'].__setitem__(key, value)
-                if key == 'n' or key == 'Z' or key == 'An':
-                    if self['norm']['ninorm1']:
-                        self.normalize_density()
-                    if self['norm']['Ani1']:
-                        self.normalize_gradient()
-                    if self['norm']['QN_grad']:
-                        self.check_quasi()
 
             if (key not in Ion.keynames) and (key not in Particle.keynames):
                 raise NotImplementedError('setting of ' + key + '=' + str(value))
         elif key.endswith('e'):
             key = key[:-1]
             self['elec'].__setitem__(key, value)
-            if key == 'n' or key == 'Z' or key == 'An':
-                if self['norm']['ninorm1']:
-                    self.normalize_density()
-                if self['norm']['Ani1']:
-                    self.normalize_gradient()
-                if self['norm']['QN_grad']:
-                    self.check_quasi()
         else:
             raise NotImplementedError('setting of ' + key + '=' + str(value))
 
@@ -529,23 +518,25 @@ class QuaLiKizPlan(dict):
         except ValueError:
             pass
         else:
-            if any(name in scan_names[index:] for name in ['ni', 'ni0']):
-                warn('Warning! Set ni before setting Zeff')
+            if any(name in scan_names[index:] for name in ['ni', 'ni0', 'ni1']):
+                warn('Warning! ni will overwrite Zeff!')
+            if any(name.startswith('ni') for name in scan_names[index:]):
+                warn('Warning! ni not taken into account while setting Zeff')
         try:
             index = scan_names.index('Nustar')
         except ValueError:
             pass
         else:
             if any(name in scan_names[index:] for name in
-                   ['Zeff', 'ne', 'q', 'Ro', 'Rmin', 'x', 'rho']):
-                warn('Warning! Set Zeff, ne, q, Ro, Rmin, x' +
+                   ['Zeff', 'ne', 'q', 'Ro', 'Rmin', 'x', 'rho', 'ni', 'ni0', 'ni1']):
+                warn('Warning! Set Zeff, ne, q, Ro, Rmin, x, ni' +
                      'and rho before setting Nustar')
         try:
             index = scan_names.index('Ti_Te_rel')
         except ValueError:
             pass
         else:
-            if any(name in scan_names[index:] for name in ['Te']):
+            if any(name in scan_names[index:] for name in ['Te', 'Nustar']):
                 warn('Warning! Set Te before setting Ti_Te_rel')
 
     def setup_scan(self, scan_names, scan_list):
@@ -592,8 +583,25 @@ class QuaLiKizPlan(dict):
         for scan_values in scan_list:
             numscan += 1
             # Set the dimxn point value to the value in the list.
+            if dimxpoint['norm']['recalc_Nustar']:
+                nustar = dimxpoint.calc_nustar()
+            if dimxpoint['norm']['recalc_Ti_Te_rel']:
+                Ti_Te_rel = dimxpoint.calc_tite()
             for scan_name, scan_value in zip(scan_names, scan_values):
                 dimxpoint[scan_name] = scan_value
+            if dimxpoint['norm']['An_equal']:
+                dimxpoint.equalize_gradient()
+            if dimxpoint['norm']['ninorm1']:
+                dimxpoint.normalize_density()
+            if dimxpoint['norm']['Ani1']:
+                dimxpoint.normalize_gradient()
+            if dimxpoint['norm']['QN_grad']:
+                dimxpoint.check_quasi()
+            if dimxpoint['norm']['recalc_Nustar']:
+                dimxpoint.match_nustar(nustar)
+            if dimxpoint['norm']['recalc_Ti_Te_rel']:
+                dimxpoint.match_tite(Ti_Te_rel)
+            
 
             # Now iterate over all the values in the xpoint dict and add them
             # to our array
