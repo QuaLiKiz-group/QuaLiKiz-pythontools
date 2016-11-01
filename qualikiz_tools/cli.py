@@ -13,6 +13,8 @@ Options:
 
 Examples:
   qualikiz_tools create
+  qualikiz_tools dump
+  qualikiz_tools output
 
 Help:
   For help using this tool, please open an issue on the Github repository:
@@ -67,6 +69,9 @@ def main():
         from qualikiz_tools.commands import dump
         #print (docopt(create.__doc__, argv=argv))
         dump.run(passing)
+    elif args['<command>'] == 'output':
+        from qualikiz_tools.commands import output
+        output.run(passing)
     elif args['<command>'] == 'hello':
         from qualikiz_tools.commands import hello
         hello.run(passing)
