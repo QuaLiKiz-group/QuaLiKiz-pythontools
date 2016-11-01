@@ -199,7 +199,7 @@ class QuaLiKizXpoint(dict):
                                      self['ions'][1]['Z'] *
                                      self['ions'][0]['Z']))
             if 0 > n1 or n1 > 1:
-                raise Exception('Given Zeff results in unphysical n_1/n_e = ' +
+                raise Exception('Zeff= ' + str(zeff) + ' results in unphysical n_1/n_e = ' +
                                 str(n1) +
                                 ' with Z = ' +
                                 str([ion['Z'] for ion in self['ions']]) +
@@ -367,6 +367,8 @@ class QuaLiKizXpoint(dict):
             return self.calc_nustar()
         elif key == 'Ti_Te_rel':
             return self.calc_tite()
+        elif key == 'epsilon':
+            return self.calc_epsilon()
         elif key in self.Geometry.in_args + self.Geometry.extra_args:
             return self['geometry'].__getitem__(key)
         elif key in ['kthetarhos']:
@@ -406,11 +408,9 @@ class QuaLiKizXpoint(dict):
             self.match_nustar(value)
         elif key == 'Ti_Te_rel':
             self.match_tite(value)
+        elif key == 'epsilon':
+            self.match_epsilon(value)
         elif key in self.Geometry.in_args + self.Geometry.extra_args:
-            if key == 'x' and self['norm']['x_rho']:
-                self['geometry'].__setitem__('rho', value)
-            if key == 'rho' and self['norm']['x_rho']:
-                self['geometry'].__setitem__('x', value)
             self['geometry'].__setitem__(key, value)
         elif key in ['kthetarhos']:
             self['special'].__setitem__(key, value)
@@ -589,6 +589,8 @@ class QuaLiKizPlan(dict):
                 Ti_Te_rel = dimxpoint.calc_tite()
             for scan_name, scan_value in zip(scan_names, scan_values):
                 dimxpoint[scan_name] = scan_value
+            if dimxpoint['norm']['x_rho']:
+                dimxpoint['geometry'].__setitem__('rho', dimxpoint['x'])
             if dimxpoint['norm']['An_equal']:
                 dimxpoint.equalize_gradient()
             if dimxpoint['norm']['ninorm1']:
