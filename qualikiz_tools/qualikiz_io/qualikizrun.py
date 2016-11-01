@@ -18,6 +18,9 @@ vcores_per_task = int(threads_per_task / threads_per_vcore)  # == 2
 
 from ..machine_specific.slurm import Srun, Sbatch
 from ..qualikiz_io.inputfiles import QuaLiKizPlan
+from ..qualikiz_io.outputfiles import (convert_debug, convert_output,
+                                       convert_primitive, squeeze_dataset,
+                                       orthogonalize_dataset, determine_sizes)
 from . import __path__ as ROOT
 ROOT = ROOT[0]
 
@@ -514,6 +517,7 @@ class QuaLiKizRun:
         """
         rundir = dir.rstrip('/')
         runsdir, name = os.path.split(rundir)
+        runsdir = os.path.abspath(runsdir)
         binarybasepath = os.path.basename(binaryrelpath)
         binaryrelpath = os.readlink(os.path.join(rundir, binarybasepath))
         planpath = os.path.join(rundir, cls.parameterspath)
@@ -536,6 +540,26 @@ class QuaLiKizRun:
             else:
                 warn('Found file at \'' + path + '\'')
         return path
+
+    def to_netcdf(self, mode='orthogonal', overwrite=None, encode={'zlib': True}):
+        netcdf_path = os.path.join(self.rundir, 'output.nc')
+        overwrite_prompt(netcdf_path, overwrite=overwrite)
+
+        sizes = determine_sizes(self.rundir)
+        ds = convert_debug(sizes, self.rundir)
+        ds = convert_output(ds, sizes, self.rundir)
+        ds = convert_primitive(ds, sizes, self.rundir)
+        if mode == 'orthogonal':
+            ds = squeeze_dataset(ds, sizes)
+            ds = orthogonalize_dataset(ds)
+
+        encoding = {}
+        for name, array in ds.items():
+            encoding[name] = {}
+            for enc_name, enc in encode.items():
+                encoding[name][enc_name] = enc
+        ds.to_netcdf(netcdf_path, engine='netcdf4',
+                     format='NETCDF4', encoding=encoding)
 
     def clean(self):
         """ Cleans run folder to state before it was run """
@@ -574,16 +598,23 @@ class QuaLiKizRun:
         return os.path.isfile(last_output)
 
 
-def create_folder_prompt(path, overwrite=None):
-    """ Overwrite folder promt """
+def overwrite_prompt(path, overwrite=None):
     if os.path.isfile(path) or os.path.isdir(path):
         if overwrite is None:
-            resp = input('folder exists, overwrite? [Y/n]')
+            resp = input('path exists, overwrite? [Y/n]')
             if resp == '' or resp == 'Y' or resp == 'y':
                 overwrite = True
         if overwrite:
             print('overwriting')
-            shutil.rmtree(path)
+            if os.path.isdir(path):
+                shutil.rmtree(path)
+            else:
+                os.remove(path)
         else:
-            return 1
+            raise Exception('File exists, ' +
+                            'but user does not want to overwrite')
+
+def create_folder_prompt(path, overwrite=None):
+    """ Overwrite folder promt """
+    overwrite_prompt(path, overwrite=overwrite)
     os.makedirs(path)
