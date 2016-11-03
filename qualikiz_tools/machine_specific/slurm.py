@@ -127,9 +127,8 @@ class Sbatch:
                             str(self.vcores_per_task) + '\n')
 
         # Write sruns to file
-        sbatch_lines.append(self.srun_instances[0].to_string())
-        for run_instance in self.srun_instances[1:]:
-            sbatch_lines.append(' &\n' + run_instance.to_string())
+        for run_instance in self.srun_instances:
+            sbatch_lines.append('\n' + run_instance.to_string())
         sbatch_lines.append('\n')
 
         with open(path, 'w') as file:
