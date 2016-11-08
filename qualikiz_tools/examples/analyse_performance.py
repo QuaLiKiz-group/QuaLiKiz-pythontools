@@ -14,9 +14,11 @@ import matplotlib
 #matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import numpy as np
+PACKAGE_PARENT = '..'
+SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
+sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
+from tabulate import tabulate
 
-from qualikiz.tabulate.tabulate import tabulate
-from qualikiz.sacct import acctstr_to_timedelta
 
 if len(sys.argv) < 2:
     raise Exception('Please supply a file to analyse')
@@ -70,6 +72,7 @@ query = db.execute("SELECT name FROM sqlite_master WHERE type='table'")
 rows = query.fetchall()
 tables = [x[0] for x in rows]
 if 'sacct' in tables:
+    from machine_specific.sacct import acctstr_to_timedelta
     query = db.execute('''SELECT JobID, Elapsed, NNodes, Total
                        FROM sacct
                            JOIN stdout ON sacct.JobID=stdout.Jobnumber
@@ -258,7 +261,7 @@ for marker, dimx, dimn in zip(markers, dimxs, dimns):
         figs[0].axes[0].set_yscale('log')
         figs[0].axes[0].errorbar(rawcpus, line, yerr=yerr, marker=marker)
         figs[0].axes[1].set_yscale('log')
-        figs[0].axes[1].errorbar(dimx/rawcpus, line, yerr=yerr, marker=marker)
+        figs[0].axes[1].errorbar(dimx/rawcpus, line*rawcpus/(dimx*dimn), yerr=yerr, marker=marker)
         figs[1].axes[0].set_xscale('log')
         figs[1].axes[0].errorbar(rawcpus, line_perc, yerr=yerr_perc, marker=marker)
         figs[1].axes[1].errorbar(dimx/rawcpus, line_perc, yerr=yerr_perc, marker=marker)
@@ -287,7 +290,7 @@ for fig in figs[:2]:
                   ['dimxn = ' + str(marker.get_label()) for marker in fake_markers])
 
 figs[0].axes[0].set_ylabel('Walltime [ms]')
-figs[0].axes[1].set_ylabel('Walltime [ms]')
+figs[0].axes[1].set_ylabel('CPUs per dimxn [ms]')
 figs[0].axes[0].set_xlabel('Raw CPUs')
 figs[0].axes[1].set_xlabel('Dimx per CPU')
 

@@ -11,9 +11,9 @@ import json
 from warnings import warn
 import datetime
 
-from .tabulate.tabulate import tabulate
+from tabulate import tabulate
 
-from .qualikizrun import QuaLiKizRun, QuaLiKizBatch
+from ..qualikz_io.qualikizrun import QuaLiKizRun, QuaLiKizBatch
 from .basicpoll import database_exists
 
 
