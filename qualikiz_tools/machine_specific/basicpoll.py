@@ -8,8 +8,8 @@ import sqlite3
 import json
 import re
 
-from .qualikizrun import QuaLiKizBatch
-from .tabulate.tabulate import tabulate
+from ..qualikiz_io.qualikizrun import QuaLiKizBatch
+from tabulate import tabulate
 
 
 def database_exists(database_path, table_name, append=None, overwrite=None):
