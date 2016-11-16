@@ -51,11 +51,11 @@ class QuaLiKizBatch:
     scriptname = 'edison.sbatch'
 
     def __init__(self, batchsdir, name, runlist, ncpu,
-                 safetytime=1.5, style='sequential',
+                 safetytime=2, style='sequential',
                  stdout=Sbatch.default_stdout,
                  stderr=Sbatch.default_stderr,
                  filesystem='SCRATCH', partition='regular',
-                 qos='normal', HT=True,
+                 qos='normal', repo=None, HT=True,
                  vcores_per_task=vcores_per_task):
         """ Initialize a batch
         Arguments:
@@ -90,6 +90,7 @@ class QuaLiKizBatch:
                                                stdout=stdout, stderr=stderr,
                                                filesystem=filesystem,
                                                partition=partition,
+                                               repo=repo,
                                                qos=qos,
                                                HT=HT)
 
@@ -133,7 +134,7 @@ class QuaLiKizBatch:
                              stdout=Sbatch.default_stdout,
                              stderr=Sbatch.default_stderr,
                              filesystem='SCRATCH', partition='regular',
-                             qos='normal', HT=True,
+                             qos='normal', repo=None, HT=True,
                              vcores_per_task=vcores_per_task):
         """ Generate the batch script
         Currently only supports edison-style run scripts.
@@ -175,7 +176,7 @@ class QuaLiKizBatch:
             batch = Sbatch(runclasslist, self.name, tasks, maxtime,
                            stdout=stdout, stderr=stderr,
                            filesystem=filesystem, partition=partition,
-                           qos=qos, HT=HT,
+                           qos=qos, repo=repo, HT=HT,
                            vcores_per_task=vcores_per_task)
         return batch
 
@@ -288,6 +289,7 @@ class QuaLiKizBatch:
         with open(batchinfopath, 'w') as file_:
             # Some magic to correctly handle date/time info
             json.dump(batchinfo, file_, default=self.dthandler)
+        return batchinfo['jobnumber']
 
     def dthandler(self, obj):
         if isinstance(obj, datetime.datetime):
@@ -345,6 +347,7 @@ class QuaLiKizRun:
     primitivedir = 'output/primitive'
     debugdir = 'debug'
     inputdir = 'input'
+    netcdfpath = 'output.nc'
 
     def __init__(self, runsdir, name, binaryrelpath, qualikiz_plan=None,
                  stdout=Srun.default_stdout,
@@ -467,7 +470,7 @@ class QuaLiKizRun:
         should depend on the dimxn per core.
         """
         dimxn = self.qualikiz_plan.calculate_dimxn()
-        cpus_per_dimxn = 1
+        cpus_per_dimxn = 0.8
         return dimxn * cpus_per_dimxn
 
     def calculate_tasks(self, cores, HT=True):
@@ -542,7 +545,7 @@ class QuaLiKizRun:
         return path
 
     def to_netcdf(self, mode='orthogonal', overwrite=None, encode={'zlib': True}):
-        netcdf_path = os.path.join(self.rundir, 'output.nc')
+        netcdf_path = os.path.join(self.rundir, QuaLiKizRun.netcdfpath)
         overwrite_prompt(netcdf_path, overwrite=overwrite)
 
         sizes = determine_sizes(self.rundir)
@@ -594,7 +597,7 @@ class QuaLiKizRun:
         return NotImplemented
 
     def is_done(self):
-        last_output = os.path.join(self.rundir, 'output/ivf_GB.dat')
+        last_output = os.path.join(self.rundir, 'output/vfi_GB.dat')
         return os.path.isfile(last_output)
 
 
@@ -604,17 +607,19 @@ def overwrite_prompt(path, overwrite=None):
             resp = input('path exists, overwrite? [Y/n]')
             if resp == '' or resp == 'Y' or resp == 'y':
                 overwrite = True
+            else:
+                overwrite = False
         if overwrite:
             print('overwriting')
             if os.path.isdir(path):
                 shutil.rmtree(path)
             else:
                 os.remove(path)
-        else:
-            raise Exception('File exists, ' +
-                            'but user does not want to overwrite')
+    else:
+        overwrite = True
+    return overwrite
 
 def create_folder_prompt(path, overwrite=None):
     """ Overwrite folder promt """
-    overwrite_prompt(path, overwrite=overwrite)
-    os.makedirs(path)
+    if overwrite_prompt(path, overwrite=overwrite):
+        os.makedirs(path)

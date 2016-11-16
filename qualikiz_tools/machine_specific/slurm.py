@@ -57,7 +57,7 @@ class Sbatch:
     def __init__(self, srun_instances, name, tasks, maxtime,
                  stdout=default_stdout, stderr=default_stderr,
                  filesystem='SCRATCH', partition='regular',
-                 qos='normal', HT=True,
+                 qos='normal', repo=None, HT=True,
                  vcores_per_task=2):
         """ Initialize Edison batch job
         Arguments:
@@ -102,6 +102,7 @@ class Sbatch:
                  str(self.tasks_per_node) + ' tasks per node. Using ' +
                  str(self.nodes) + ' nodes.')
 
+        self.repo = repo
         self.qos = qos
         self.maxtime = maxtime
         self.partition = partition
