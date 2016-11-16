@@ -135,8 +135,10 @@ class QuaLiKizBatch:
         Keyword arguments:
             - dotprint: Print a dot after each generation. Used for debugging.
         """
-        for run in self.runlist:
-            run.generate_input(dotprint=dotprint)
+        tasks = min((mp.cpu_count(), len(self.runlist)))
+
+        pool = mp.Pool(processes=tasks)
+        pool.map(QuaLiKizRun.generate_input, self.runlist)
 
     def generate_batchscript(self, ncpu,
                              safetytime=1.5, style='sequential',
@@ -325,7 +327,7 @@ class QuaLiKizBatch:
                                           shell=True)
         ram = int(raw_ram.decode('UTF-8').strip())
         max_ramtasks = math.floor(ram * 0.9 /(1.5 * 1024**2))
-        tasks = max((mp.cpu_count(), len(self.runlist)))
+        tasks = min((mp.cpu_count(), len(self.runlist)))
         tasks = min((tasks, max_ramtasks))
         
         pool = mp.Pool(processes=tasks)
