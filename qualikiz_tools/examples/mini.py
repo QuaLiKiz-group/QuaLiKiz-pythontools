@@ -11,6 +11,7 @@ from qualikiz_tools.qualikiz_io.qualikizrun import QuaLiKizBatch, QuaLiKizRun
 from qualikiz_tools import __path__ as PATH  
 PATH = PATH[0]
 
+dirname = '../runs'
 if len(sys.argv) == 2:
     if sys.argv[1] != '':
         dirname = sys.argv[1]
