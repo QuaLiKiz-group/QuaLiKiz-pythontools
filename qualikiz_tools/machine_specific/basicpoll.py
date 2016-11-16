@@ -7,9 +7,11 @@ import os
 import sqlite3
 import json
 import re
+from warnings import warn
 
 from ..qualikiz_io.qualikizrun import QuaLiKizBatch
 from tabulate import tabulate
+from warnings import warn
 
 
 def database_exists(database_path, table_name, append=None, overwrite=None):
@@ -96,7 +98,7 @@ def poll_stdout(stdoutpath):
 
     # Sanity check
     if len(header) < 10:
-        raise Exception('Could not extract all profiling data')
+        warn('Could not extract all profiling data')
 
     if len(header) != len(list_):
         raise Exception('Header and list do not have the same length')
