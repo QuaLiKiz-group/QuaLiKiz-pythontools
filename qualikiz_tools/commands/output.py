@@ -1,7 +1,7 @@
 """
 Usage: 
-  qualikiz_tools [-v | -vv] output <command> <target_path>
-  qualikiz_tools [-v | -vv] output help
+  qualikiz_tools output [-v | -vv] [--nocube] <command> <target_path>
+  qualikiz_tools output [-v | -vv] help
 
 Options:
   -h --help                         Show this screen.
@@ -17,9 +17,9 @@ from subprocess import call
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
+from qualikiz_tools.qualikiz_io.qualikizrun import QuaLiKizRun, QuaLiKizBatch
 from qualikiz_tools import __version__ as VERSION
 from qualikiz_tools import __path__ as ROOT
-from qualikiz_tools.qualikiz_io.qualikizrun import QuaLiKizBatch, QuaLiKizRun
 ROOT = ROOT[0]
 
 if __name__ == '__main__':
@@ -36,25 +36,75 @@ def run(args):
     dirtype = None
     if args['<target_path>']:
         if os.path.exists(os.path.join(args['<target_path>'], QuaLiKizRun.parameterspath)):
-            dirtype = 'run'
-        elif os.path.exists(os.path.join(args['<target_path>'], QuaLiKizBatch.scriptname)):
-            dirtype = 'batch'
-
-        if args['-v'] >= 1:
-            print('Supplied dir ' + args['<target_path>'] + ' is of type ' + dirtype)
-
-
-    if args['<command>'] == 'to_netcdf':
-        if dirtype == 'run':
             binaryname = None
             pos_binname = ['QuaLiKiz','QuaLiKiz+pat']
             for file in  os.listdir(args['<target_path>']):
                 if file in pos_binname:
                     binaryname = file
                     break
-
+            dirtype = 'run'
             run = QuaLiKizRun.from_dir(args['<target_path>'], binaryname)
-            run.to_netcdf()
+        elif os.path.exists(os.path.join(args['<target_path>'], QuaLiKizBatch.scriptname)):
+            dirtype = 'batch'
+            batch = QuaLiKizBatch.from_dir(args['<target_path>'])
+        else:
+            raise Exception('Could not determine folder type')
+
+        if args['-v'] >= 1:
+            print('Supplied dir ' + args['<target_path>'] + ' is of type ' + str(dirtype))
+
+
+    if args['<command>'] == 'to_netcdf':
+        if dirtype == 'run':
+            if args['--nocube']:
+                run.to_netcdf(mode='nocube')
+            else:
+                run.to_netcdf()
+        elif dirtype == 'batch':
+            if args['--nocube']:
+                batch.to_netcdf(mode='nocube')
+            else:
+                batch.to_netcdf()
+
+    elif args['<command>'] == 'squeeze':
+        from qualikiz_tools.qualikiz_io.outputfiles import squeeze_dataset, orthogonalize_dataset, determine_sizes
+        import xarray as xr
+        if dirtype == 'run':
+            sizes = determine_sizes(run.rundir)
+            name = os.path.basename(run.rundir)
+            netcdf_path = os.path.join(run.rundir, name + '.nc')
+
+            with xr.open_dataset(netcdf_path) as ds:
+                dsnew = ds.load()
+            dsnew = squeeze_dataset(dsnew, sizes)
+            dsnew.to_netcdf(netcdf_path)
+        elif dirtype == 'batch':
+            raise NotImplementedError()
+
+    elif args['<command>'] == 'to_cube':
+        from qualikiz_tools.qualikiz_io.outputfiles import squeeze_dataset, orthogonalize_dataset, determine_sizes
+        import xarray as xr
+        if dirtype == 'run':
+            sizes = determine_sizes(run.rundir)
+            name = os.path.basename(run.rundir)
+            netcdf_path = os.path.join(run.rundir, name + '.nc')
+            with xr.open_dataset(netcdf_path) as ds:
+                dsnew = ds.load()
+            dsnew = orthogonalize_dataset(dsnew)
+            dsnew.to_netcdf(netcdf_path)
+        elif dirtype == 'batch':
+            raise NotImplementedError()
+
+    elif args['<command>'] == 'add_dims':
+        from qualikiz_tools.qualikiz_io.outputfiles import add_dims
+        import xarray as xr
+        if dirtype == 'run':
+            name = os.path.basename(run.rundir)
+            netcdf_path = os.path.join(run.rundir, name + '.nc')
+            with xr.open_dataset(netcdf_path) as ds:
+                dsnew = ds.load()
+            dsnew = add_dims(dsnew, ['smag', 'Nex'])
+            dsnew.to_netcdf(netcdf_path + '.newdim')
         elif dirtype == 'batch':
             raise NotImplementedError()
 
