@@ -57,7 +57,7 @@ class Sbatch:
     def __init__(self, srun_instances, name, tasks, maxtime,
                  stdout=default_stdout, stderr=default_stderr,
                  filesystem='SCRATCH', partition='regular',
-                 qos='normal', HT=True,
+                 qos='normal', repo=None, HT=True,
                  vcores_per_task=2):
         """ Initialize Edison batch job
         Arguments:
@@ -102,6 +102,7 @@ class Sbatch:
                  str(self.tasks_per_node) + ' tasks per node. Using ' +
                  str(self.nodes) + ' nodes.')
 
+        self.repo = repo
         self.qos = qos
         self.maxtime = maxtime
         self.partition = partition
@@ -126,9 +127,8 @@ class Sbatch:
                             str(self.vcores_per_task) + '\n')
 
         # Write sruns to file
-        sbatch_lines.append(self.srun_instances[0].to_string())
-        for run_instance in self.srun_instances[1:]:
-            sbatch_lines.append(' &\n' + run_instance.to_string())
+        for run_instance in self.srun_instances:
+            sbatch_lines.append('\n' + run_instance.to_string())
         sbatch_lines.append('\n')
 
         with open(path, 'w') as file:

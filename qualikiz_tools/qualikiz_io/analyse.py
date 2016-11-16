@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy as sc
 import os
-from matplotlib.widgets import Slider
+from matplotlib.widgets import Slider, Button
 import time
 from cycler import cycler
 from collections import OrderedDict
@@ -24,15 +24,13 @@ def find_nearest(array,value):
 
 starttime = time.time()
 
-ds = xr.open_dataset('output.nc')
-rundir = 'runs/x0.15Ti_Te_rel1.0Zeff1.0Nustar0.001/smag1.0'
-suffix = '.dat'
+ds = xr.open_dataset('runs/Zeff1.7epsilon0.15Nustar0.01Ti_Te_rel1.33.nc')
+ds = xr.open_dataset('runs/Zeff1.3epsilon0.15Nustar1e-05Ti_Te_rel0.75.nc')
 
-xaxis_name = 'qx'
-xaxis_name = 'An'
+xaxis_name = 'Ate'
 y_axis = 'efi_GB'
 
-scan_dims = [name for name in ds.dims if name not in ['nions', 'numsols', 'dimn'] and name != xaxis_name]
+scan_dims = [name for name in ds.dims if name not in ['nions', 'numsols', 'kthetarhos']]
 
 slider_dict = OrderedDict()
 numslider = 0
@@ -43,15 +41,22 @@ for name in scan_dims:
         numslider += 1
 print ('analysed sliders at t=' + str(time.time() - starttime))
 
+slice_ = xr.Dataset()
 def update(val):
     starttime = time.time()
     sel_dict = {}
     for name, sliders in slider_dict.items():
-        sel_dict[name] = sliders[0]['slider'].val
-
-    slice_ = ds.sel(method='nearest', **sel_dict)
+        if name != xaxis_name:
+            sel_dict[name] = sliders[0]['slider'].val
+    global slice_
+    slice_new = ds.sel(method='nearest', **sel_dict)
+    if not slice_.equals(slice_new):
+        slice_ = slice_new
+    else:
+        return
     for name, sliders in slider_dict.items():
-        sliders[0]['dispval'].set_text('{0:.3g}'.format(float(slice_[name])))
+        if name != xaxis_name:
+            sliders[0]['dispval'].set_text('{0:.3g}'.format(float(slice_[name])))
 
     print ('Slicing took              ' + str(time.time() - starttime) + ' s')
     starttime = time.time()
@@ -59,48 +64,83 @@ def update(val):
     #slice_ = ds.where(bool, drop=True)
     x = slice_[xaxis_name]
     y = slice_[y_axis]
+    elec_y_axis = y_axis[:2] + 'e' + y_axis[-3:]
     mainax.lines.clear() 
-    mainax.plot(x.data, y.data, marker='o', color='blue')
+    mainax.set_prop_cycle(cycler('color', [plt.cm.prism(i) for i in np.linspace(0, 1, len(ds['nions']) + 1)]))
+    mainax.plot(x.data, slice_[elec_y_axis], marker='o')
+    mainax.plot(x.data, y.data, marker='o')
 
     print ('Plotting variable took    ' + str(time.time() - starttime) + ' s')
-    starttime = time.time()
 
     growax.lines.clear() 
     freqax.lines.clear()
-    slice_gam = slice_['gam_GB'].stack(sol=('numsols','dimn'))
-    slice_gam = slice_gam.where(slice_gam!= 0).dropna(xaxis_name, how='all')
-    slice_gam = slice_gam.dropna('sol', how='all')
-    slice_ome = slice_['ome_GB'].stack(sol=('numsols','dimn'))
-    slice_ome = slice_ome.where(slice_ome!= 0).dropna(xaxis_name, how='all')
-    slice_ome = slice_ome.dropna('sol', how='all')
-    print ('Slicing growthrates/few   ' + str(time.time() - starttime) + ' s')
-    starttime = time.time()
+    for numsol in slice_['numsols']:
+        starttime = time.time()
+        slice_gam = slice_['gam_GB'].sel(numsols=numsol)
+        #gamy = slice_gam.where(slice_gam!=0)
+        gamy = slice_gam
+        gamx, yv = np.meshgrid(slice_gam['kthetarhos'], slice_gam['An'])
 
-    color = takespread(plt.get_cmap('plasma').colors, slice_.dims['dimn'])
-    growax.set_prop_cycle(cycler('color', color))
-    growax.plot(np.repeat(np.atleast_2d(slice_gam[xaxis_name]),slice_gam['sol'].size,axis=0).T, slice_gam, marker='o')
-    color = takespread(plt.get_cmap('plasma').colors, slice_.dims['dimn'])
-    freqax.set_prop_cycle(cycler('color', color))
-    freqax.plot(np.repeat(np.atleast_2d(slice_ome[xaxis_name]),slice_ome['sol'].size,axis=0).T, slice_ome, marker='o')
+        slice_ome = slice_['ome_GB'].sel(numsols=numsol)
+        #omey = slice_ome.where(slice_ome!=0)
+        omey = slice_ome
+        omex, yv = np.meshgrid(slice_ome['kthetarhos'], slice_ome['An'])
+        print ('Slicing growthrates/few   ' + str(time.time() - starttime) + ' s')
+
+        #slice_gam = slice_['gam_GB'].stack(sol=('numsols','kthetarhos'))
+        #slice_gam = slice_gam.where(slice_gam!= 0).dropna(xaxis_name, how='all')
+        #slice_gam = slice_gam.dropna('sol', how='all')
+        #slice_ome = slice_['ome_GB'].stack(sol=('numsols','kthetarhos'))
+        #slice_ome = slice_ome.where(slice_ome!= 0).dropna(xaxis_name, how='all')
+        #slice_ome = slice_ome.dropna('sol', how='all')
+        starttime = time.time()
+
+        color = takespread(plt.get_cmap('plasma').colors, slice_.dims[xaxis_name])
+        growax.set_prop_cycle(cycler('color', color))
+        growax.loglog(gamx.T, gamy.T)
+
+        color = takespread(plt.get_cmap('plasma').colors, slice_.dims[xaxis_name])
+        freqax.set_prop_cycle(cycler('color', color))
+        freqax.loglog(omex.T, omey.T)
 
     print ('Plotting growthrates/few  ' + str(time.time() - starttime) + ' s')
     mainax.figure.canvas.draw()
 
+def swap_x(event):
+    for name, slider_list in slider_dict.items():
+        for i, slider_entry in enumerate(slider_list):
+            if slider_entry['button'].ax == event.inaxes:
+                clicked_name = name
+                clicked_num = i
+                slider_entry['slider'].poly.set_color('green')
+                slider_entry['slider'].active = False
+            else:
+                slider_entry['slider'].poly.set_color('blue')
+                slider_entry['slider'].active = True
+    global xaxis_name
+    xaxis_name = clicked_name
+    mainax.set_xlabel(xaxis_name)
+    update('')
+    mainax.relim()      # make sure all the data fits
+    mainax.autoscale()  # auto-scale
+    mainax.figure.canvas.draw()
+
+            
 
 width = 14
 fig = plt.figure()
 fig.set_tight_layout(True)
-gs = gridspec.GridSpec(numslider*2 + 1,width, )
+gs = gridspec.GridSpec(numslider*4 + 1,width)
 slidenr = 0
-mainplot = gs[:numslider,:]
-mainax = plt.subplot(gs[:numslider,:int((width-2)/3)])
-growax = plt.subplot(gs[:numslider,int((width-2)/3):int(2*(width-2)/3)])
-freqax = plt.subplot(gs[:numslider,int(2*(width-2)/3):width-2])
+#mainplot = gs[:numslider*2,:]
+mainax = plt.subplot(gs[:numslider*2,:int((width-2)/3)])
+growax = plt.subplot(gs[:numslider*2,int((width-2)/3):int(2*(width-2)/3)])
+freqax = plt.subplot(gs[:numslider*2,int(2*(width-2)/3):width-2])
 mainax.set_xlabel(xaxis_name)
 mainax.set_ylabel(y_axis)
-growax.set_xlabel(xaxis_name)
+growax.set_xlabel('kthetarhos')
 growax.set_ylabel('gam_GB')
-freqax.set_xlabel(xaxis_name)
+freqax.set_xlabel('kthetarhos')
 freqax.set_ylabel('ome_GB')
 tableax = plt.subplot(gs[:numslider,-2:])
 pos_scans = [
@@ -116,10 +156,10 @@ pos_scans = [
 tab = {}
 cellText = []
 
-for name, value in ds.attrs.items():
-    if name in pos_scans:
+for name, value in ds.coords.items():
+    if name in pos_scans and name not in slider_dict:
         tab[name] = value
-        cellText.append([name, '{0:.1g}'.format(value)])
+        cellText.append([name, '{0:.1g}'.format(float(value))])
 tableax.axis('off')
 table = tableax.table(cellText=cellText, loc='center')
 #table.set_fontsize(matplotlib.rcParams['font.size'])
@@ -131,52 +171,39 @@ print ('initialized plots at t=' + str(time.time() - starttime))
 for name, slider_list in slider_dict.items():
     for i, slider_entry in enumerate(slider_list):
         slidenr +=1
-        ax = plt.subplot(gs[numslider+slidenr, :width-2])
+        ax = plt.subplot(gs[2*numslider+2*slidenr-1:2*numslider+2*slidenr, 2:width-2])
+        print(numslider+slidenr, width-2)
         posvals = slider_entry['posvals']
         if len(slider_list) > 1:
             label = name+str(i)
         else:
             label = name
-        slider = Slider(ax, label, np.min(posvals), np.max(posvals), valinit=find_nearest(posvals, np.median(posvals)))
+        slider = Slider(ax, '', np.min(posvals), np.max(posvals), valinit=find_nearest(posvals, np.median(posvals)))
         slider.valtext.set_visible(False)
         slider.on_changed(update)
+        if name == xaxis_name:
+            slider.poly.set_color('green')
+            slider.active = False
         slider_entry['slider'] = slider
-        ax = plt.subplot(gs[numslider+slidenr, -2:], frameon=False)
+        ax = plt.subplot(gs[2*numslider+2*slidenr-1:2*numslider+2*slidenr, -2:], frameon=False)
         ax.axis('off')
         dispval = ax.text(0.5,0.5,slider.val)
         slider_entry['dispval'] = dispval
+        ax = plt.subplot(gs[2*numslider+2*slidenr-1:2*numslider+2*slidenr, :2])
+        but = Button(ax, label, color='0.5')
+        but.on_clicked(swap_x)
+        slider_entry['button'] = but
 print ('build sliders at t=' + str(time.time() - starttime))
 
+fakelines = []
+#mainax.set_prop_cycle(cycler('color', plt.get_cmap('Paired')))
+mainax.set_prop_cycle(cycler('color', [plt.cm.prism(i) for i in np.linspace(0, 1, len(ds['nions']) + 1)]))
+for i in range(len(ds['nions']) + 1):
+    fakelines.extend(mainax.plot([],[]))
+
+names = ['elec']
+names.extend(['A = ' + str(Ai.data) for Ai in ds['Ai']])
+mainax.legend(fakelines, names, loc='upper left', fontsize='small')
 update('')
 print ('plotted at t=' + str(time.time() - starttime))
-#fig = plt.figure()
-#axes = []
-#import itertools
-#plot_dims = scan_dims + [xaxis_name]
-#outer_grid = gridspec.GridSpec(4, 4, wspace=0.0, hspace=0.0)
-#row_dim = plot_dims[2]
-#col_dim = plot_dims[3]
-#num_row_bins = 4
-#num_col_bins = 4
-#row_bins = ds.groupby_bins(row_dim, num_row_bins)
-#bins = []
-#for __, row_bin in row_bins:
-#    bins.append(row_bin.groupby_bins(col_dim, num_col_bins))
-##col_bins = ds.groupby_bins(col_dim, num_col_bins)
-#outer_grid = gridspec.GridSpec(num_row_bins, num_col_bins)
-#ylim = [ds[y_axis].min(), ds[y_axis].max()]
-#x = ds[plot_dims[0]]
-#
-#
-#for i, bin in enumerate(bins):
-#    for j, (__, el) in enumerate(bin):
-#        ax = plt.Subplot(fig, outer_grid[i*num_col_bins+j])
-#        y = el[y_axis]
-#        for l in ds[plot_dims[1]]:
-#            y = el[y_axis].sel(**{plot_dims[1]: l}).mean(dim=[col_dim, row_dim])
-#            ax.plot(x, y)
-#        fig.add_subplot(ax)
-#
-#    sel_dict = {}
-
 plt.show()

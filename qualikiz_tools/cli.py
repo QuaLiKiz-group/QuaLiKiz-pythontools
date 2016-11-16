@@ -37,10 +37,6 @@ from qualikiz_tools import __version__ as VERSION
 def main():
     """Main CLI entrypoint."""
     import sys
-    from qualikiz_tools import commands
-    from qualikiz_tools import qualikiz_io
-    from qualikiz_tools import machine_specific
-    from qualikiz_tools import fs_manipulation
 
     args = docopt(__doc__, version=VERSION, options_first=True)
     argv = [args['<command>']] + args['<args>']
@@ -62,16 +58,16 @@ def main():
 
     if args['<command>'] == 'create':
         from qualikiz_tools.commands import create
-        #print (docopt(create.__doc__, argv=argv))
         create.run(passing)
-        #Create(argv).run()
     elif args['<command>'] == 'dump':
         from qualikiz_tools.commands import dump
-        #print (docopt(create.__doc__, argv=argv))
         dump.run(passing)
     elif args['<command>'] == 'output':
         from qualikiz_tools.commands import output
         output.run(passing)
+    elif args['<command>'] == 'poll':
+        from qualikiz_tools.commands import poll
+        poll.run(passing)
     elif args['<command>'] == 'hello':
         from qualikiz_tools.commands import hello
         hello.run(passing)

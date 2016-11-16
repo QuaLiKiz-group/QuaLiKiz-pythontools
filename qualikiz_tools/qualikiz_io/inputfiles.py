@@ -597,12 +597,12 @@ class QuaLiKizPlan(dict):
                 dimxpoint.normalize_density()
             if dimxpoint['norm']['Ani1']:
                 dimxpoint.normalize_gradient()
-            if dimxpoint['norm']['QN_grad']:
-                dimxpoint.check_quasi()
             if dimxpoint['norm']['recalc_Nustar']:
                 dimxpoint.match_nustar(nustar)
             if dimxpoint['norm']['recalc_Ti_Te_rel']:
                 dimxpoint.match_tite(Ti_Te_rel)
+            if dimxpoint['norm']['QN_grad']:
+                dimxpoint.check_quasi()
             
 
             # Now iterate over all the values in the xpoint dict and add them

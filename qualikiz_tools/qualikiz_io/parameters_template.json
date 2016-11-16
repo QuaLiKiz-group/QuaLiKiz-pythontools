@@ -24,12 +24,12 @@
     "scan_type": "hyperedge",
     "xpoint_base": {
         "meta": {
-            "phys_meth": 2,
+            "phys_meth": 1,
             "coll_flag": true,
             "rot_flag": false,
             "verbose": true,
-            "separateflux": false,
-            "numsols": 3,
+            "separateflux": true,
+            "numsols": 2,
             "relacc1": 0.001,
             "relacc2": 0.02,
             "maxruns": 1,
@@ -40,21 +40,23 @@
         "special": {
             "kthetarhos": [
                 0.1,
-                0.2,
-                0.3,
+                0.175,
+                0.25,
+                0.325,
                 0.4,
                 0.5,
                 0.6,
-                0.7,
                 0.8,
+                1.0,
+                2.0,
+                3.5,
                 6.0,
-                12.0,
-                18.0,
-                24.0,
-                30.0,
-                36.0,
-                42.0,
-                48.0
+                10.5,
+                15,
+                19.5,
+                24,
+                30,
+                36
             ]
         },
         "spatial": {
@@ -103,17 +105,6 @@
                 "danisdr": 0.0,
                 "A": 9.0,
                 "Z": 4.0
-            },
-            {
-                "T": 8.0,
-                "n": 0.0,
-                "At": 0.0,
-                "An": 3.0,
-                "type": 3,
-                "anis": 1.0,
-                "danisdr": 0.0,
-                "A": 184.0,
-                "Z": 42.0
             }
         ],
         "norm": {

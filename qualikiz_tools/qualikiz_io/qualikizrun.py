@@ -9,8 +9,15 @@ import subprocess
 import warnings
 from warnings import warn
 from collections import OrderedDict
+import math
 import shutil
 import json
+from multiprocessing import Process, Manager
+import multiprocessing as mp
+import subprocess
+import pickle
+from qualikiz_tools.qualikiz_io.outputfiles import find_nonmatching_coords, merge_orthogonal, sort_dims
+from IPython import embed
 
 threads_per_task = 2  # Stuck as per QuaLiKiz code
 threads_per_vcore = 1  # Never give one (virtual) CPU more than one task
@@ -22,6 +29,8 @@ from ..qualikiz_io.outputfiles import (convert_debug, convert_output,
                                        convert_primitive, squeeze_dataset,
                                        orthogonalize_dataset, determine_sizes)
 from . import __path__ as ROOT
+
+import xarray as xr
 ROOT = ROOT[0]
 
 
@@ -51,11 +60,11 @@ class QuaLiKizBatch:
     scriptname = 'edison.sbatch'
 
     def __init__(self, batchsdir, name, runlist, ncpu,
-                 safetytime=1.5, style='sequential',
+                 safetytime=2, style='sequential',
                  stdout=Sbatch.default_stdout,
                  stderr=Sbatch.default_stderr,
                  filesystem='SCRATCH', partition='regular',
-                 qos='normal', HT=True,
+                 qos='normal', repo=None, HT=True,
                  vcores_per_task=vcores_per_task):
         """ Initialize a batch
         Arguments:
@@ -90,6 +99,7 @@ class QuaLiKizBatch:
                                                stdout=stdout, stderr=stderr,
                                                filesystem=filesystem,
                                                partition=partition,
+                                               repo=repo,
                                                qos=qos,
                                                HT=HT)
 
@@ -125,15 +135,17 @@ class QuaLiKizBatch:
         Keyword arguments:
             - dotprint: Print a dot after each generation. Used for debugging.
         """
-        for run in self.runlist:
-            run.generate_input(dotprint=dotprint)
+        tasks = min((mp.cpu_count(), len(self.runlist)))
+
+        pool = mp.Pool(processes=tasks)
+        pool.map(QuaLiKizRun.generate_input, self.runlist)
 
     def generate_batchscript(self, ncpu,
                              safetytime=1.5, style='sequential',
                              stdout=Sbatch.default_stdout,
                              stderr=Sbatch.default_stderr,
                              filesystem='SCRATCH', partition='regular',
-                             qos='normal', HT=True,
+                             qos='normal', repo=None, HT=True,
                              vcores_per_task=vcores_per_task):
         """ Generate the batch script
         Currently only supports edison-style run scripts.
@@ -175,7 +187,7 @@ class QuaLiKizBatch:
             batch = Sbatch(runclasslist, self.name, tasks, maxtime,
                            stdout=stdout, stderr=stderr,
                            filesystem=filesystem, partition=partition,
-                           qos=qos, HT=HT,
+                           qos=qos, repo=repo, HT=HT,
                            vcores_per_task=vcores_per_task)
         return batch
 
@@ -213,7 +225,7 @@ class QuaLiKizBatch:
         Returns:
             - qualikizbatch: The reconstructed batch
         """
-        batchdir = batchdir.rstrip('/')
+        batchdir = os.path.realpath(batchdir.rstrip('/'))
         # The name should be the same as the directory name given
         batchsdir, name = os.path.split(batchdir)
         qualikizbatch = QuaLiKizBatch.__new__(cls)
@@ -288,12 +300,66 @@ class QuaLiKizBatch:
         with open(batchinfopath, 'w') as file_:
             # Some magic to correctly handle date/time info
             json.dump(batchinfo, file_, default=self.dthandler)
+        return batchinfo['jobnumber']
 
     def dthandler(self, obj):
         if isinstance(obj, datetime.datetime):
             obj.isoformat()
         else:
             json.JSONEncoder().default(obj)
+
+    def to_netcdf(self, overwrite=None, encode={'zlib': True}, clean=True):
+
+        new_netcdf_path = os.path.join(self.batchsdir, self.name, self.name + '.nc')
+
+        # First, look for existing netcdf files
+        for run in self.runlist:
+            name = os.path.basename(run.rundir)
+            netcdf_path = os.path.join(run.rundir, name + '.nc')
+            if not overwrite_prompt(netcdf_path):
+                raise Exception('User does not want to overwrite ' + netcdf_path)
+        if not overwrite_prompt(new_netcdf_path):
+            raise Exception('User does not want to overwrite ' + new_netcdf_path)
+
+
+        raw_ram = subprocess.check_output('echo $(cat /proc/meminfo |grep ' +
+                                          'MemTotal) | grep -oE "[0-9]*"',
+                                          shell=True)
+        ram = int(raw_ram.decode('UTF-8').strip())
+        max_ramtasks = math.floor(ram * 0.9 /(1.5 * 1024**2))
+        tasks = min((mp.cpu_count(), len(self.runlist)))
+        tasks = min((tasks, max_ramtasks))
+        
+        pool = mp.Pool(processes=tasks)
+        pool.map(QuaLiKizRun.to_netcdf, self.runlist)
+
+        # Now we have the hypercubes. Let's find out which dimensions
+        # we're missing
+        dss = []
+        name = os.path.basename(self.runlist[0].rundir)
+        netcdf_path = os.path.join(self.runlist[0].rundir, name + '.nc')
+        newds = xr.open_dataset(netcdf_path)
+        newds.load()
+        for run in self.runlist[1:]:
+            name = os.path.basename(run.rundir)
+            netcdf_path = os.path.join(run.rundir, name + '.nc')
+            ds = xr.open_dataset(netcdf_path)
+            ds.load()
+            newds = merge_orthogonal(newds, ds)
+
+        newds = sort_dims(newds)
+        encoding = {}
+        for name, array in ds.items():
+            encoding[name] = {}
+            for enc_name, enc in encode.items():
+                encoding[name][enc_name] = enc
+        newds.to_netcdf(new_netcdf_path, engine='netcdf4', format='NETCDF4', encoding=encoding)
+
+        if clean:
+            for run in self.runlist:
+                name = os.path.basename(run.rundir)
+                netcdf_path = os.path.join(run.rundir, name + '.nc')
+                os.remove(netcdf_path)
 
     def clean(self):
         """ Remove all output """
@@ -345,6 +411,7 @@ class QuaLiKizRun:
     primitivedir = 'output/primitive'
     debugdir = 'debug'
     inputdir = 'input'
+    netcdfpath = 'output.nc'
 
     def __init__(self, runsdir, name, binaryrelpath, qualikiz_plan=None,
                  stdout=Srun.default_stdout,
@@ -467,7 +534,7 @@ class QuaLiKizRun:
         should depend on the dimxn per core.
         """
         dimxn = self.qualikiz_plan.calculate_dimxn()
-        cpus_per_dimxn = 1
+        cpus_per_dimxn = 0.8
         return dimxn * cpus_per_dimxn
 
     def calculate_tasks(self, cores, HT=True):
@@ -515,7 +582,7 @@ class QuaLiKizRun:
             - stdout: Where to look for the STDOUT file
             - stderr: Where to look for the STDERR file
         """
-        rundir = dir.rstrip('/')
+        rundir = os.path.realpath(dir.rstrip('/'))
         runsdir, name = os.path.split(rundir)
         runsdir = os.path.abspath(runsdir)
         binarybasepath = os.path.basename(binaryrelpath)
@@ -542,24 +609,25 @@ class QuaLiKizRun:
         return path
 
     def to_netcdf(self, mode='orthogonal', overwrite=None, encode={'zlib': True}):
-        netcdf_path = os.path.join(self.rundir, 'output.nc')
-        overwrite_prompt(netcdf_path, overwrite=overwrite)
+        name = os.path.basename(self.rundir)
+        netcdf_path = os.path.join(self.rundir, name + '.nc')
+        if overwrite_prompt(netcdf_path, overwrite=overwrite):
+            sizes = determine_sizes(self.rundir)
+            ds = convert_debug(sizes, self.rundir)
+            ds = convert_output(ds, sizes, self.rundir)
+            ds = convert_primitive(ds, sizes, self.rundir)
+            if mode == 'orthogonal':
+                ds = squeeze_dataset(ds)
+                ds = orthogonalize_dataset(ds)
 
-        sizes = determine_sizes(self.rundir)
-        ds = convert_debug(sizes, self.rundir)
-        ds = convert_output(ds, sizes, self.rundir)
-        ds = convert_primitive(ds, sizes, self.rundir)
-        if mode == 'orthogonal':
-            ds = squeeze_dataset(ds, sizes)
-            ds = orthogonalize_dataset(ds)
-
-        encoding = {}
-        for name, array in ds.items():
-            encoding[name] = {}
-            for enc_name, enc in encode.items():
-                encoding[name][enc_name] = enc
-        ds.to_netcdf(netcdf_path, engine='netcdf4',
-                     format='NETCDF4', encoding=encoding)
+            encoding = {}
+            for name, array in ds.items():
+                encoding[name] = {}
+                for enc_name, enc in encode.items():
+                    encoding[name][enc_name] = enc
+            ds = sort_dims(ds)
+            ds.to_netcdf(netcdf_path, engine='netcdf4',
+                         format='NETCDF4', encoding=encoding)
 
     def clean(self):
         """ Cleans run folder to state before it was run """
@@ -594,7 +662,7 @@ class QuaLiKizRun:
         return NotImplemented
 
     def is_done(self):
-        last_output = os.path.join(self.rundir, 'output/ivf_GB.dat')
+        last_output = os.path.join(self.rundir, 'output/vfi_GB.dat')
         return os.path.isfile(last_output)
 
 
@@ -604,17 +672,19 @@ def overwrite_prompt(path, overwrite=None):
             resp = input('path exists, overwrite? [Y/n]')
             if resp == '' or resp == 'Y' or resp == 'y':
                 overwrite = True
+            else:
+                overwrite = False
         if overwrite:
             print('overwriting')
             if os.path.isdir(path):
                 shutil.rmtree(path)
             else:
                 os.remove(path)
-        else:
-            raise Exception('File exists, ' +
-                            'but user does not want to overwrite')
+    else:
+        overwrite = True
+    return overwrite
 
 def create_folder_prompt(path, overwrite=None):
     """ Overwrite folder promt """
-    overwrite_prompt(path, overwrite=overwrite)
-    os.makedirs(path)
+    if overwrite_prompt(path, overwrite=overwrite):
+        os.makedirs(path)
