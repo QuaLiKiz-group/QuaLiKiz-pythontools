@@ -59,10 +59,10 @@ def run(args):
             if args['--nocube']:
                 run.to_netcdf(mode='nocube')
             else:
-                run.to_netcdf()
+                QuaLiKizRun.to_netcdf(run)
         elif dirtype == 'batch':
             if args['--nocube']:
-                batch.to_netcdf(mode='nocube')
+                batch.to_netcdf(runmode='nocube', mode='noglue')
             else:
                 batch.to_netcdf()
 

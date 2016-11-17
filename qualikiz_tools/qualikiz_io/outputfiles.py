@@ -211,10 +211,13 @@ def determine_sizes(rundir, folder='debug'):
         with open(os.path.join(rundir, folder, name + suffix), 'rb') as file:
             data = np.loadtxt(file)
             sizes[name] = int(data)
-    return sizes
+    if sizes:
+        return sizes
+    else:
+        raise Exception('Could not read sizes from ' + os.path.join(rundir, folder, name + suffix))
 
 
-def convert_debug(sizes, rundir, folder='debug'):
+def convert_debug(sizes, rundir, folder='debug', verbose=False):
     ds = xr.Dataset()
     dimx, dimn, nions, numsols = sizes.values()
     for name in debug_subsets:
@@ -222,7 +225,8 @@ def convert_debug(sizes, rundir, folder='debug'):
             dir = os.path.join(rundir, folder)
             basename = name + suffix
             with open(os.path.join(dir, basename), 'rb') as file:
-                print ('loading ' + basename.ljust(20) + ' from ' + dir)
+                if verbose:
+                    print ('loading ' + basename.ljust(20) + ' from ' + dir)
                 data = np.loadtxt(file)
                 if name in ['dimx', 'dimn', 'nions', 'numsols']:
                     continue
@@ -243,14 +247,15 @@ def convert_debug(sizes, rundir, folder='debug'):
     return ds
 
 
-def convert_output(ds, sizes, rundir, folder='output'):
+def convert_output(ds, sizes, rundir, folder='output', verbose=False):
     dimx, dimn, nions, numsols = sizes.values()
     for name in output_subsets:
         try:
             dir = os.path.join(rundir, folder)
             basename = name + suffix
             with open(os.path.join(dir, basename), 'rb') as file:
-                print ('loading ' + basename.ljust(20) + ' from ' + dir)
+                if verbose:
+                    print ('loading ' + basename.ljust(20) + ' from ' + dir)
                 data = np.loadtxt(file)
                 if name == 'gam_GB' or name == 'ome_GB':
                     data = data.reshape(numsols,dimx,dimn)
@@ -262,7 +267,7 @@ def convert_output(ds, sizes, rundir, folder='output'):
                 elif name == 'efi_cm':
                     data = data.reshape(nions,dimx,dimn)
                     ds[name] = xr.DataArray(data, dims=['nions', 'dimx', 'dimn'], name=name).transpose('dimx', 'dimn', 'nions')
-    
+
                 elif name.endswith('_GB') or name.endswith('_SI'):
                     newname = name[:-3]
                     if newname.endswith('ETG') or newname.endswith('ITG') or newname.endswith('TEM'):
@@ -271,14 +276,14 @@ def convert_output(ds, sizes, rundir, folder='output'):
                         ds[name] = xr.DataArray(data, dims=['dimx'], name=name)
                     elif newname.endswith('i'):
                         ds[name] = xr.DataArray(data, dims=['dimx','nions'], name=name)
-                else:
-                    raise Exception('Could not process \'' + name + '\'')
+                    else:
+                        raise Exception('Could not process \'' + name + '\'')
         except FileNotFoundError:
             pass
     return ds
 
 
-def convert_primitive(ds, sizes, rundir, folder='output/primitive'):
+def convert_primitive(ds, sizes, rundir, folder='output/primitive', verbose=False):
     reshapes = ['rfdsol', 'ifdsol', 'isol', 'rsol']
     dimx, dimn, nions, numsols = sizes.values()
     for name in primi_subsets:
@@ -286,7 +291,8 @@ def convert_primitive(ds, sizes, rundir, folder='output/primitive'):
             dir = os.path.join(rundir, folder)
             basename = name + suffix
             with open(os.path.join(dir, basename), 'rb') as file:
-                print ('loading ' + basename.ljust(20) + ' from ' + dir)
+                if verbose:
+                    print ('loading ' + basename.ljust(20) + ' from ' + dir)
                 data = np.loadtxt(file)
                 if name.endswith('i'):
                     data = data.reshape(numsols,nions,dimx,dimn)
@@ -313,11 +319,14 @@ def squeeze_coords(ds, dim):
                     bool &= (len(np.unique(item.sel(nions=i).values)) == 1)
                 if bool:
                     ds.coords[name] = xr.DataArray(item[0,:].values, coords={'nions': item['nions']})
-    return ds
+                    return ds
 
 
 def squeeze_dataset(ds):
     ds.load()
+
+    # Move some axes we know depend on eachother to data.
+    ds = remove_dependent_axes(ds)
     ## Ni is captured in Zeff
     #try:
     #    ds = ds.drop('ninorm')
@@ -339,7 +348,7 @@ def squeeze_dataset(ds):
     #    ds = ds.drop('Tex')
     #except ValueError:
     #    pass
-    
+
     # Squeeze equal ions 
     for name, item in ds.coords.items():
         bool = True
@@ -369,8 +378,8 @@ def squeeze_dataset(ds):
         elif item.dims == ('dimx', 'nions'):
             for i in range(ds['nions'].size):
                 bool &= (len(np.unique(item.sel(nions=i).values)) == 1)
-            if bool:
-                ds[name] = xr.DataArray(item[0,:].values, coords={'nions': item['nions']})
+                if bool:
+                    ds[name] = xr.DataArray(item[0,:].values, coords={'nions': item['nions']})
 
     # Move metadata to attrs
     for name, item in ds.coords.items():
@@ -384,7 +393,7 @@ def squeeze_dataset(ds):
         ds = ds.drop('dimn')
     except ValueError:
         pass
-    
+
     return ds
 
 def unsqueeze_dataset(ds):
@@ -438,8 +447,8 @@ def unsqueeze_dataset(ds):
         if name in debug_single:
             dropped.append(name)
             ds.coords[name] = item
-    for name in dropped:
-        del ds.attrs[name]
+        for name in dropped:
+            del ds.attrs[name]
 
     return ds
 
@@ -457,9 +466,8 @@ def remove_dependent_axes(ds):
     except KeyError:
         pass
     else:
-        Ti_Te_rel = Ti_Te_rel.drop('Tix')
-        ds = ds.reset_coords('Tix')
         ds.coords['Ti_Te'] = Ti_Te_rel
+        ds = ds.reset_coords('Tix')
 
     # Tex is already captured in Nustar
     try:
@@ -470,69 +478,51 @@ def remove_dependent_axes(ds):
     return ds
 
 
-def orthogonalize_dataset(ds):
+def orthogonalize_dataset(ds, verbose=False):
     ds.load()
-    # Move some axes we know depend on eachother to data. We will re-add later
-    ds = remove_dependent_axes(ds)
-    # Save the non-dimx depending coordinates in a dict. Speeds up code
-    tmp_coords = {}
-    for name, item in ds.coords.items():
-        if 'dimx' not in item.dims and name not in ds.dims:
-            tmp_coords[name] = item
-            ds = ds.drop(name)
 
+    # Determine the new (orthogonal) dimensions
     ortho_dims = [coord for name, coord in ds.coords.items() if name not in ds.dims and 'dimx' in coord.dims]
     new_dims = OrderedDict([(dim.name, np.unique(dim.values)) for dim in ortho_dims])
-    new_dims_size  = np.prod([len(dim) for dim in new_dims.values()])
-    nest = [((k,), v.drop(ortho_dims[0].name)) for k,v in ds.groupby(ortho_dims[0].name)]
-    
-    placeholder_arrays = {}
-    for name, item in ds.data_vars.items():
-        shape = [len(i) for i in new_dims.values()]
-        shape += [len(item[x]) for x in item.dims if x != 'dimx']
-        placeholder_arrays[name] = np.full(shape, np.nan)
-    
-    for dim in ortho_dims[1:]:
-        newnest = []
-        for i, (dimvar, array) in enumerate(nest):
-            print (str(i+1) + '/' + str(len(nest)))
-            group = array.groupby(dim.name)
-            entry = [(dimvar + (k,), v.drop(dim.name)) for k,v in group]
-            newnest.extend(entry)
-            if dim.name == ortho_dims[-1].name:
-                for dimvars, array in entry:
-                    if array['dimx'].size > 1:
-                        warn('warning! duplicate points! dropping!')
-                        array = array.where(array['dimx'] == array['dimx'][0], drop=True)
-                    dimindex = ()
-                    for dimvar, newdim in zip(dimvars, new_dims.values()):
-                        dimindex += (int(np.argwhere(newdim == dimvar)), )
 
-                    for name in ds.data_vars:
-                        placeholder_array = placeholder_arrays[name]
-                        placeholder_array[dimindex] = array[name].data
-        nest = newnest
-
-    # Put the saved coords back
-    for name, item in tmp_coords.items():
-        ds.coords[name] = item
-
+    # Create new dataset with these dimensions, plus all old non-dimx dims
     dims = copy.deepcopy(new_dims)
     for name in ds.dims:
         if name != 'dimx':
             dims[name] = ds[name]
     newds = xr.Dataset(coords=dims)
-    for name, item in ds.data_vars.items():
-        dims = list(new_dims.keys())
-        dims += [dim for dim in ds[name].dims if dim != 'dimx']
-        coords = dict(new_dims)
-        for dim in ds[name].dims:
-            if dim != 'dimx':
-                coords[dim] = ds[dim].data
-        newds[name] = xr.DataArray(placeholder_arrays[name], dims=dims,coords=coords)
-    
+
+    # First determine the indexes in the new arrays dependant on dimx
+    ilist = []
+    tmpi = np.empty(len(new_dims), dtype='int64')
+    for x in ds['dimx']:
+        for i, new_dim in enumerate(new_dims):
+            tmpi[i] = int(np.where(new_dims[new_dim] == float(x[new_dim].data))[0])
+        ilist.append(tuple(tmpi))
+
+    # Then recast all data_vars to the new shapes
+    for name in list(ds.data_vars.keys()):
+        if verbose:
+            print(name)
+        item = ds[name]
+        shape = [len(i) for i in new_dims.values()]
+        shape += [len(item[x]) for x in item.dims if x != 'dimx']
+        placeholder = np.full(shape, np.nan)
+        for i, datax in enumerate(ds[name].data):
+            placeholder[ilist[i]] = datax
+            newcoords = copy.deepcopy(new_dims)
+            for dim in item.dims:
+                if dim != 'dimx':
+                    newcoords[dim] = ds[dim]
+
+        # To save memory, we delete the old ds entry
+        del ds[name]
+        newds[name] = xr.DataArray(placeholder, coords=newcoords)
+
+    # Copy over attributes
     for attr in ds.attrs:
         newds.attrs[attr] = ds.attrs[attr]
+
     return newds
 
 def add_dims(ds, newdims):
@@ -545,7 +535,7 @@ def add_dims(ds, newdims):
     # Add all dimensions to new ds
     for name in chain(ds.dims.keys(), newdims):
         values = ds[name].values
-        if values.size == 1:
+        if values.shape == ():
             newds[name] = [values]
         else:
             newds[name] = values
@@ -578,34 +568,48 @@ def find_nonmatching_coords(ds1, ds2):
 
     return nonmatching
 
-def merge_orthogonal(ds1, ds2, datavars=None):
+def merge_orthogonal(dss, datavars=None, verbose=False):
     #ds1.load()
     #ds2.load()
-    if not datavars:
-        datavars = list(ds1.data_vars.keys())
+    if len(dss) > 2:
+        raise NotImplementedError
+    ds1 = dss[0]
+    ds2 = dss[1]
     nonmatching = find_nonmatching_coords(ds1, ds2)
-    for nonmatch in nonmatching:
-        if nonmatch not in ds1.dims:
-            print('adding dim ' + nonmatch)
-            ds1 = add_dims(ds1, nonmatching)
-        if nonmatch not in ds2.dims:
-            print('adding dim ' + nonmatch)
-            ds2 = add_dims(ds2, nonmatching)
-    dsnew = xr.Dataset()
-    for name in ds1.data_vars:
-        if name in datavars:
-            print('merging ' + name)
-            # Concatenate objects. We need to supply an existing dimension to
-            # Prevent the creation of a new dimension
-            dsnew[name] = xr.concat((ds1[name], ds2[name]), nonmatching[0], 
-                                    coords='all', compat='identical')
-            ds1.drop(name)
-            ds2.drop(name)
-    for nonmatch in nonmatching:
-        dsnew = squeeze_coords(dsnew, nonmatch)
-    dsnew.attrs = ds1.attrs
+    if len(nonmatching) == 0:
+        raise NotImplementedError
+    elif len(nonmatching) == 1:
+        if datavars:
+            raise NotImplementedError
+        newds = xr.concat(dss, dim=nonmatching[0])
+    else:
+        if not datavars:
+            datavars = list(ds1.data_vars.keys())
+        for nonmatch in nonmatching:
+            if nonmatch not in ds1.dims:
+                if verbose:
+                    print('adding dim ' + nonmatch)
+                ds1 = add_dims(ds1, nonmatching)
+            if nonmatch not in ds2.dims:
+                if verbose:
+                    print('adding dim ' + nonmatch)
+                ds2 = add_dims(ds2, nonmatching)
+        newds = xr.Dataset()
+        for name in ds1.data_vars:
+            if name in datavars:
+                if verbose:
+                    print('merging ' + name)
+                # Concatenate objects. We need to supply an existing dimension to
+                # Prevent the creation of a new dimension
+                newds[name] = xr.concat((ds1[name], ds2[name]), nonmatching[0], 
+                                        coords='all', compat='identical')
+                del ds1[name]
+                del ds2[name]
+        for nonmatch in nonmatching:
+            newds = squeeze_coords(newds, nonmatch)
+        newds.attrs = ds1.attrs
 
-    return dsnew
+    return newds
 
 def sort_dims(ds):
     for dim in ds.dims:

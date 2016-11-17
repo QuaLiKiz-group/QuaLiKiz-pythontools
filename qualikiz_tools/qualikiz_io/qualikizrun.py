@@ -28,9 +28,11 @@ from ..qualikiz_io.inputfiles import QuaLiKizPlan
 from ..qualikiz_io.outputfiles import (convert_debug, convert_output,
                                        convert_primitive, squeeze_dataset,
                                        orthogonalize_dataset, determine_sizes)
+from .. import netcdf4_engine
 from . import __path__ as ROOT
 
 import xarray as xr
+from functools import partial
 ROOT = ROOT[0]
 
 
@@ -281,11 +283,13 @@ class QuaLiKizBatch:
             raise Exception('batch script does not exist!')
 
         # Check QuaLiKiz version being run. Just a git check, no binary check!
+        cwd = os.getcwd()
         os.chdir(batchdir)
         cmd = 'git describe --tags'
         describe = subprocess.check_output(cmd, shell=True)
         batchinfo = OrderedDict()
         batchinfo['qualikiz_version'] = describe.strip().decode('utf-8')
+        os.chdir(cwd)
 
         # Currently only works for Edsion
         cmd = 'sbatch --workdir=' + os.getcwd() + ' ' + batchpath
@@ -308,52 +312,58 @@ class QuaLiKizBatch:
         else:
             json.JSONEncoder().default(obj)
 
-    def to_netcdf(self, overwrite=None, encode={'zlib': True}, clean=True):
+    def to_netcdf(self, runmode='orthogonal', mode='glue', overwrite=None, encode={'zlib': True}, clean=True):
 
         new_netcdf_path = os.path.join(self.batchsdir, self.name, self.name + '.nc')
 
         # First, look for existing netcdf files
+        joblist = []
         for run in self.runlist:
             name = os.path.basename(run.rundir)
             netcdf_path = os.path.join(run.rundir, name + '.nc')
             if not overwrite_prompt(netcdf_path):
-                raise Exception('User does not want to overwrite ' + netcdf_path)
+                warn('User does not want to overwrite ' + netcdf_path)
+            else:
+                joblist.append(run.rundir)
+
         if not overwrite_prompt(new_netcdf_path):
             raise Exception('User does not want to overwrite ' + new_netcdf_path)
 
 
-        raw_ram = subprocess.check_output('echo $(cat /proc/meminfo |grep ' +
-                                          'MemTotal) | grep -oE "[0-9]*"',
-                                          shell=True)
-        ram = int(raw_ram.decode('UTF-8').strip())
-        max_ramtasks = math.floor(ram * 0.9 /(1.5 * 1024**2))
         tasks = min((mp.cpu_count(), len(self.runlist)))
-        tasks = min((tasks, max_ramtasks))
         
         pool = mp.Pool(processes=tasks)
-        pool.map(QuaLiKizRun.to_netcdf, self.runlist)
+        pool.map(partial(run_to_netcdf, mode=runmode, encode=encode), joblist)
+        print('jobs netcdfized')
 
         # Now we have the hypercubes. Let's find out which dimensions
         # we're missing
-        dss = []
-        name = os.path.basename(self.runlist[0].rundir)
-        netcdf_path = os.path.join(self.runlist[0].rundir, name + '.nc')
-        newds = xr.open_dataset(netcdf_path)
-        newds.load()
-        for run in self.runlist[1:]:
-            name = os.path.basename(run.rundir)
-            netcdf_path = os.path.join(run.rundir, name + '.nc')
-            ds = xr.open_dataset(netcdf_path)
-            ds.load()
-            newds = merge_orthogonal(newds, ds)
+        if mode == 'glue':
+            dss = []
+            name = os.path.basename(self.runlist[0].rundir)
+            netcdf_path = os.path.join(self.runlist[0].rundir, name + '.nc')
+            newds = xr.open_dataset(netcdf_path, engine=netcdf4_engine)
+            newds.load()
 
-        newds = sort_dims(newds)
-        encoding = {}
-        for name, array in ds.items():
-            encoding[name] = {}
-            for enc_name, enc in encode.items():
-                encoding[name][enc_name] = enc
-        newds.to_netcdf(new_netcdf_path, engine='netcdf4', format='NETCDF4', encoding=encoding)
+            print('Merging ' + os.path.join(self.batchsdir, self.name))
+            for run in self.runlist[1:]:
+                name = os.path.basename(run.rundir)
+                netcdf_path = os.path.join(run.rundir, name + '.nc')
+                ds = xr.open_dataset(netcdf_path, engine=netcdf4_engine)
+                ds.load()
+                newds = merge_orthogonal([newds, ds])
+                ds.close()
+
+            newds = sort_dims(newds)
+            encoding = {}
+            for name, array in ds.items():
+                encoding[name] = {}
+                for enc_name, enc in encode.items():
+                    encoding[name][enc_name] = enc
+            newds.to_netcdf(new_netcdf_path, engine=netcdf4_engine, format='NETCDF4', encoding=encoding)
+            newds.close()
+        else:
+            raise NotImplementedError('Mode ' + mode)
 
         if clean:
             for run in self.runlist:
@@ -608,26 +618,6 @@ class QuaLiKizRun:
                 warn('Found file at \'' + path + '\'')
         return path
 
-    def to_netcdf(self, mode='orthogonal', overwrite=None, encode={'zlib': True}):
-        name = os.path.basename(self.rundir)
-        netcdf_path = os.path.join(self.rundir, name + '.nc')
-        if overwrite_prompt(netcdf_path, overwrite=overwrite):
-            sizes = determine_sizes(self.rundir)
-            ds = convert_debug(sizes, self.rundir)
-            ds = convert_output(ds, sizes, self.rundir)
-            ds = convert_primitive(ds, sizes, self.rundir)
-            if mode == 'orthogonal':
-                ds = squeeze_dataset(ds)
-                ds = orthogonalize_dataset(ds)
-
-            encoding = {}
-            for name, array in ds.items():
-                encoding[name] = {}
-                for enc_name, enc in encode.items():
-                    encoding[name][enc_name] = enc
-            ds = sort_dims(ds)
-            ds.to_netcdf(netcdf_path, engine='netcdf4',
-                         format='NETCDF4', encoding=encoding)
 
     def clean(self):
         """ Cleans run folder to state before it was run """
@@ -661,6 +651,8 @@ class QuaLiKizRun:
             return not self == other
         return NotImplemented
 
+    def to_netcdf(self, **kwargs):
+        run_to_netcdf(self.rundir, kwargs)
     def is_done(self):
         last_output = os.path.join(self.rundir, 'output/vfi_GB.dat')
         return os.path.isfile(last_output)
@@ -688,3 +680,24 @@ def create_folder_prompt(path, overwrite=None):
     """ Overwrite folder promt """
     if overwrite_prompt(path, overwrite=overwrite):
         os.makedirs(path)
+
+def run_to_netcdf(path, mode='orthogonal', overwrite=None, encode={'zlib': True}):
+    name = os.path.basename(path)
+    netcdf_path = os.path.join(path, name + '.nc')
+    if overwrite_prompt(netcdf_path, overwrite=overwrite):
+        sizes = determine_sizes(path)
+        ds = convert_debug(sizes, path)
+        ds = convert_output(ds, sizes, path)
+        ds = convert_primitive(ds, sizes, path)
+        if mode == 'orthogonal':
+            ds = squeeze_dataset(ds)
+            ds = orthogonalize_dataset(ds)
+
+        encoding = {}
+        for name, array in ds.items():
+            encoding[name] = {}
+            for enc_name, enc in encode.items():
+                encoding[name][enc_name] = enc
+        ds = sort_dims(ds)
+        ds.to_netcdf(netcdf_path, engine='netcdf4',
+                     format='NETCDF4', encoding=encoding)
