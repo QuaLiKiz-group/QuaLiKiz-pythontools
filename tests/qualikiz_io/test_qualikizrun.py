@@ -214,8 +214,8 @@ class TestQuaLiKizBatch(TestCase):
                                 self.qualikizbatch.name)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            newbatch = QuaLiKizBatch.from_dir(batchdir)
-        self.assertEqual(self.qualikizbatch, newbatch)
+            self.newbatch = QuaLiKizBatch.from_dir(batchdir)
+        self.assertEqual(self.qualikizbatch, self.newbatch)
 
     def test_from_dir_recursive(self):
         self.qualikizbatch.prepare()

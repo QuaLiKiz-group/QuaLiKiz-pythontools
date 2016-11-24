@@ -45,7 +45,7 @@ class TestSbatch(TestCase):
         self.sbatch = Sbatch(srun_list, 'TestBatch', 24, '00:30:00',
                         stdout='/dev/stdout', stderr='/dev/stderr',
                         filesystem='project', partition='debug',
-                        HT=True)
+                        HT=True, repo='m2116')
 
     def test_initialize_sbatch(self):
         srun_list = []
@@ -82,13 +82,15 @@ class TestSbatch(TestCase):
                             '#SBATCH --cpus-per-task=2\n',
                             '#SBATCH --license=project\n',
                             '#SBATCH --job-name=TestBatch\n',
+                            '#SBATCH --account=m2116\n',
                             '#SBATCH --error=/dev/stderr\n',
                             '#SBATCH --output=/dev/stdout\n',
                             '#SBATCH --qos=normal\n',
                             '\n',
                             'export OMP_NUM_THREADS=2\n',
+                            '\n',
                             'srun -n 24 --chdir .. --output /dev/stdout ' +
-                            '--error /dev/stderr TestBinary &\n',
+                            '--error /dev/stderr TestBinary\n',
                             'srun -n 24 --chdir .. --output /dev/stdout ' +
                             '--error /dev/stderr TestBinary\n']
         for test, created in zip_longest(sbatch_test_file,

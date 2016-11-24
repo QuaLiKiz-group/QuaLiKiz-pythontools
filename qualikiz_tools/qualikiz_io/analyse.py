@@ -72,7 +72,7 @@ def update(val):
     for name, sliders in slider_dict.items():
         if name != xaxis_name:
             if name == 'Nustar':
-                sliders[0]['dispval'].set_text('{0:.3g}'.format(10**float(slice_[name])))
+                sliders[0]['dispval'].set_text('{0:.1e}'.format(10**np.log10(float(slice_[name]))))
             else:
                 sliders[0]['dispval'].set_text('{0:.3g}'.format(float(slice_[name])))
 

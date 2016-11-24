@@ -455,8 +455,8 @@ class QuaLiKizPlan(dict):
                          be scanned and as values the values to be scanned.
                          Use an OrderedDict to conserve ordering.
             scan_type:   How the points are generated. Currently accepts
-                         'hyperedge' and 'hyperrect'
-            xpoint_base: The xpoint base used as base for the generation
+                         'hyperedge' and 'hyperrect'.
+            xpoint_base: The QuaLiKizXpoint used as base for the generation
         """
         self['scan_dict'] = scan_dict
         self['scan_type'] = scan_type

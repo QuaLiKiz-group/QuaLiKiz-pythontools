@@ -30,8 +30,6 @@ class Sbatch:
             'repo',
             'stderr',
             'stdout',
-            'mailtype',
-            'mailuser',
             'qos']
     sbatch = ['nodes',
               'time',
@@ -43,14 +41,8 @@ class Sbatch:
               'account',
               'error',
               'output',
-              'mail-type',
-              'mail-user',
               'qos']
     shell = '/bin/bash'
-    repo = None
-    mailtype = None
-    mailuser = None
-    workdir = None
     default_stderr = 'stderr.batch'
     default_stdout = 'stdout.batch'
 
@@ -149,6 +141,11 @@ class Sbatch:
                         setattr(new, cls.attr[cls.sbatch.index(name)], value)
                 if line.startswith('srun'):
                     srun_strings.append(line)
+
+        try:
+            getattr(new, 'repo')
+        except AttributeError:
+            setattr(new, 'repo', None)
 
         new.vcores_per_node = new.tasks_per_node * new.vcores_per_task
 
