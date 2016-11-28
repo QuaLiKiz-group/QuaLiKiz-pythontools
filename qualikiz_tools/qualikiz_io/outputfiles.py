@@ -11,6 +11,7 @@ from collections import OrderedDict
 import numpy as np
 import xarray as xr
 from itertools import chain
+import sys
 
 output_meth_0_sep_0 = {
     'pfe_GB': None,
@@ -227,7 +228,11 @@ def convert_debug(sizes, rundir, folder='debug', verbose=False):
             with open(os.path.join(dir, basename), 'rb') as file:
                 if verbose:
                     print ('loading ' + basename.ljust(20) + ' from ' + dir)
-                data = np.loadtxt(file)
+                try:
+                    data = np.loadtxt(file)
+                except Exception as ee:
+                    print('Exception loading ' + file.name)
+                    raise
                 if name in ['dimx', 'dimn', 'nions', 'numsols']:
                     continue
                 elif name in debug_eleclike:
@@ -256,7 +261,11 @@ def convert_output(ds, sizes, rundir, folder='output', verbose=False):
             with open(os.path.join(dir, basename), 'rb') as file:
                 if verbose:
                     print ('loading ' + basename.ljust(20) + ' from ' + dir)
-                data = np.loadtxt(file)
+                try:
+                    data = np.loadtxt(file)
+                except Exception as ee:
+                    print('Exception loading ' + file.name)
+                    raise
                 if name == 'gam_GB' or name == 'ome_GB':
                     data = data.reshape(numsols,dimx,dimn)
                     ds[name] = xr.DataArray(data, dims=['numsols', 'dimx', 'dimn'], name=name).transpose('dimx', 'dimn', 'numsols')
@@ -293,7 +302,11 @@ def convert_primitive(ds, sizes, rundir, folder='output/primitive', verbose=Fals
             with open(os.path.join(dir, basename), 'rb') as file:
                 if verbose:
                     print ('loading ' + basename.ljust(20) + ' from ' + dir)
-                data = np.loadtxt(file)
+                try:
+                    data = np.loadtxt(file)
+                except Exception as ee:
+                    print('Exception loading ' + file.name)
+                    raise type(ee)(str(ee) + ' happens at %s' % file.name).with_traceback(sys.exc_info()[2])
                 if name.endswith('i'):
                     data = data.reshape(numsols,nions,dimx,dimn)
                     ds[name] = xr.DataArray(data, dims=['numsols', 'nions', 'dimx', 'dimn'], name=name).transpose('dimx', 'dimn', 'nions', 'numsols')
