@@ -226,62 +226,134 @@ class TestQuaLiKizXpoint(TestCase):
                                self.baseXpoint['ions'].__getitem__,
                                'made up')
 
+    def test_setitem_kthetarhos(self):
+        self.baseXpoint['kthetarhos'] = [1,4,8]
+        self.assertEqual(self.baseXpoint['kthetarhos'], [1,4,8])
+
     def test_getitem_kthetarhos(self):
         self.baseXpoint['kthetarhos']
 
-    @unittest.expectedFailure
+    def test_setitem_unknown(self):
+        with self.assertRaises(NotImplementedError):
+            self.baseXpoint['testi'] = 5
+
     def test_match_zeff(self):
-        self.baseXpoint.match_zeff(1.1)
+        self.baseXpoint.match_zeff(1.3)
+        self.assertAlmostEqual(self.baseXpoint['ions'][0]['n'], .94)
+        self.assertAlmostEqual(self.baseXpoint['ions'][1]['n'], .01)
+        self.assertEqual(self.baseXpoint['ions'][2]['n'], .1)
+        self.baseXpoint.match_zeff(1.7)
+        self.assertAlmostEqual(self.baseXpoint['ions'][0]['n'], .86)
+        self.assertAlmostEqual(self.baseXpoint['ions'][1]['n'], .02333333333333)
+        self.assertEqual(self.baseXpoint['ions'][2]['n'], .1)
         self.assertRaisesRegex(Exception,
-                                'Given Zeff results in*',
+                                'Zeff= 0.1 results in unphysical*',
                                 self.baseXpoint.match_zeff,
                                 0.1)
-        raise NotImplementedError('Value check')
 
-    @unittest.expectedFailure
     def test_calc_zeff(self):
-        self.baseXpoint.calc_zeff()
-        raise NotImplementedError('Value check')
+        self.baseXpoint.match_zeff(1.3)
+        self.assertAlmostEqual(self.baseXpoint.calc_zeff(), 1.3)
 
     def test_setitems_zeff(self):
         self.baseXpoint['Zeff'] = 1.1
         self.assertAlmostEqual(self.baseXpoint['Zeff'], 1.1)
 
-    @unittest.expectedFailure
     def test_match_nustar(self):
+        self.assertEqual(self.baseXpoint['elec']['n'], .1)
+        self.assertEqual(self.baseXpoint['geometry']['qx'], 3.)
+        self.assertEqual(self.baseXpoint['geometry']['Ro'], 3)
+        self.assertEqual(self.baseXpoint['geometry']['Rmin'], 1)
+        self.assertEqual(self.baseXpoint['geometry']['x'], .45)
+
         self.baseXpoint.match_nustar(0.1)
-        raise NotImplementedError('Value check')
+        self.assertAlmostEqual(self.baseXpoint['elec']['T'], 0.91676417086826256)
 
-    @unittest.expectedFailure
     def test_calc_nustar(self):
-        self.baseXpoint.calc_nustar()
-        raise NotImplementedError('Value check')
+        self.assertEqual(self.baseXpoint['elec']['n'], .1)
+        self.assertEqual(self.baseXpoint['geometry']['qx'], 3.)
+        self.assertEqual(self.baseXpoint['geometry']['Ro'], 3)
+        self.assertEqual(self.baseXpoint['geometry']['Rmin'], 1)
+        self.assertEqual(self.baseXpoint['geometry']['x'], .45)
 
-    @unittest.expectedFailure
+        self.baseXpoint.match_nustar(0.1)
+        self.assertAlmostEqual(self.baseXpoint.calc_nustar(), 0.1)
+
     def test_setitems_nustar(self):
+        self.assertEqual(self.baseXpoint['elec']['n'], .1)
+        self.assertEqual(self.baseXpoint['geometry']['qx'], 3.)
+        self.assertEqual(self.baseXpoint['geometry']['Ro'], 3)
+        self.assertEqual(self.baseXpoint['geometry']['Rmin'], 1)
+        self.assertEqual(self.baseXpoint['geometry']['x'], .45)
+
         self.baseXpoint['Nustar'] = 0.1
         self.assertAlmostEqual(self.baseXpoint['Nustar'], 0.1)
-        raise NotImplementedError('Value check')
+        self.assertAlmostEqual(self.baseXpoint['elec']['T'], 0.91676417086826256)
 
-    @unittest.expectedFailure
     def test_match_tite(self):
+        self.assertEqual(self.baseXpoint['elec']['T'], 8.)
         self.baseXpoint.match_tite(0.1)
-        raise NotImplementedError('Value check')
 
-    @unittest.expectedFailure
+        self.assertEqual(self.baseXpoint['ions'][0]['T'], .8)
+        self.assertEqual(self.baseXpoint['ions'][1]['T'], .8)
+        self.assertEqual(self.baseXpoint['ions'][2]['T'], .8)
+
     def test_calc_tite(self):
-        self.baseXpoint.calc_tite()
+        TiTe = self.baseXpoint.calc_tite()
         self.baseXpoint['ions'][0]['T'] = 5
         self.assertRaisesRegex(Exception,
                                 'Ions have non-equal temperatures',
                                 self.baseXpoint.calc_tite)
-        raise NotImplementedError('Value check')
 
-    @unittest.expectedFailure
-    def test_setitems_tite(self):
+    def test_setitem_tite(self):
+        self.assertEqual(self.baseXpoint['elec']['T'], 8.)
         self.baseXpoint['Ti_Te_rel'] = 0.1
-        self.assertAlmostEqual(self.baseXpoint['Ti_Te_rel'], 0.1)
-        raise NotImplementedError('Value check')
+
+        self.assertEqual(self.baseXpoint['ions'][0]['T'], .8)
+        self.assertEqual(self.baseXpoint['ions'][1]['T'], .8)
+        self.assertEqual(self.baseXpoint['ions'][2]['T'], .8)
+
+    def test_getitem_tite(self):
+        self.assertEqual(self.baseXpoint['elec']['T'], 8.)
+        self.assertEqual(self.baseXpoint['ions']['T'], [8., 8., 8.])
+
+        self.assertEqual(self.baseXpoint['Ti_Te_rel'], 1)
+
+    def test_equalize_gradient(self):
+        self.baseXpoint['ions']['An'] = 12.
+        self.baseXpoint['elec']['An'] = 8.
+        self.baseXpoint.equalize_gradient()
+        self.assertEqual(self.baseXpoint['ions']['An'], [8., 8., 8.])
+
+    def test_match_epsilon(self):
+        self.baseXpoint['geometry']['Rmin'] = 2.
+        self.assertEqual(self.baseXpoint['geometry']['Ro'], 3.)
+        self.assertEqual(self.baseXpoint['geometry']['Rmin'], 2.)
+
+        self.baseXpoint.match_epsilon(.5)
+        self.assertEqual(self.baseXpoint['geometry']['x'], 0.75)
+
+    def test_setitem_epsilon(self):
+        self.baseXpoint['geometry']['Rmin'] = 2.
+        self.assertEqual(self.baseXpoint['geometry']['Ro'], 3.)
+        self.assertEqual(self.baseXpoint['geometry']['Rmin'], 2.)
+
+        self.baseXpoint['epsilon'] = .5
+        self.assertEqual(self.baseXpoint['geometry']['x'], 0.75)
+
+    def test_calc_epsilon(self):
+        self.assertEqual(self.baseXpoint['geometry']['Ro'], 3.)
+        self.assertEqual(self.baseXpoint['geometry']['Rmin'], 1.)
+        self.assertEqual(self.baseXpoint['geometry']['x'], 0.45)
+
+        self.assertEqual(self.baseXpoint.calc_epsilon(), 0.15)
+
+    def test_getitem_epsilon(self):
+        self.assertEqual(self.baseXpoint['geometry']['Ro'], 3.)
+        self.assertEqual(self.baseXpoint['geometry']['Rmin'], 1.)
+        self.assertEqual(self.baseXpoint['geometry']['x'], 0.45)
+
+        self.assertEqual(self.baseXpoint['epsilon'], 0.15)
 
 class TestQuaLiKizPlan_hyperedge(TestCase):
     def setUp(self):
@@ -312,10 +384,27 @@ class TestQuaLiKizPlan_hyperedge(TestCase):
     def test_calculate_dimxn(self):
         self.assertEqual(self.qualikizplan.calculate_dimxn(), 576)
 
-    @unittest.expectedFailure
+    def test_unknown_plan(self):
+        self.qualikizplan['scan_type'] = 'test'
+        with self.assertRaisesRegex(Exception, 'Unknown scan_type*'):
+            self.qualikizplan.setup()
+        with self.assertRaisesRegex(Exception, 'Unknown scan_type*'):
+            self.qualikizplan.calculate_dimx()
+
     def test_setup(self):
-        self.qualikizplan.setup()
-        raise NotImplementedError('Consistency check')
+        scan_dict = OrderedDict([('Ati', [0, 2, 4]),
+                                 ('Ate', [1, 3, 5]),
+                                 ('Ane', [6, 9, 12])])
+        self.qualikizplan['scan_dict'] = scan_dict
+        byte_arrays = self.qualikizplan.setup()
+        self.assertEqual(byte_arrays['Ati'],
+                         array.array('d', [0, 2, 4, 0, 0, 0, 0, 0, 0,
+                                           0, 2, 4, 0, 0, 0, 0, 0, 0,
+                                           0, 2, 4, 0, 0, 0, 0, 0, 0]))
+        self.assertEqual(byte_arrays['Ate'],
+                         array.array('d', [1, 1, 1, 1, 3, 5, 1, 1, 1]))
+        self.assertEqual(byte_arrays['Ane'],
+                         array.array('d', [6, 6, 6, 6, 6, 6, 6, 9, 12]))
 
 class TestQuaLiKizPlan_hyperedge_files(TestCase):
     def setUp(self):
@@ -350,10 +439,30 @@ class TestQuaLiKizPlan_hyperrect(TestCase):
     def test_calculate_dimxn(self):
         self.assertEqual(self.qualikizplan.calculate_dimxn(), 645120)
 
-    @unittest.expectedFailure
     def test_setup(self):
-        self.qualikizplan.setup()
-        raise NotImplementedError('Consistency check')
+        scan_dict = OrderedDict([('Ati', [0, 2, 4]),
+                                 ('Ate', [1, 3, 5]),
+                                 ('Ane', [6, 9, 12])])
+        self.qualikizplan['scan_dict'] = scan_dict
+        byte_arrays = self.qualikizplan.setup()
+        self.assertEqual(byte_arrays['Ati'],
+                         array.array('d', [0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                           2, 2, 2, 2, 2, 2, 2, 2, 2,
+                                           4, 4, 4, 4, 4, 4, 4, 4, 4,
+                                           0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                           2, 2, 2, 2, 2, 2, 2, 2, 2,
+                                           4, 4, 4, 4, 4, 4, 4, 4, 4,
+                                           0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                           2, 2, 2, 2, 2, 2, 2, 2, 2,
+                                           4, 4, 4, 4, 4, 4, 4, 4, 4]))
+        self.assertEqual(byte_arrays['Ate'],
+                         array.array('d', [1, 1, 1, 3, 3, 3, 5, 5, 5,
+                                           1, 1, 1, 3, 3, 3, 5, 5, 5,
+                                           1, 1, 1, 3, 3, 3, 5, 5, 5]))
+        self.assertEqual(byte_arrays['Ane'],
+                         array.array('d', [6, 9, 12, 6, 9, 12, 6, 9, 12,
+                                           6, 9, 12, 6, 9, 12, 6, 9, 12,
+                                           6, 9, 12, 6, 9, 12, 6, 9, 12]))
 
 class TestQuaLiKizPlan_hyperrect_files(TestCase):
     def setUp(self):
