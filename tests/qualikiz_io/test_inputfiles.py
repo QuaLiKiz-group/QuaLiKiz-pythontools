@@ -27,8 +27,8 @@ class TestParticles(TestCase):
         ion_1['Z'] = 6.
         ion_1['type'] = 2
         ion_2 = copy.deepcopy(part)
-        ion_2['A'] = 12.
-        ion_2['Z'] = 6.
+        ion_2['A'] = 9.
+        ion_2['Z'] = 4.
         ion_2['type'] = 3
         self.ions = IonList(ion_0, ion_1)
         self.ions.append(Ion(**ion_2))
@@ -70,13 +70,13 @@ class TestSpecial(TestCase):
         pass
 
 class TestGeometric(TestCase):
-    geometric = {'x': 0.15,
-                 'rho': 0.15,
+    geometric = {'x': 0.45,
+                 'rho': 0.45,
                  'Ro': 3,
                  'Rmin': 1,
                  'Bo':3,
-                 'qx':2.,
-                 'smag':1.,
+                 'qx':3.,
+                 'smag':2.,
                  'alphax':0.,
                  'Machtor': 0.,
                  'Autor':0.}
@@ -154,7 +154,7 @@ class TestQuaLiKizXpoint(TestCase):
         for An0, An1 in zip(An0s, An1s):
             self.baseXpoint['ions'][0]['An'] = 0.
             self.baseXpoint['ions'][1]['An'] = An1/3
-            self.baseXpoint['ions'][2]['An'] = 2*An1/3
+            self.baseXpoint['ions'][2]['An'] = 3*An1/3
             self.baseXpoint.normalize_gradient()
             self.assertAlmostEqual(self.baseXpoint['ions'][0]['An'], An0)
 
