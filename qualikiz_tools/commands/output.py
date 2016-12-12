@@ -34,6 +34,7 @@ def run(args):
         print ()
     
     dirtype = None
+    # Detect the type of path given; QuaLiKizBatch or QuaLiKizRun
     if args['<target_path>']:
         if os.path.exists(os.path.join(args['<target_path>'], QuaLiKizRun.parameterspath)):
             binaryname = None

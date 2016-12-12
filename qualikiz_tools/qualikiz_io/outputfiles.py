@@ -206,6 +206,21 @@ suffix = '.dat'
 
 
 def determine_sizes(rundir, folder='debug'):
+    """ Determine the sizes needed for re-shaping arrays
+
+    Load output from debug folder. The values of dimx, dimn, nions and numsols
+    are needed to reshape all the other output arrays, so this should be done
+    first.
+
+    Arguments:
+        rundir: The root directory of the run. Should contain the debug folder
+
+    Keyword Arguments:
+        folder: Name of the debug folder
+
+    Returns:
+        sizes:  A dictionary with the four sizes.
+    """
     names = ['dimx', 'dimn', 'nions', 'numsols']
     sizes = OrderedDict()
     for name in names:
@@ -219,6 +234,25 @@ def determine_sizes(rundir, folder='debug'):
 
 
 def convert_debug(sizes, rundir, folder='debug', verbose=False):
+    """ Convert the debug folder to netcdf
+
+    Load the output from the debug folder and convert it to netcdf. Note that
+    this function does not write anything to disk! The resulting dataset is
+    meant to be passed to convert_output and convert_primitive so that the
+    final result can be written to file.
+
+    Arguments:
+        sizes: A dictionary with the sizes for reshaping the arrays. Usually
+               generated with determine_sizes
+        rundir: The root directory of the run. Should contain the debug folder
+
+    Keyword Arguments:
+        folder:  Name of the debug folder
+        verbose: Output a message per file converted
+
+    Returns:
+        ds: The netcdf dataset
+    """
     ds = xr.Dataset()
     dimx, dimn, nions, numsols = sizes.values()
     for name in debug_subsets:
@@ -233,6 +267,7 @@ def convert_debug(sizes, rundir, folder='debug', verbose=False):
                 except Exception as ee:
                     print('Exception loading ' + file.name)
                     raise
+                # Skip loading these, as they will be saved implicitly
                 if name in ['dimx', 'dimn', 'nions', 'numsols']:
                     continue
                 elif name in debug_eleclike:
@@ -248,11 +283,32 @@ def convert_debug(sizes, rundir, folder='debug', verbose=False):
                 ds.coords[name] = xr.DataArray(data, dims=dims)
         except FileNotFoundError:
             pass
+    # Nothing in debug depends on numsols, but add it for later use
     ds.coords['numsols'] = xr.DataArray(list(range(0, numsols)), dims='numsols')
     return ds
 
 
 def convert_output(ds, sizes, rundir, folder='output', verbose=False):
+    """ Convert the output folder to netcdf
+
+    Load the output from the output folder and convert it to netcdf. Note that
+    this function does not write anything to disk! The resulting dataset is
+    meant to be passed to convert_primitive so that the final result
+    can be written to file.
+
+    Arguments:
+        ds:     Dataset the loaded data should be appended to
+        sizes:  A dictionary with the sizes for reshaping the arrays. Usually
+                generated with determine_sizes
+        rundir: The root directory of the run. Should contain the output folder
+
+    Keyword Arguments:
+        folder:  Name of the output folder
+        verbose: Output a message per file converted
+
+    Returns:
+        ds: The netcdf dataset
+    """
     dimx, dimn, nions, numsols = sizes.values()
     for name in output_subsets:
         try:
@@ -293,6 +349,25 @@ def convert_output(ds, sizes, rundir, folder='output', verbose=False):
 
 
 def convert_primitive(ds, sizes, rundir, folder='output/primitive', verbose=False):
+    """ Convert the output/primitive folder to netcdf
+
+    Load the output from the output/primitive folder and convert it to netcdf.
+    Note that this function does not write anything to disk! The resulting
+    dataset should be written to file using xarray's to_netcdf function.
+
+    Arguments:
+        ds:     Dataset the loaded data should be appended to
+        sizes:  A dictionary with the sizes for reshaping the arrays. Usually
+                generated with determine_sizes
+        rundir: The root directory of the run. Should contain the output folder
+
+    Keyword Arguments:
+        folder:  Name of the output/primitive folder
+        verbose: Output a message per file converted
+
+    Returns:
+        ds: The netcdf dataset
+    """
     reshapes = ['rfdsol', 'ifdsol', 'isol', 'rsol']
     dimx, dimn, nions, numsols = sizes.values()
     for name in primi_subsets:
@@ -321,6 +396,20 @@ def convert_primitive(ds, sizes, rundir, folder='output/primitive', verbose=Fals
 
 
 def squeeze_coords(ds, dim):
+    """ Squeezes Coordinates with duplicate values
+
+    Normally, a dataset loaded from a QuaLiKizRun contains a lot of
+    duplicate values. For easy-of-use, squeeze these arrays to a single
+    value. For arrays that contain data of ions, squeeze it to an array
+    of length nions.
+
+    Arguments:
+        ds:  Dataset with coordinates to squeeze
+        dim: Dimension to squeeze over
+
+    Returns:
+        ds: The netcdf dataset
+    """
     for name, item in ds.coords.items():
         if dim in item.dims:
             new = np.unique(item)
@@ -335,33 +424,61 @@ def squeeze_coords(ds, dim):
                     return ds
 
 
+def remove_dependent_axes(ds):
+    """ Remove Coordinates that depend on eachother
+
+    Normally, a dataset loaded from a QuaLiKizRun contains some coordinates
+    that are not orthogonal, or, that do depend on eachother. For example,
+    Ti_Te depends both on Ti and on Te. As we assume orthogonality for most
+    functions, move these coordinates to the DataVariables.
+
+    Arguments:
+        ds: Dataset with dependent Coordinates to remove
+    """
+    # Ni is captured in Zeff
+    try:
+        ds = ds.reset_coords('ninorm')
+    except ValueError:
+        pass
+
+    # Tix is captured in Ti_Te
+    try:
+        Ti_Te_rel = np.around(ds.coords['Tix'] / ds.coords['Tex'], 5)
+    except KeyError:
+        pass
+    else:
+        ds.coords['Ti_Te'] = Ti_Te_rel
+        ds = ds.reset_coords('Tix')
+
+    # Tex is already captured in Nustar
+    try:
+        ds = ds.reset_coords('Tex')
+    except ValueError:
+        pass
+    return ds
+
+
 def squeeze_dataset(ds):
+    """ Remove Coordinates that depend on eachother and squeeze duplicates
+
+    Normally, a dataset loaded from a QuaLiKizRun contains some coordinates
+    that are not orthogonal, or, that do depend on eachother. For example,
+    Ti_Te depends both on Ti and on Te. As we assume orthogonality for most
+    functions, move these coordinates to the DataVariables.
+    Also, a dataset loaded from a QuaLiKizRun contains a lot of
+    duplicate values. For easy-of-use, squeeze these arrays to a single
+    value. For arrays that contain data of ions, squeeze it to an array
+    of length nions.
+
+    Arguments:
+        ds: Dataset with dependent Coordinates to remove
+    """
     ds.load()
 
     # Move some axes we know depend on eachother to data.
     ds = remove_dependent_axes(ds)
-    ## Ni is captured in Zeff
-    #try:
-    #    ds = ds.drop('ninorm')
-    #except ValueError:
-    #    pass
 
-    ## Tix is captured in Ti_Te
-    #try:
-    #    Ti_Te_rel = np.around(ds.Tix / ds.Tex, 5)
-    #except ValueError:
-    #    pass
-    #else:
-    #    Ti_Te_rel = Ti_Te_rel.drop('Tix')
-    #    ds = ds.drop('Tix')
-    #    ds.coords['Ti_Te'] = Ti_Te_rel
-    #
-    ## Tex is already captured in Nustar
-    #try:
-    #    ds = ds.drop('Tex')
-    #except ValueError:
-    #    pass
-
+    # TODO: Generalize using squeeze_coords
     # Squeeze equal ions 
     for name, item in ds.coords.items():
         bool = True
@@ -383,6 +500,7 @@ def squeeze_dataset(ds):
         ds = ds.drop('Ate')
         ds = ds.drop('Ati')
 
+    # TODO: Generalize using squeeze_coords
     # Squeeze constant for dimx
     for name, item in ds.coords.items():
         if item.dims == ('dimx',):
@@ -409,7 +527,9 @@ def squeeze_dataset(ds):
 
     return ds
 
+#TODO: Implement unsqueezing function for converting back to a QuaLiKizRun
 def unsqueeze_dataset(ds):
+    raise NotImplementedError
     ds.load()
     # Readd placeholder for kthetarhos
     try:
@@ -465,33 +585,23 @@ def unsqueeze_dataset(ds):
 
     return ds
 
-from IPython import embed
-def remove_dependent_axes(ds):
-    # Ni is captured in Zeff
-    try:
-        ds = ds.reset_coords('ninorm')
-    except ValueError:
-        pass
-
-    # Tix is captured in Ti_Te
-    try:
-        Ti_Te_rel = np.around(ds.coords['Tix'] / ds.coords['Tex'], 5)
-    except KeyError:
-        pass
-    else:
-        ds.coords['Ti_Te'] = Ti_Te_rel
-        ds = ds.reset_coords('Tix')
-
-    # Tex is already captured in Nustar
-    try:
-        ds = ds.reset_coords('Tex')
-    except ValueError:
-        pass
-
-    return ds
-
-
 def orthogonalize_dataset(ds, verbose=False):
+    """ Convert dataset depending on dimx to orthogonal dimensions
+
+    As a QuaLiKizRun is generally a scan over a few parameters, recast all
+    arrays to an orthogonal base. This will lead to many missing values if
+    the scan parameters do not form a (hyper)-rectangle together.
+
+    Arguments:
+        ds: The dataset to be orhogonalized
+
+    Keyword Arguments:
+        verbose: Print a message for every DataVar to be orhogonalized
+
+    Returns:
+        newds: Orthogonalized dataset, not dependant on the original
+    """
+    #TODO: Find solution that is quick enough without loading everything
     ds.load()
 
     # Determine the new (orthogonal) dimensions
@@ -539,6 +649,19 @@ def orthogonalize_dataset(ds, verbose=False):
     return newds
 
 def add_dims(ds, newdims):
+    """ Add a new dimension to a dataset
+
+    Add a dimension to all DataVariables in the dataset. Because of the way
+    netcdf is structured, this means that the whole dataset has to be copied
+    over
+
+    Arguments:
+        ds:      Dataset to which the dimensions should be added
+        newdims: List of names of the dimensions to be added
+
+    Returns:
+        newds: Dataset, not dependant on the original, with dimensions added
+    """
     newds = xr.Dataset()
     # Put all non-dim coordinates in new ds
     for name, item in ds.coords.items():
@@ -564,7 +687,9 @@ def add_dims(ds, newdims):
         for dimname in olddims:
             newcoords[dimname] = ds[dimname]
 
-        newds[name] = xr.DataArray(item, dims=newitemdims, coords=newcoords, name=ds[name].name, attrs=ds[name].attrs, encoding=ds[name].encoding)
+        newds[name] = xr.DataArray(item, dims=newitemdims, coords=newcoords,
+                                   name=ds[name].name, attrs=ds[name].attrs,
+                                   encoding=ds[name].encoding)
 
     # Copy the attributes
     for name, item in ds.attrs.items():
@@ -574,6 +699,7 @@ def add_dims(ds, newdims):
     return newds
 
 def find_nonmatching_coords(ds1, ds2):
+    """ Find non-equal coordinates in datasets """ 
     nonmatching = []
     for name in ds1.coords:
         if np.all(ds1[name] != ds2[name]):
@@ -582,8 +708,23 @@ def find_nonmatching_coords(ds1, ds2):
     return nonmatching
 
 def merge_orthogonal(dss, datavars=None, verbose=False):
-    #ds1.load()
-    #ds2.load()
+    """ Merge two orthogonal datasets
+
+    Merge two datasets together. These datasets should only contain
+    orthogonal dimensions, so first orthogonalize with orthogonalize_dataset.
+    Falls back to Xarrays merge when only one dimension is different,
+    and tries to merge smartly when more dimensions are different. Note that
+    the second method is slow and uses a lot of RAM
+
+    Currently can only merge two datasets.
+
+    Arguments:
+        dss: List of datasets to merge
+
+    Keyword Arguments:
+        datavars: DataVariables to keep in the merged dataset
+        verbose:  Print message for each variables to be merged
+    """
     if len(dss) > 2:
         raise NotImplementedError
     ds1 = dss[0]
@@ -625,6 +766,7 @@ def merge_orthogonal(dss, datavars=None, verbose=False):
     return newds
 
 def sort_dims(ds):
+    """ Sort dimensions and DataVars using numpy.sort """
     for dim in ds.dims:
         ds = ds.reindex(**{dim: np.sort(ds[dim])})
     return ds

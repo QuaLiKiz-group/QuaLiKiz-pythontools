@@ -33,6 +33,7 @@ def run(args):
         print (args)
         print ()
     
+    #TODO: Check type of file. Currently only work for binary
     if args['<target_path>']:
         args['<target_path>'] = os.path.abspath(args['<target_path>'])
         from qualikiz_tools.fs_manipulation.compare import bin_to_np
@@ -42,9 +43,3 @@ def run(args):
         exit(call([sys.executable, os.path.join(ROOT, 'commands', 'create.py'), '--help']))
     else:
         exit("%r is not a valid target. See 'qualikiz_tools dump help'." % args['<target_path>'])
-
-def create_mini(target_dir):
-    call([sys.executable, os.path.join(ROOT, 'examples', 'mini.py'), target_dir])
-
-def create_performance(target_dir):
-    call([sys.executable, os.path.join(ROOT, 'examples', 'performance.py'), target_dir])

@@ -15,6 +15,7 @@ Examples:
   qualikiz_tools create
   qualikiz_tools dump
   qualikiz_tools output
+  qualikiz_tools poll
 
 Help:
   For help using this tool, please open an issue on the Github repository:

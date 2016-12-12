@@ -3,6 +3,7 @@ Copyright Dutch Institute for Fundamental Energy Research (2016)
 Contributors: Karel van de Plassche (karelvandeplassche@gmail.com)
 License: CeCILL v2.1
 """
+# TODO: Test with new QuaLiKiz version
 import os
 import subprocess
 import sqlite3
@@ -16,7 +17,7 @@ from .basicpoll import database_exists
 from .tabulate.tabulate import tabulate
 
 def profile_job(job):
-    """ Read QuaLiKiz STDOUT
+    """ Read QuaLiKiz Profiling info
     This function polls for the QuaLiKiz profiling information
     generated with CrayPat. It needs the metadata
     containing the jobdata. This is always generated if QuaLiKiz was

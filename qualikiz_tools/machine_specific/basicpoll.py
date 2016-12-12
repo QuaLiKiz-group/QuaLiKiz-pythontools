@@ -61,6 +61,7 @@ def database_exists(database_path, table_name, append=None, overwrite=None):
     return create_table
 
 
+# TODO: Polling of STDOUT can move to its own file
 def poll_stdout(stdoutpath):
     """ Read QuaLiKiz STDOUT
     This function polls for the QuaLiKiz STDOUT. It needs the metadata
@@ -105,7 +106,7 @@ def poll_stdout(stdoutpath):
 
     return header, list_
 
-
+# TODO: This is in principle Slurm dependant, so move to own file
 def poll_batchdata(batch):
     """ Read QuaLiKiz jobdata
     This is always generated if QuaLiKiz was run with one of the

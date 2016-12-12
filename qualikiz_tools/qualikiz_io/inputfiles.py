@@ -24,7 +24,7 @@ class Particle(dict):
         """ Initialize a Particle.
         Usually it is better to create an Electron or Ion instead.
 
-        kwargs:
+        Keyword Arguments:
             T :       Temperature in keV
             n :       Density in 10^19 m^-3 for electrons, relative factor to
                       electron denisity for ions
@@ -38,9 +38,9 @@ class Particle(dict):
             anis:    Temperature anisotropy T_perp / T_para at LFS
             danisdr: Radial gradient of temperature anisotropy
 
-            kwargs (ion only):
-                Ai: Ion mass in amu
-                Zi: Ion charge in e
+        Keyword Arguments (ion only):
+            Ai: Ion mass in amu
+            Zi: Ion charge in e
         """
         values = [kwargs[arg] for arg in Particle.keynames]
         super().__init__(zip(Particle.keynames, values))
@@ -48,6 +48,7 @@ class Particle(dict):
 
 class Electron(Particle):
     def __init__(self, **kwargs):
+        """ See Particle.__init__ """
         super().__init__(**kwargs)
 
 
@@ -55,17 +56,21 @@ class Ion(Particle):
     keynames = ['A', 'Z']
 
     def __init__(self, **kwargs):
+        """ See Particle.__init__ """
         super().__init__(**kwargs)
         self['A'] = kwargs['A']
         self['Z'] = kwargs['Z']
 
 
 class IonList(list):
-    """ Convenient wrapper for a list of Ions
+    """ Convenient wrapper for a list of Ions.
+
+    Setting this list with a key value sets all ions contained
+    inside. Similairly, getting with a key value gets all ions
+    inside.
 
         args:
             list of Ions
-
     """
     def __init__(self, *args):
         super().__init__(args)
@@ -100,25 +105,31 @@ class QuaLiKizXpoint(dict):
 
     """
     def __init__(self, kthetarhos, electrons, ions, **kwargs):
-        """ Initialize a single QuaLiKiz run
-        Normally you would initialize your QuaLiKiz run with this, then set
-        up a N-dimensional scan with setup_hypercube and write the
-        QuaLiKiz input files with to_file
+        """ Initialize a single QuaLiKizXpoint
+        Usually this point is part of a scan. Initialize an instance
+        of QuaLiKizXpoint to use as base for the scan. This base_point
+        can then be used as argument for an QuaLiKizPlan.
 
-        args:
+        Arguments:
             kthetarhos:  The wave spectrum to be scanned
             electrons:   An Electron instance describing the electron
                          population
             ions:        An IonList instance describing the ion population
 
-        kwargs:
+        Keyword Arguments:
             all kwargs described in the Meta, Special and Geometry classes
-            ninorm1:     Flag to normalize main ion concentration to maintain
-                         quasineutrality
-            Ani1:        Flag to normalize main ion gradient to maintain
-                         quasineutrality
-            QN_grad:     Flag for maintaining quasineutrality of gradients
-            x_rho:       Flag to keep rho and x equal if set with __setitem__
+            ninorm1:          Flag to normalize main ion concentration to maintain
+                              quasineutrality
+            Ani1:             Flag to normalize main ion gradient to maintain
+                              quasineutrality
+            QN_grad:          Flag for maintaining quasineutrality of gradients
+            x_rho:            Flag to keep rho and x equal if set with __setitem__
+            recalc_Nustar:    Flag to recalculate Nustar after scanning over
+                              values. Needed when setting Nustar and either
+                              Zeff, ne, q, Ro, Rmin, x, rho, ni, ni0 or ni1
+            recalc_Ti_Te_rel: Flag to recalculate Ti after setting Te
+
+
         """
         super().__init__()
 
@@ -171,6 +182,7 @@ class QuaLiKizXpoint(dict):
                                       self['ions'][0]['n']))
 
     def equalize_gradient(self):
+        """ Set density gradient of ions the same as electrons """
         self['ions']['An'] = self['elec']['An']
 
     def check_quasi(self):
@@ -240,6 +252,7 @@ class QuaLiKizXpoint(dict):
         # print(np.isclose(nustar_calc, nustar))
 
     def calc_nustar(self):
+        """ Calculate Nustar """
         zeff = self.calc_zeff()
         c1 = (6.9224e-5 * zeff * self['elec']['n'] * self['geometry']['qx'] *
               self['geometry']['Ro'] *
@@ -253,15 +266,18 @@ class QuaLiKizXpoint(dict):
         self['ions']['T'] = tite * self['elec']['T']
 
     def calc_tite(self):
+        """ Calculate Ti/Te. Raises exception if undefined """
         for ion in self['ions'][0:]:
             if ion['T'] != self['ions'][0]['T']:
                 raise Exception('Ions have non-equal temperatures')
         return self['ions'][0]['T'] / self['elec']['T']
 
     def match_epsilon(self, epsilon):
+        """ Set x to match the given epsilon """
         self['geometry']['x'] = self['geometry']['Ro'] * epsilon / self['geometry']['Rmin']
 
     def calc_epsilon(self):
+        """ Calculate epsilon """
         return self['geometry']['x'] * self['geometry']['Rmin'] / self['geometry']['Ro']
 
     class Meta(dict):
@@ -439,7 +455,7 @@ class QuaLiKizXpoint(dict):
 
 
 class QuaLiKizPlan(dict):
-    """ Wrapper for the scan plan for a QuaLiKiz run
+    """ Defines how to generate QuaLiKiz input files from a QuaLiKizXpoint base
 
     This class can be used to define a scan plan, in other words, over which
     values will be scanned in the QuaLiKiz run. This is given in the form of

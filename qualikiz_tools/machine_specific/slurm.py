@@ -10,14 +10,14 @@ vcores_per_task = None
 
 class Sbatch:
     """ Defines a batch job
+
     This class uses the OpenMP/MPI parameters as defined by Edison,
     but could in principle be extented to support more machines.
 
-    class variables:
+    Class Variables:
         - attr:             All possible attributes as defined by Edison
         - sbatch:           Names of attributes as they are in the sbatch file
         - shell:            The shell to use for sbatch scripts. Usually bash
-        - repo:             The default repo to bill hours to. Usually empty
     """
     # pylint: disable=too-many-instance-attributes
     attr = ['nodes',
@@ -52,6 +52,7 @@ class Sbatch:
                  qos='normal', repo=None, HT=True,
                  vcores_per_task=2):
         """ Initialize Edison batch job
+
         Arguments:
             - srun_instances: List of Srun instances included in the Sbatch job
             - name:           Name of the Sbatch job
@@ -65,7 +66,9 @@ class Sbatch:
             - partition:  Partition to run on, for example 'debug'. By default
                           'regular'
             - qos:        Priority in the queue. By default 'normal'
+            - repo:       The default repo to bill hours to. Usually None
             - HT:         Hyperthreading on/off. Default=True
+            - vcores_per_task: Amount of cores to use per task
 
 
         Calculated:
@@ -105,6 +108,7 @@ class Sbatch:
 
     def to_file(self, path):
         """ Writes sbatch script to file
+
         Arguments:
             - path: Path of the sbatch script file.
         """
@@ -186,6 +190,7 @@ class Srun:
                  chdir='.',
                  stdout=default_stdout, stderr=default_stderr):
         """ Initializes the Srun class
+
         Arguments:
             - binary_name: The name of the binary relative to where
                            the sbatch script will be
