@@ -133,8 +133,9 @@ def swap_x(event):
     efax.set_xlabel(xaxis_name)
     pfax.set_xlabel(xaxis_name)
     update('')
-    efax.relim()      # make sure all the data fits
-    efax.autoscale()  # auto-scale
+    for ax in flux_axes:
+        ax.relim()      # make sure all the data fits
+        ax.autoscale()  # auto-scale
     efax.figure.canvas.draw()
 
             
@@ -170,7 +171,9 @@ omelowax.set_xlim([0, kthetarhos_cutoff])
 omehighax.set_xlabel('kthetarhos')
 omehighax.set_xlim([kthetarhos_cutoff, 1.05 * np.max(ds['kthetarhos'])])
 
-
+flux_axes = [efax, pfax]
+freq_axes = [gamlowax, gamhighax, omelowax, omehighax,]
+axes = flux_axes + freq_axes
 
 #tableax = plt.subplot(gs[:numslider,-2:])
 pos_scans = [
