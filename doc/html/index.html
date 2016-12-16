@@ -64,9 +64,9 @@ $(function() {
 <div class="contents">
 <div class="textblock"><p><em>A collection of tools for QuaLiKiz in Python.</em></p>
 <h2>Purpose</h2>
-<p>This is a collection of Python modules to be used for working with QuaLiKiz, a quasi-linear gyrokinetic code. QuaLiKiz can be found <a href="https://github.com/QuaLiKiz-group/QuaLiKiz">on GitHub</a>. This repository contains the source for the Python package qualikiz_tools. Use the qualikiz_tools CLI (Command Line Interface) to generate, run and analyze QuaLiKiz runs. For more advanced usage scenarios the modules themselves can be used in other python scripts. For example, the <a href="https://github.com/QuaLiKiz-group/QuaLiKiz-NeuralNetwork">QuaLiKiz Neural Network</a> training set was generated in this way.</p>
+<p>This is a collection of Python modules to be used for working with QuaLiKiz, a quasi-linear gyrokinetic code. QuaLiKiz can be found <a href="https://github.com/QuaLiKiz-group/QuaLiKiz">on GitHub</a>. This repository contains the source for the Python package <a class="el" href="namespacequalikiz__tools.html">qualikiz_tools</a>. Use the <a class="el" href="namespacequalikiz__tools.html">qualikiz_tools</a> CLI (Command Line Interface) to generate, run and analyze QuaLiKiz runs. For more advanced usage scenarios the modules themselves can be used in other python scripts. For example, the <a href="https://github.com/QuaLiKiz-group/QuaLiKiz-NeuralNetwork">QuaLiKiz Neural Network</a> training set was generated in this way.</p>
 <h2>Install</h2>
-<p>The recommended way to install qualikiz_tools is to use pip. Although installation is not strictly necessary to use the python modules, it is advised to install anyway for the full power of the CLI.</p>
+<p>The recommended way to install <a class="el" href="namespacequalikiz__tools.html">qualikiz_tools</a> is to use pip. Although installation is not strictly necessary to use the python modules, it is advised to install anyway for the full power of the CLI.</p>
 <ol type="1">
 <li>Clone the repository from GitHub.<ul>
 <li><p class="startli">If you want to install as submodule of QuaLiKiz (preferred) </p><pre class="fragment">  git clone git@github.com:QuaLiKiz-group/QuaLiKiz.git
@@ -82,17 +82,17 @@ $(function() {
 <li>(Recommended) Install <a href="http://xarray.pydata.org/en/stable/installing.html">xarray dependencies</a> <pre class="fragment"> apt-get install netcdf-dev hdf5
  pip install netcdf4
 </pre></li>
-<li>Install qualikiz_tools. This fully installs it in developer mode <pre class="fragment"> pip install -e .[test]
+<li>Install <a class="el" href="namespacequalikiz__tools.html">qualikiz_tools</a>. This fully installs it in developer mode <pre class="fragment"> pip install -e .[test]
 </pre></li>
 </ol>
 <h2>Usage</h2>
 <p>Examples scripts can be found in qualikiz_tools/examples. A workflow example is given below:</p>
 <ol type="1">
-<li>Generate a template QuaLiKiz run directory using examples/mini.py <pre class="fragment"> qualikiz_tools create mini
+<li>Generate a template QuaLiKiz run directory using <a class="el" href="mini_8py.html">examples/mini.py</a> <pre class="fragment"> qualikiz_tools create mini
  cd runs/mini
 </pre></li>
 <li>Adjust the <code>parameters.json</code> to your liking</li>
-<li>Generate the input using the run.py script <pre class="fragment"> ./run.py input
+<li>Generate the input using the <a class="el" href="run_8py.html">run.py</a> script <pre class="fragment"> ./run.py input
 </pre></li>
 <li><p class="startli">Submit the job</p><ul>
 <li>Manually (for example, on Edison) <pre class="fragment">  sbatch edison.sbatch
@@ -116,7 +116,7 @@ $(function() {
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Fri Dec 16 2016 14:30:19 for QuaLiKiz-Pythontools by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Fri Dec 16 2016 14:33:25 for QuaLiKiz-Pythontools by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.12
 </small></address>
