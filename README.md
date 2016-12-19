@@ -27,12 +27,12 @@ it is advised to install anyway for the full power of the CLI.
 
       or
 
-            git clone https://github.com/QuaLiKiz-group/QuaLiKiz.git
+          git clone https://github.com/QuaLiKiz-group/QuaLiKiz.git
 
       and then
 
-            git submodule init
-            git submodule update
+          git submodule init
+          git submodule update
 
     * If you want to install standalone, just clone using (preferred)
 
@@ -40,7 +40,7 @@ it is advised to install anyway for the full power of the CLI.
 
       or
 
-            git clone https://github.com/QuaLiKiz-group/QuaLiKiz-pythontools.git
+          git clone https://github.com/QuaLiKiz-group/QuaLiKiz-pythontools.git
 
 2. (Recommended) Install [xarray dependencies](http://xarray.pydata.org/en/stable/installing.html)
 
@@ -79,7 +79,7 @@ given below:
         ./run.py inputgo
 
 5. After the job is done, convert the output to netCDF (as the mini-example is no hyper-rectangle,
-    the `--nocube` flag makes sure that the resulted dataset is not folded.
+    the `--nocube` flag makes sure that the resulted dataset is not folded).
 
         qualikiz_tools output --nocube to_netcdf .
 
