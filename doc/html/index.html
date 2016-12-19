@@ -70,12 +70,12 @@ $(function() {
 <ol type="1">
 <li>Clone the repository from GitHub.<ul>
 <li><p class="startli">If you want to install as submodule of QuaLiKiz (preferred) </p><pre class="fragment">  git clone git@github.com:QuaLiKiz-group/QuaLiKiz.git
-</pre><p class="startli">or </p><pre class="fragment">  git clone https://github.com/QuaLiKiz-group/QuaLiKiz.git
-</pre><p class="startli">and then </p><pre class="fragment">  git submodule init
-  git submodule update
+</pre><p class="startli">or </p><pre class="fragment">git clone https://github.com/QuaLiKiz-group/QuaLiKiz.git
+</pre><p class="startli">and then </p><pre class="fragment">git submodule init
+git submodule update
 </pre></li>
 <li><p class="startli">If you want to install standalone, just clone using (preferred) </p><pre class="fragment">  git clone git@github.com:QuaLiKiz-group/QuaLiKiz-pythontools.git
-</pre><p class="startli">or </p><pre class="fragment">  git clone https://github.com/QuaLiKiz-group/QuaLiKiz-pythontools.git
+</pre><p class="startli">or </p><pre class="fragment">git clone https://github.com/QuaLiKiz-group/QuaLiKiz-pythontools.git
 </pre></li>
 </ul>
 </li>
@@ -102,7 +102,7 @@ $(function() {
 </ul>
 <p class="startli">Step 3 and 4 can be done together by running </p><pre class="fragment">./run.py inputgo
 </pre></li>
-<li>After the job is done, convert the output to netCDF (as the mini-example is no hyper-rectangle, the <code>--nocube</code> flag makes sure that the resulted dataset is not folded. <pre class="fragment">qualikiz_tools output --nocube to_netcdf .
+<li>After the job is done, convert the output to netCDF (as the mini-example is no hyper-rectangle, the <code>--nocube</code> flag makes sure that the resulted dataset is not folded). <pre class="fragment">qualikiz_tools output --nocube to_netcdf .
 </pre></li>
 <li>Look at your netCDF file, for example, from within <code>IPython</code> <pre class="fragment"> import xarray as xr
  ds = xr.open_dataset('mini.nc')
@@ -116,7 +116,7 @@ $(function() {
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Fri Dec 16 2016 14:33:25 for QuaLiKiz-Pythontools by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Mon Dec 19 2016 11:05:22 for QuaLiKiz-Pythontools by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.12
 </small></address>
