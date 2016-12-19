@@ -12,6 +12,8 @@ import numpy as np
 import xarray as xr
 from itertools import chain
 import sys
+from .inputfiles import QuaLiKizXpoint, QuaLiKizPlan
+import array
 
 output_meth_0_sep_0 = {
     'pfe_GB': None,
@@ -233,7 +235,8 @@ def determine_sizes(rundir, folder='debug'):
         raise Exception('Could not read sizes from ' + os.path.join(rundir, folder, name + suffix))
 
 
-def convert_debug(sizes, rundir, folder='debug', verbose=False):
+def convert_debug(sizes, rundir, folder='debug', verbose=False,
+                  genfromtxt=False):
     """ Convert the debug folder to netcdf
 
     Load the output from the debug folder and convert it to netcdf. Note that
@@ -249,6 +252,8 @@ def convert_debug(sizes, rundir, folder='debug', verbose=False):
     Keyword Arguments:
         folder:  Name of the debug folder
         verbose: Output a message per file converted
+        genfromtxt: Use genfromtxt instead of loadtxt. Slower and loads
+                    unreadable values as nan
 
     Returns:
         ds: The netcdf dataset
@@ -263,7 +268,10 @@ def convert_debug(sizes, rundir, folder='debug', verbose=False):
                 if verbose:
                     print ('loading ' + basename.ljust(20) + ' from ' + dir)
                 try:
-                    data = np.loadtxt(file)
+                    if genfromtxt:
+                        data = np.genfromtxt(file)
+                    else:
+                        data = np.loadtxt(file)
                 except Exception as ee:
                     print('Exception loading ' + file.name)
                     raise
@@ -288,7 +296,8 @@ def convert_debug(sizes, rundir, folder='debug', verbose=False):
     return ds
 
 
-def convert_output(ds, sizes, rundir, folder='output', verbose=False):
+def convert_output(ds, sizes, rundir, folder='output', verbose=False,
+                   genfromtxt=False):
     """ Convert the output folder to netcdf
 
     Load the output from the output folder and convert it to netcdf. Note that
@@ -318,7 +327,10 @@ def convert_output(ds, sizes, rundir, folder='output', verbose=False):
                 if verbose:
                     print ('loading ' + basename.ljust(20) + ' from ' + dir)
                 try:
-                    data = np.loadtxt(file)
+                    if genfromtxt:
+                        data = np.genfromtxt(file)
+                    else:
+                        data = np.loadtxt(file)
                 except Exception as ee:
                     print('Exception loading ' + file.name)
                     raise
@@ -348,7 +360,8 @@ def convert_output(ds, sizes, rundir, folder='output', verbose=False):
     return ds
 
 
-def convert_primitive(ds, sizes, rundir, folder='output/primitive', verbose=False):
+def convert_primitive(ds, sizes, rundir, folder='output/primitive', verbose=False,
+                      genfromtxt=False):
     """ Convert the output/primitive folder to netcdf
 
     Load the output from the output/primitive folder and convert it to netcdf.
@@ -378,7 +391,10 @@ def convert_primitive(ds, sizes, rundir, folder='output/primitive', verbose=Fals
                 if verbose:
                     print ('loading ' + basename.ljust(20) + ' from ' + dir)
                 try:
-                    data = np.loadtxt(file)
+                    if genfromtxt:
+                        data = np.genfromtxt(file)
+                    else:
+                        data = np.loadtxt(file)
                 except Exception as ee:
                     print('Exception loading ' + file.name)
                     raise type(ee)(str(ee) + ' happens at %s' % file.name).with_traceback(sys.exc_info()[2])
@@ -436,25 +452,23 @@ def remove_dependent_axes(ds):
         ds: Dataset with dependent Coordinates to remove
     """
     # Ni is captured in Zeff
-    try:
+    if 'ninorm' in ds.coords:
         ds = ds.reset_coords('ninorm')
-    except ValueError:
-        pass
 
     # Tix is captured in Ti_Te
-    try:
+    if 'Tex' in ds.coords and 'Tix' in ds.coords:
         Ti_Te_rel = np.around(ds.coords['Tix'] / ds.coords['Tex'], 5)
-    except KeyError:
-        pass
-    else:
         ds.coords['Ti_Te'] = Ti_Te_rel
         ds = ds.reset_coords('Tix')
 
     # Tex is already captured in Nustar
-    try:
+    if 'Tex' in ds.coords:
         ds = ds.reset_coords('Tex')
-    except ValueError:
-        pass
+
+    # Remove placeholder for kthetarhos
+    if 'dimn' in ds.dims and 'kthetarhos' in ds.coords:
+        ds = ds.swap_dims({'dimn': 'kthetarhos'})
+        ds = ds.drop('dimn')
     return ds
 
 
@@ -518,40 +532,34 @@ def squeeze_dataset(ds):
             ds.attrs[name] = float(item)
             ds = ds.drop(name)
 
-    # Remove placeholder for kthetarhos
-    try:
-        ds = ds.swap_dims({'dimn': 'kthetarhos'})
-        ds = ds.drop('dimn')
-    except ValueError:
-        pass
-
     return ds
 
 #TODO: Implement unsqueezing function for converting back to a QuaLiKizRun
 def unsqueeze_dataset(ds):
     raise NotImplementedError
-    ds.load()
     # Readd placeholder for kthetarhos
-    try:
-        name = 'kthetarhos'
-        ds.coords['dimn'] =xr.DataArray(range(len(ds[name])), coords={name: ds[name]}, name=ds[name].name, attrs=ds[name].attrs, encoding=ds[name].encoding)
+    name = 'kthetarhos'
+    if name in ds.coords:
+        ds.coords['dimn'] = xr.DataArray(range(len(ds[name])), coords={name: ds[name]}, name=ds[name].name, attrs=ds[name].attrs, encoding=ds[name].encoding)
         ds = ds.swap_dims({name: 'dimn'})
-    except ValueError:
-        pass
+        ds = ds.drop(name)
+    return ds
 
+    # Move metadata to coords
+    for name, item in ds.attrs.items():
+        ds.coords[name] = item
 
     # Unsqueeze constants for dimx
     print(ds.dims)
     for name, item in ds.coords.items():
-        if 'dimx' not in item.dims and name not in ds.dims and name != 'kthetarhos':
+        if 'dimx' not in item.dims and name not in ds.dims:
             print(name)
-            print(name is not 'kthetarhos')
-            print('dimx' not in item.dims and name not in ds.dims and name is not 'kthetarhos')
-            ds.drop(name)
+            #ds.drop(name)
             if 'nions' not in item.dims:
                 ds.coords[name] = xr.DataArray(np.repeat(item.data, ds['dimx'].size), coords={'dimx': ds['dimx'].data}, name=ds[name].name, attrs=ds[name].attrs, encoding=ds[name].encoding)
             else:
                 ds.coords[name] = xr.DataArray(np.repeat(np.atleast_2d(item.data), ds['dimx'].size, axis=0), coords=OrderedDict([('dimx', ds['dimx'].data), ('nions', ds['nions'].data)]), name=ds[name].name, attrs=ds[name].attrs, encoding=ds[name].encoding)
+    return ds
 
     # Unsqueeze At back to Ate and Ati
     try:
@@ -770,3 +778,61 @@ def sort_dims(ds):
     for dim in ds.dims:
         ds = ds.reindex(**{dim: np.sort(ds[dim])})
     return ds
+
+def to_input_json(ds, rundir, inputdir='input'):
+    """ Create an input json file from dataset
+    This functions created a input JSON file using the coordinates
+    as scan values. The cleanest JSON will be generated if a
+    squeezed dataset is used.
+    """
+    ignore = ['Zeffx', 'Nustar']
+    conversion_dict = {'Tex': 'Te',
+                        'Nex': 'ne',
+                        'ion_type': 'typei',
+                        'ninorm': 'normni',
+                        'Tix': 'Ti'}
+    for name, item in ds.coords.items():
+        print (name)
+        dimx = len(ds['dimx'])
+        nions = len(ds['nions'])
+        if name in ['dimx', 'dimn', 'nions', 'numsols']:
+            bytevalues = [len(item)]
+        else:
+            if 'nions' in item.dims:
+                bytevalues = item.stack(dim=('nions', 'dimx')).data
+            elif 'dimx' in item.dims or name == 'kthetarhos':
+                bytevalues = item.data
+            else:
+                bytevalues = [item.data]
+        print(bytevalues)
+        value = array.array('d', bytevalues)
+        if name  in conversion_dict:
+            name = conversion_dict[name]
+
+        if name not in ignore:
+            with open(os.path.join(inputdir, name + '.bin'), 'wb') as file_:
+                value.tofile(file_)
+    fake = {'alphax': 0.,
+            'danisdre': 0.,
+            'anise': 1.}
+
+    for name, value in fake.items():
+        with open(os.path.join(inputdir, name + '.bin'), 'wb') as file_:
+            array.array('d', np.full(dimx, value)).tofile(file_)
+
+    fake = {'danisdri': 0.,
+            'anisi': 1.}
+
+    for name, value in fake.items():
+        with open(os.path.join(inputdir, name + '.bin'), 'wb') as file_:
+            array.array('d', np.full(nions*dimx, value)).tofile(file_)
+    fake = {'phys_meth': 1.,
+            'typee': 1.,
+            'verbose': 1.}
+
+    for name, value in fake.items():
+        with open(os.path.join(inputdir, name + '.bin'), 'wb') as file_:
+            array.array('d', [value]).tofile(file_)
+
+    with open(os.path.join(inputdir, 'rho' + '.bin'), 'wb') as file_:
+        array.array('d', ds['x'].data).tofile(file_)

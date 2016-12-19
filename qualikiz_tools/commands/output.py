@@ -1,6 +1,6 @@
 """
 Usage: 
-  qualikiz_tools output [-v | -vv] [--nocube] <command> <target_path>
+  qualikiz_tools output [-v | -vv] [--nocube] [--genfromtxt]  <command> <target_path>
   qualikiz_tools output [-v | -vv] help
 
 Options:
@@ -55,17 +55,20 @@ def run(args):
             print('Supplied dir ' + args['<target_path>'] + ' is of type ' + str(dirtype))
 
 
+    kwargs = {}
     if args['<command>'] == 'to_netcdf':
+        if args['--genfromtxt']:
+            kwargs['genfromtxt'] = True
         if dirtype == 'run':
             if args['--nocube']:
-                run.to_netcdf(mode='nocube')
-            else:
-                QuaLiKizRun.to_netcdf(run)
+                kwargs['mode'] = 'nocube'
+            run.to_netcdf(**kwargs)
         elif dirtype == 'batch':
             if args['--nocube']:
-                batch.to_netcdf(runmode='nocube', mode='noglue')
-            else:
-                batch.to_netcdf()
+                kwargs['runmode'] = 'nucube'
+                kwargs['mode'] = 'noglue'
+                kwargs['clean'] = False
+            batch.to_netcdf(**kwargs)
 
     elif args['<command>'] == 'squeeze':
         from qualikiz_tools.qualikiz_io.outputfiles import squeeze_dataset, orthogonalize_dataset, determine_sizes
