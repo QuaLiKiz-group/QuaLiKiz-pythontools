@@ -15,6 +15,9 @@ import scipy as sc
 import scipy.optimize
 
 
+def allequal(lst):
+    return lst[1:] == lst[:-1]
+
 class Particle(dict):
     """ Particle (ion or electron)
     """
@@ -79,7 +82,12 @@ class IonList(list):
         if isinstance(key, int) or isinstance(key, slice):
             return super().__getitem__(key)
         if key in Ion.keynames + Particle.keynames:
-            return [ion[key] for ion in self]
+            valuelist = [ion[key] for ion in self]
+            if allequal(valuelist):
+                return self[0][key]
+            else:
+                raise Exception('Unequal values for ion key \''
+                                + key + '\'= ' + str(valuelist))
         else:
             raise NotImplementedError('getting of ' + key)
 
@@ -152,7 +160,6 @@ class QuaLiKizXpoint(dict):
         #if self['norm']['QN_grad']:
         #    self.check_quasi()
         self['norm']['x_rho'] = kwargs.get('x_rho', True)
-        self['norm']['An_equal'] =  kwargs.get('An_equal', False)
         self['norm']['recalc_Nustar'] =  kwargs.get('recalc_Nustar', False)
         self['norm']['recalc_Ti_Te_rel'] =  kwargs.get('recalc_Ti_Te_rel', False)
 
@@ -395,6 +402,14 @@ class QuaLiKizXpoint(dict):
             return self['norm'].__getitem__(key)
         elif key in ['geometry', 'special', 'meta', 'norm', 'ions', 'elec']:
             return super().__getitem__(key)
+        elif key in Particle.keynames:
+            ionval = self['ions'].__getitem__(key)
+            elecval = self['elec'].__getitem__(key)
+            if ionval == elecval:
+                return elecval
+            else:
+                raise Exception('Unequal values for ion/elec key \''
+                                + key + '\'= ' + str((ionval, elecval)))
         elif key.endswith('i') or (key[-1].isdigit() and key[-2] == 'i'):
             if key[-1].isdigit():
                 ionnumber = int(key[-1])
@@ -436,6 +451,9 @@ class QuaLiKizXpoint(dict):
             self['norm'].__setitem__(key, value)
         elif key in ['geometry', 'special', 'meta', 'norm', 'ions', 'elec']:
             super().__setitem__(key, value)
+        elif key in Particle.keynames:
+            self['ions'].__setitem__(key, value)
+            self['elec'].__setitem__(key, value)
         elif key.endswith('i') or (key[-1].isdigit() and key[-2] == 'i'):
             if key[-1].isdigit():
                 ionnumber = int(key[-1])
@@ -607,8 +625,6 @@ class QuaLiKizPlan(dict):
                 dimxpoint[scan_name] = scan_value
             if dimxpoint['norm']['x_rho']:
                 dimxpoint['geometry'].__setitem__('rho', dimxpoint['x'])
-            if dimxpoint['norm']['An_equal']:
-                dimxpoint.equalize_gradient()
             if dimxpoint['norm']['ninorm1']:
                 dimxpoint.normalize_density()
             if dimxpoint['norm']['Ani1']:

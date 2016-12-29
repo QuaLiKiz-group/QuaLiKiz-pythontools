@@ -218,7 +218,7 @@ class TestQuaLiKizXpoint(TestCase):
                        'Ai', 'Zi']
         for param in test_params:
             self.baseXpoint[param] = 50
-            self.assertEqual(self.baseXpoint[param], [50, 50, 50],
+            self.assertEqual(self.baseXpoint[param], 50,
                              param)
 
         self.assertRaisesRegex(NotImplementedError,
@@ -315,7 +315,7 @@ class TestQuaLiKizXpoint(TestCase):
 
     def test_getitem_tite(self):
         self.assertEqual(self.baseXpoint['elec']['T'], 8.)
-        self.assertEqual(self.baseXpoint['ions']['T'], [8., 8., 8.])
+        self.assertEqual(self.baseXpoint['ions']['T'], 8.)
 
         self.assertEqual(self.baseXpoint['Ti_Te_rel'], 1)
 
@@ -323,7 +323,7 @@ class TestQuaLiKizXpoint(TestCase):
         self.baseXpoint['ions']['An'] = 12.
         self.baseXpoint['elec']['An'] = 8.
         self.baseXpoint.equalize_gradient()
-        self.assertEqual(self.baseXpoint['ions']['An'], [8., 8., 8.])
+        self.assertEqual(self.baseXpoint['ions']['An'], 8)
 
     def test_match_epsilon(self):
         self.baseXpoint['geometry']['Rmin'] = 2.
