@@ -292,15 +292,6 @@ class QuaLiKizBatch:
         if not os.path.exists(batchpath):
             raise Exception('batch script does not exist!')
 
-        # Check QuaLiKiz version being run. Just a git check, no binary check!
-        cwd = os.getcwd()
-        os.chdir(batchdir)
-        cmd = 'git describe --tags'
-        describe = subprocess.check_output(cmd, shell=True)
-        batchinfo = OrderedDict()
-        batchinfo['qualikiz_version'] = describe.strip().decode('utf-8')
-        os.chdir(cwd)
-
         # TODO: generalize for non-edison machines
         cmd = 'sbatch --workdir=' + os.getcwd() + ' ' + batchpath
         output = subprocess.check_output(cmd, shell=True)
