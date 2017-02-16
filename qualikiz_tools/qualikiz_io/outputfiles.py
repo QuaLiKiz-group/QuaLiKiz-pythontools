@@ -452,7 +452,7 @@ def squeeze_coords(ds, dim):
                     bool &= (len(np.unique(item.sel(nions=i).values)) == 1)
                 if bool:
                     ds.coords[name] = xr.DataArray(item[0,:].values, coords={'nions': item['nions']})
-                    return ds
+    return ds
 
 
 def remove_dependent_axes(ds):
@@ -529,24 +529,21 @@ def squeeze_dataset(ds):
         ds = ds.drop('Ate')
         ds = ds.drop('Ati')
 
-    # TODO: Generalize using squeeze_coords
     # Squeeze constant for dimx
-    for name, item in ds.coords.items():
-        if item.dims == ('dimx',):
-            if len(np.unique(item.values)) == 1:
-                ds[name] = xr.DataArray(item[0].values)
-        elif item.dims == ('dimx', 'nions'):
-            for i in range(ds['nions'].size):
-                bool &= (len(np.unique(item.sel(nions=i).values)) == 1)
-                if bool:
-                    ds[name] = xr.DataArray(item[0,:].values, coords={'nions': item['nions']})
+    ds = squeeze_coords(ds, 'dimx')
 
     # Move metadata to attrs
     for name, item in ds.coords.items():
         if name in debug_single and name not in ds.dims:
             ds.attrs[name] = float(item)
             ds = ds.drop(name)
+    return ds
 
+def to_meta_0d(ds):
+    for name, item in ds.items():
+        if item.shape == ():
+            ds.attrs[name] = float(item)
+            ds = ds.drop(name)
     return ds
 
 #TODO: Implement unsqueezing function for converting back to a QuaLiKizRun
@@ -851,3 +848,12 @@ def to_input_json(ds, rundir, inputdir='input'):
 
     with open(os.path.join(inputdir, 'rho' + '.bin'), 'wb') as file_:
         array.array('d', ds['x'].data).tofile(file_)
+
+def xarray_to_pandas(ds):
+    ds = squeeze_dataset(ds)
+    ds = to_meta_0d(ds)
+    panda_dict = {}
+    for name, data_var in ds.data_vars.items():
+        print(name)
+        panda_dict[name] = data_var.to_dataframe()
+    return panda_dict
