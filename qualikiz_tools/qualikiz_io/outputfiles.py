@@ -14,6 +14,8 @@ from itertools import chain
 import sys
 from .inputfiles import QuaLiKizXpoint, QuaLiKizPlan
 import array
+import pandas as pd
+from IPython import embed
 
 output_meth_0_sep_0 = {
     'pfe_GB': None,
@@ -144,16 +146,16 @@ debug_eleclike = {
     'Machpar': None,
     'Machtor': None,
     'x': None,
-    'Zeffx': None,
+    'Zeff': None,
     'Bo': None,
     'gammaE': None,
-    'Nex': None,
+    'ne': None,
     'Nustar': None,
-    'qx': None,
+    'q': None,
     'Ro': None,
     'Rmin': None,
     'smag': None,
-    'Tex': None}
+    'Te': None}
 
 debug_ionlike = {
     'Ai': None,
@@ -161,8 +163,8 @@ debug_ionlike = {
     'Ati': None,
     'Zi': None,
     'ion_type': None,
-    'ninorm': None,
-    'Tix': None}
+    'normni': None,
+    'Ti': None}
 
 debug_single = {
     'dimn': None,
@@ -175,6 +177,8 @@ debug_single = {
     'R0': None,
     'relacc1': None,
     'relacc2': None,
+    'collmult': None,
+    'ETGmult': None,
     'rot_flag': None,
     'separateflux': None,
     'timeout': None}
@@ -452,18 +456,18 @@ def remove_dependent_axes(ds):
         ds: Dataset with dependent Coordinates to remove
     """
     # Ni is captured in Zeff
-    if 'ninorm' in ds.coords:
-        ds = ds.reset_coords('ninorm')
+    if 'normni' in ds.coords:
+        ds = ds.reset_coords('normni')
 
     # Tix is captured in Ti_Te
-    if 'Tex' in ds.coords and 'Tix' in ds.coords:
-        Ti_Te_rel = np.around(ds.coords['Tix'] / ds.coords['Tex'], 5)
+    if 'Te' in ds.coords and 'Ti' in ds.coords:
+        Ti_Te_rel = np.around(ds.coords['Ti'] / ds.coords['Te'], 5)
         ds.coords['Ti_Te'] = Ti_Te_rel
-        ds = ds.reset_coords('Tix')
+        ds = ds.reset_coords('Ti')
 
     # Tex is already captured in Nustar
-    if 'Tex' in ds.coords:
-        ds = ds.reset_coords('Tex')
+    if 'Te' in ds.coords:
+        ds = ds.reset_coords('Te')
 
     # Remove placeholder for kthetarhos
     if 'dimn' in ds.dims and 'kthetarhos' in ds.coords:

@@ -16,7 +16,7 @@ class TestParticles(TestCase):
                  'type': 1,
                  'anis': 1.,
                  'danisdr': 0.}
-        
+
         ion_0 = copy.deepcopy(part)
         ion_0['n'] = .9
         ion_0['A'] = 2.
@@ -75,9 +75,9 @@ class TestGeometric(TestCase):
                  'Ro': 3,
                  'Rmin': 1,
                  'Bo':3,
-                 'qx':3.,
+                 'q':3.,
                  'smag':2.,
-                 'alphax':0.,
+                 'alpha':0.,
                  'Machtor': 0.,
                  'Autor':0.}
     def SetUp(TestCase):
@@ -130,7 +130,7 @@ class TestQuaLiKizXpoint(TestCase):
             self.baseXpoint['ions'][2]['n'] = 2*n1/3
             self.baseXpoint.normalize_density()
             self.assertAlmostEqual(self.baseXpoint['ions'][0]['n'], n0)
-    
+
     def test_normalize_density_sanity(self):
         self.baseXpoint['ions'][1]['n'] = .9
         self.assertRaisesRegex(Exception,
@@ -149,7 +149,7 @@ class TestQuaLiKizXpoint(TestCase):
             self.baseXpoint['ions'][1]['An'] = An1
             self.baseXpoint.normalize_gradient()
             self.assertAlmostEqual(self.baseXpoint['ions'][0]['An'], An0)
-            
+
         self.baseXpoint['ions'][2]['type'] = 1
         for An0, An1 in zip(An0s, An1s):
             self.baseXpoint['ions'][0]['An'] = 0.
@@ -261,7 +261,7 @@ class TestQuaLiKizXpoint(TestCase):
 
     def test_match_nustar(self):
         self.assertEqual(self.baseXpoint['elec']['n'], .1)
-        self.assertEqual(self.baseXpoint['geometry']['qx'], 3.)
+        self.assertEqual(self.baseXpoint['geometry']['q'], 3.)
         self.assertEqual(self.baseXpoint['geometry']['Ro'], 3)
         self.assertEqual(self.baseXpoint['geometry']['Rmin'], 1)
         self.assertEqual(self.baseXpoint['geometry']['x'], .45)
@@ -271,7 +271,7 @@ class TestQuaLiKizXpoint(TestCase):
 
     def test_calc_nustar(self):
         self.assertEqual(self.baseXpoint['elec']['n'], .1)
-        self.assertEqual(self.baseXpoint['geometry']['qx'], 3.)
+        self.assertEqual(self.baseXpoint['geometry']['q'], 3.)
         self.assertEqual(self.baseXpoint['geometry']['Ro'], 3)
         self.assertEqual(self.baseXpoint['geometry']['Rmin'], 1)
         self.assertEqual(self.baseXpoint['geometry']['x'], .45)
@@ -281,7 +281,7 @@ class TestQuaLiKizXpoint(TestCase):
 
     def test_setitems_nustar(self):
         self.assertEqual(self.baseXpoint['elec']['n'], .1)
-        self.assertEqual(self.baseXpoint['geometry']['qx'], 3.)
+        self.assertEqual(self.baseXpoint['geometry']['q'], 3.)
         self.assertEqual(self.baseXpoint['geometry']['Ro'], 3)
         self.assertEqual(self.baseXpoint['geometry']['Rmin'], 1)
         self.assertEqual(self.baseXpoint['geometry']['x'], .45)
@@ -359,7 +359,7 @@ class TestQuaLiKizPlan_hyperedge(TestCase):
     def setUp(self):
         TestQuaLiKizXpoint.setUp(self)
         scan_dict = OrderedDict()
-        keys = ['Ati', 'Ate', 'Ane', 'qx', 'smag', 'x', 'Ti_Te_rel', 'Zeff']
+        keys = ['Ati', 'Ate', 'Ane', 'q', 'smag', 'x', 'Ti_Te_rel', 'Zeff']
         values = [
             np.linspace(0,1,1),
             np.linspace(0,1,2),

@@ -242,7 +242,7 @@ class QuaLiKizXpoint(dict):
         # First set everything needed for nustar: Zeff, Ne, q, R0, Rmin, x
         # Rewrite formula for nustar to form nustar = c1 / Te^2 (c2 + ln(Te))
         zeff = self.calc_zeff()
-        c1 = (6.9224e-5 * zeff * self['elec']['n'] * self['geometry']['qx'] *
+        c1 = (6.9224e-5 * zeff * self['elec']['n'] * self['geometry']['q'] *
               self['geometry']['Ro'] *
               (self['geometry']['Rmin'] * self['geometry']['x'] /
                self['geometry']['Ro']) ** -1.5)
@@ -261,7 +261,7 @@ class QuaLiKizXpoint(dict):
     def calc_nustar(self):
         """ Calculate Nustar """
         zeff = self.calc_zeff()
-        c1 = (6.9224e-5 * zeff * self['elec']['n'] * self['geometry']['qx'] *
+        c1 = (6.9224e-5 * zeff * self['elec']['n'] * self['geometry']['q'] *
               self['geometry']['Ro'] *
               (self['geometry']['Rmin'] * self['geometry']['x'] /
                self['geometry']['Ro']) ** -1.5)
@@ -341,8 +341,8 @@ class QuaLiKizXpoint(dict):
 
     class Geometry(dict):
         """ Wraps variables that change per scan point """
-        in_args = ['x', 'rho', 'Ro', 'Rmin', 'Bo', 'qx', 'smag',
-                   'alphax', 'Machtor', 'Autor']
+        in_args = ['x', 'rho', 'Ro', 'Rmin', 'Bo', 'q', 'smag',
+                   'alpha', 'Machtor', 'Autor']
         extra_args = ['Machpar', 'Aupar', 'gammaE']
 
         def __init__(self, **kwargs):
@@ -353,9 +353,9 @@ class QuaLiKizXpoint(dict):
                 Ro:      [m] Major radius
                 Rmin:    [m] Minor radius
                 Bo:      [T] Magnetic field at magnetic axis
-                qx:      Local q-profile value
+                q:       Local q-profile value
                 smag:    Local magnetic shear s def rq'/q
-                alphax:  Local MHD alpha
+                alpha:   Local MHD alpha
                 Machtor: Normalized toroidal velocity
                 Autor:   Toroidal velocity gradient
 
@@ -369,11 +369,11 @@ class QuaLiKizXpoint(dict):
                 self[arg] = kwargs[arg]
             Machtor = self['Machtor']
             Autor = self['Autor']
-            qx = self['qx']
+            q = self['q']
             epsilon = self['x']/self['Ro']
-            self['Machpar'] = Machtor / np.sqrt(1+(epsilon/qx)**2)
-            self['Aupar'] = Autor / np.sqrt(1+(epsilon/qx)**2)
-            self['gammaE'] = -epsilon/qx*Autor
+            self['Machpar'] = Machtor / np.sqrt(1+(epsilon/q)**2)
+            self['Aupar'] = Autor / np.sqrt(1+(epsilon/q)**2)
+            self['gammaE'] = -epsilon/q*Autor
 
     def __getitem__(self, key):
         """ Get value from nested dict

@@ -24,7 +24,7 @@ class TestQuaLiKizRun(TestCase):
              'type': 1,
              'anis': 1.,
              'danisdr': 0.}
-    
+
     ion_0 = copy.deepcopy(part)
     ion_0['n'] = .9
     ion_0['A'] = 2.
@@ -56,18 +56,18 @@ class TestQuaLiKizRun(TestCase):
         'timeout':   60,
         'R0':        5
     }
-    
+
     geometric = {'x': 0.15,
                  'rho': 0.15,
                  'Ro': 3,
                  'Rmin': 1,
                  'Bo':3,
-                 'qx':2.,
+                 'q':2.,
                  'smag':1.,
-                 'alphax':0.,
+                 'alpha':0.,
                  'Machtor': 0.,
                  'Autor':0.}
-    
+
     defaults = {}
     defaults.update(meta)
     defaults.update(geometric)
@@ -80,7 +80,7 @@ class TestQuaLiKizRun(TestCase):
                             elec, ions, **defaults)
 
     scan_dict = OrderedDict()
-    keys = ['Ati', 'Ate', 'Ane', 'qx', 'smag', 'x', 'Ti_Te_rel', 'Zeff']
+    keys = ['Ati', 'Ate', 'Ane', 'q', 'smag', 'x', 'Ti_Te_rel', 'Zeff']
     values = [
         np.linspace(0,1,1),
         np.linspace(0,1,2),
