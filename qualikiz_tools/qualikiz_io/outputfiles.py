@@ -286,13 +286,20 @@ def convert_debug(sizes, rundir, folder='debug', verbose=False,
                     dims=['dimx']
                 elif name in debug_ionlike:
                     dims = ['dimx', 'nions']
+                    if nions == 1:
+                        data = np.expand_dims(data, axis=1)
                 elif name in debug_single:
                     dims = None
                 elif name in debug_special:
                     dims = ['dimn']
                 else:
                     raise Exception('Could not process \'' + name + '\'')
-                ds.coords[name] = xr.DataArray(data, dims=dims)
+                try:
+                    ds.coords[name] = xr.DataArray(data, dims=dims)
+                except Exception as e:
+                    raise type(e)(str(e) +
+                      ' happens at %s' % name).with_traceback(sys.exc_info()[2])
+
         except FileNotFoundError:
             pass
     # Nothing in debug depends on numsols, but add it for later use
@@ -344,6 +351,8 @@ def convert_output(ds, sizes, rundir, folder='output', verbose=False,
                 elif name == 'cke' or name == 'ceke':
                     ds[name] = xr.DataArray(data, dims=['dimx'], name=name)
                 elif  name == 'cki' or name == 'ceki' or name == 'ion_type':
+                    if nions == 1:
+                        data = np.expand_dims(data, axis=1)
                     ds[name] = xr.DataArray(data, dims=['dimx','nions'], name=name)
                 elif name == 'efi_cm':
                     data = data.reshape(nions,dimx,dimn)
@@ -356,7 +365,9 @@ def convert_output(ds, sizes, rundir, folder='output', verbose=False,
                     if newname.endswith('e'):
                         ds[name] = xr.DataArray(data, dims=['dimx'], name=name)
                     elif newname.endswith('i'):
-                        ds[name] = xr.DataArray(data, dims=['dimx','nions'], name=name)
+                        if nions == 1:
+                            data = np.expand_dims(data, axis=1)
+                            ds[name] = xr.DataArray(data, dims=['dimx','nions'], name=name)
                     else:
                         raise Exception('Could not process \'' + name + '\'')
         except FileNotFoundError:
