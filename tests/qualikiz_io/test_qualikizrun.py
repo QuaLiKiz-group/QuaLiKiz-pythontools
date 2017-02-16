@@ -128,7 +128,7 @@ class TestQuaLiKizRun(TestCase):
         self.qualikizrun.generate_input()
         rundir = self.qualikizrun.rundir
         in_input = os.listdir(os.path.join(rundir, 'input'))
-        self.assertEqual(len(in_input), 45)
+        self.assertEqual(len(in_input), 47)
 
     def test_inputbinaries_exist(self):
          self.qualikizrun.prepare()

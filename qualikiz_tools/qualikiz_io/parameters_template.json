@@ -35,6 +35,8 @@
             "maxruns": 1,
             "maxpts": 500000.0,
             "timeout": 60,
+            "ETGmult": 1,
+            "collmult": 1,
             "R0": 3.0
         },
         "special": {

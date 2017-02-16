@@ -292,7 +292,7 @@ class QuaLiKizXpoint(dict):
         keynames = ['phys_meth', 'coll_flag',
                     'rot_flag', 'verbose', 'separateflux',
                     'numsols', 'relacc1', 'relacc2',
-                    'maxruns', 'maxpts', 'timeout', 'R0']
+                    'maxruns', 'maxpts', 'timeout', 'ETGmult', 'collmult', 'R0']
 
         def __init__(self, **kwargs):
             """ Initialize Meta class
@@ -311,6 +311,8 @@ class QuaLiKizXpoint(dict):
                 maxpts:    Number of integrant evaluations done in 2D integral
                 timeout:   Upper time limit [s] for wavenumber/scan point
                            solution finding
+                ETGmult:   Multpliers for ETG saturation level
+                collmult:  Multiplier for collisionality
                 R0:       [m] Geometric major radius used for normalizations
             """
             defaults = {
@@ -325,6 +327,8 @@ class QuaLiKizXpoint(dict):
                 'maxruns':   1,
                 'maxpts':    5e5,
                 'timeout':   60,
+                'ETGmult':   1,
+                'collmult':  1,
                 'R0':       None
             }
             values = [kwargs.get(arg, defaults[arg]) for arg in self.keynames]
