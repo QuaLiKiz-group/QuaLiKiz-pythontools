@@ -295,6 +295,7 @@ class QuaLiKizBatch:
         # TODO: generalize for non-edison machines
         cmd = 'sbatch --workdir=' + os.getcwd() + ' ' + batchpath
         output = subprocess.check_output(cmd, shell=True)
+        batchinfo = {}
         batchinfo['jobnumber'] = output.split()[-1].decode('utf-8')
         batchinfo['submittime'] = datetime.datetime.now()
 
