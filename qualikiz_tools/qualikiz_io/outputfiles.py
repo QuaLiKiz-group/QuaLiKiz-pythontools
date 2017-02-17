@@ -507,15 +507,7 @@ def squeeze_dataset(ds):
     # Move some axes we know depend on eachother to data.
     ds = remove_dependent_axes(ds)
 
-    # TODO: Generalize using squeeze_coords
-    # Squeeze equal ions 
-    for name, item in ds.coords.items():
-        bool = True
-        if ds['nions'].size > 1 and item.dims == ('dimx', 'nions'):
-            for i in range(1, item['nions'].size):
-                bool &= (np.allclose(item[:,0], item[:,i]))
-            if bool:
-                ds[name] = xr.DataArray(item[:,0].values, coords={'dimx': item['dimx']})
+    ds = squeeze_coords(ds, 'dimx')
 
     # Squeeze Ane and Ani into An
     if ds['Ane'].equals(ds['Ani']):
