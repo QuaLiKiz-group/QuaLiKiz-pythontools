@@ -5,8 +5,19 @@ License: CeCILL v2.1
 """
 import os
 import shutil
+import array
 from warnings import warn
-def convert_current_to_2_3_2(inputdir):
+def convert_current_to_2_4_0(inputdir):
+    input_table = {'qx': 'q',
+                   'alphax': 'alpha'}
+    for old_name, new_name in input_table.items():
+        try:
+            os.rename(os.path.join(inputdir, new_name + '.bin'),
+                      os.path.join(inputdir, old_name + '.bin'))
+        except FileNotFoundError:
+            warn('File ' + os.path.join(inputdir, new_name + '.bin') + ' not found, skipping..')
+
+def convert_2_4_0_to_2_3_2(inputdir):
     input_table = {'p1' : 'dimx',
                    'p2' : 'dimn',
                    'p3' : 'nions',
@@ -117,4 +128,59 @@ def convert_2_3_2_to_2_3_1(inputdir):
     for file in os.listdir(tempdir):
         os.rename(os.path.join(tempdir, file), os.path.join(inputdir, file))
 
+    os.rmdir(tempdir)
+
+def convert_2_3_1_to_CEA_QuaLiKiz(inputdir):
+    input_table = {'p16': 'p14',
+                   'p17': 'p15',
+                   'p18': 'p16',
+                   'p19': 'p17',
+                   'p20': 'p18',
+                   'p21': 'p19',
+                   'p22': 'p20',
+                   'p23': 'p21',
+                   'p24': 'p22',
+                   'p25': 'p23',
+                   'p26': 'p24',
+                   'p27': 'p25',
+                   'p28': 'p26',
+                   'p29': 'p27',
+                   'p30': 'p28',
+                   'p31': 'p29',
+                   'p32': 'p30',
+                   'p33': 'p31',
+                   'p34': 'p32',
+                   'p35': 'p33',
+                   'p36': 'p34',
+                   'p37': 'p35',
+                   'p38': 'p36',
+                   'p39': 'p37',
+                   'p40': 'p38',
+                   'p41': 'p39',
+                   'p42': 'p40',
+                   'p43': 'p41',
+                   'p44': 'p42',
+                   'p45': 'p43',
+                   'p46': 'p44'}
+
+    tempdir = os.path.join(inputdir, 'temp')
+    os.mkdir(tempdir)
+    suffix = '.bin'
+    for file in os.listdir(inputdir):
+        if file.endswith(suffix):
+            os.rename(os.path.join(inputdir, file), os.path.join(tempdir, file))
+
+    for old_name, new_name in input_table.items():
+        try:
+            os.rename(os.path.join(tempdir, new_name + suffix),
+                      os.path.join(inputdir, old_name + suffix))
+        except FileNotFoundError:
+            warn('File ' + os.path.join(inputdir, new_name + suffix) + ' not found, skipping..')
+
+    for file in os.listdir(tempdir):
+        os.rename(os.path.join(tempdir, file), os.path.join(inputdir, file))
+    for name in ['p14', 'p15']:
+        with open(os.path.join(inputdir, name + '.bin'), 'wb') as file_:
+                value = array.array('d', [1])
+                value.tofile(file_)
     os.rmdir(tempdir)
