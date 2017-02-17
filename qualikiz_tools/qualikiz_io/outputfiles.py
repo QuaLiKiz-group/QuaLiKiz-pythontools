@@ -845,7 +845,27 @@ def xarray_to_pandas(ds):
     ds = squeeze_dataset(ds)
     ds = to_meta_0d(ds)
     panda_dict = {}
-    for name, data_var in ds.data_vars.items():
-        print(name)
-        panda_dict[name] = data_var.to_dataframe()
+
+    for name, var in ds.items():
+        tablename = str(var.dims)
+        try:
+            panda_dict[tablename]
+        except KeyError:
+            df = var.to_dataframe()
+            # Drop duplicate columns
+            cols = list(df.columns)
+            for ii,item in enumerate(df.columns):
+                if item in df.columns[:ii]:
+                    cols[ii] = "toDROP"
+            df.columns = cols
+            try:
+                df = df.drop("toDROP",1)
+            except ValueError:
+                pass
+            panda_dict[tablename] = df
+
+        newcols = var.to_dataframe().columns.difference(
+        panda_dict[tablename].columns)
+        if not newcols.equals(pd.Index([], dtype='object')):
+            panda_dict[tablename][newcols] = var.to_dataframe()[newcols]
     return panda_dict
