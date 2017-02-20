@@ -65,7 +65,7 @@ def run(args):
             run.to_netcdf(**kwargs)
         elif dirtype == 'batch':
             if args['--nocube']:
-                kwargs['runmode'] = 'nucube'
+                kwargs['runmode'] = 'nocube'
                 kwargs['mode'] = 'noglue'
                 kwargs['clean'] = False
             batch.to_netcdf(**kwargs)

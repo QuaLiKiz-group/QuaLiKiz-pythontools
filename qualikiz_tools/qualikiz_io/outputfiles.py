@@ -23,6 +23,7 @@ output_meth_0_sep_0 = {
     'gam_GB': None,
     'ome_GB': None,
     'efe_GB': None,
+    'efe_cm': None,
     'efi_GB': None,
     'efi_cm': None,
     'vfi_GB': None,
@@ -87,19 +88,13 @@ primi_meth_0 = {
     'Lvcirci': None,
     'Lvpiege': None,
     'Lvpiegi': None,
-    'ifdsol': None,
-    'ijonsolflu': None,
-    'imodeshift': None,
-    'imodewidth': None,
-    'isol': None,
-    'isolflu': None,
-    'ntor': None,
-    'rfdsol': None,
-    'rjonsolflu': None,
-    'rmodeshift': None,
-    'rmodewidth': None,
-    'rsol': None,
-    'rsolflu': None}
+    'fdsol': None,
+    'jonsolflu': None,
+    'modeshift': None,
+    'modewidth': None,
+    'sol': None,
+    'solflu': None,
+    'ntor': None}
 
 primi_meth_1 = {
     'Lcircgne': None,
@@ -162,7 +157,7 @@ debug_ionlike = {
     'Ani': None,
     'Ati': None,
     'Zi': None,
-    'ion_type': None,
+    'typei': None,
     'normni': None,
     'Ti': None}
 
@@ -211,7 +206,7 @@ suffix = '.dat'
 
 
 
-def determine_sizes(rundir, folder='debug'):
+def determine_sizes(rundir, folder='debug', keepfile=True):
     """ Determine the sizes needed for re-shaping arrays
 
     Load output from debug folder. The values of dimx, dimn, nions and numsols
@@ -223,6 +218,7 @@ def determine_sizes(rundir, folder='debug'):
 
     Keyword Arguments:
         folder: Name of the debug folder
+        keepfile: Delete the file after reading. NOT RECOMMENDED
 
     Returns:
         sizes:  A dictionary with the four sizes.
@@ -230,9 +226,12 @@ def determine_sizes(rundir, folder='debug'):
     names = ['dimx', 'dimn', 'nions', 'numsols']
     sizes = OrderedDict()
     for name in names:
-        with open(os.path.join(rundir, folder, name + suffix), 'rb') as file:
+        path_ = os.path.join(rundir, folder, name + suffix)
+        with open(path_, 'rb') as file:
             data = np.loadtxt(file)
             sizes[name] = int(data)
+        if not keepfile:
+            os.remove(path_)
     if sizes:
         return sizes
     else:
@@ -240,7 +239,7 @@ def determine_sizes(rundir, folder='debug'):
 
 
 def convert_debug(sizes, rundir, folder='debug', verbose=False,
-                  genfromtxt=False):
+                  genfromtxt=False, keepfile=True):
     """ Convert the debug folder to netcdf
 
     Load the output from the debug folder and convert it to netcdf. Note that
@@ -258,6 +257,7 @@ def convert_debug(sizes, rundir, folder='debug', verbose=False,
         verbose: Output a message per file converted
         genfromtxt: Use genfromtxt instead of loadtxt. Slower and loads
                     unreadable values as nan
+        keepfile: Keep the file after reading. HIGHLY RECOMMENDED
 
     Returns:
         ds: The netcdf dataset
@@ -268,7 +268,8 @@ def convert_debug(sizes, rundir, folder='debug', verbose=False,
         try:
             dir = os.path.join(rundir, folder)
             basename = name + suffix
-            with open(os.path.join(dir, basename), 'rb') as file:
+            path_ = os.path.join(dir, basename)
+            with open(path_, 'rb') as file:
                 if verbose:
                     print ('loading ' + basename.ljust(20) + ' from ' + dir)
                 try:
@@ -299,6 +300,8 @@ def convert_debug(sizes, rundir, folder='debug', verbose=False,
                 except Exception as e:
                     raise type(e)(str(e) +
                       ' happens at %s' % name).with_traceback(sys.exc_info()[2])
+            if not keepfile:
+                os.remove(path_)
 
         except FileNotFoundError:
             pass
@@ -308,7 +311,7 @@ def convert_debug(sizes, rundir, folder='debug', verbose=False,
 
 
 def convert_output(ds, sizes, rundir, folder='output', verbose=False,
-                   genfromtxt=False):
+                   genfromtxt=False, keepfile=True):
     """ Convert the output folder to netcdf
 
     Load the output from the output folder and convert it to netcdf. Note that
@@ -325,6 +328,7 @@ def convert_output(ds, sizes, rundir, folder='output', verbose=False,
     Keyword Arguments:
         folder:  Name of the output folder
         verbose: Output a message per file converted
+        keepfile: Keep the file after reading. HIGHLY RECOMMENDED
 
     Returns:
         ds: The netcdf dataset
@@ -334,7 +338,8 @@ def convert_output(ds, sizes, rundir, folder='output', verbose=False,
         try:
             dir = os.path.join(rundir, folder)
             basename = name + suffix
-            with open(os.path.join(dir, basename), 'rb') as file:
+            path_ = os.path.join(dir, basename)
+            with open(path_, 'rb') as file:
                 if verbose:
                     print ('loading ' + basename.ljust(20) + ' from ' + dir)
                 try:
@@ -357,7 +362,9 @@ def convert_output(ds, sizes, rundir, folder='output', verbose=False,
                 elif name == 'efi_cm':
                     data = data.reshape(nions,dimx,dimn)
                     ds[name] = xr.DataArray(data, dims=['nions', 'dimx', 'dimn'], name=name).transpose('dimx', 'dimn', 'nions')
-
+                elif name == 'efe_cm':
+                    data = data.reshape(dimx,dimn)
+                    ds[name] = xr.DataArray(data, dims=['dimx', 'dimn'], name=name).transpose('dimx', 'dimn')
                 elif name.endswith('_GB') or name.endswith('_SI'):
                     newname = name[:-3]
                     if newname.endswith('ETG') or newname.endswith('ITG') or newname.endswith('TEM'):
@@ -370,13 +377,15 @@ def convert_output(ds, sizes, rundir, folder='output', verbose=False,
                             ds[name] = xr.DataArray(data, dims=['dimx','nions'], name=name)
                     else:
                         raise Exception('Could not process \'' + name + '\'')
+            if not keepfile:
+                os.remove(path_)
         except FileNotFoundError:
             pass
     return ds
 
 
 def convert_primitive(ds, sizes, rundir, folder='output/primitive', verbose=False,
-                      genfromtxt=False):
+                      genfromtxt=False, keepfile=True):
     """ Convert the output/primitive folder to netcdf
 
     Load the output from the output/primitive folder and convert it to netcdf.
@@ -392,6 +401,7 @@ def convert_primitive(ds, sizes, rundir, folder='output/primitive', verbose=Fals
     Keyword Arguments:
         folder:  Name of the output/primitive folder
         verbose: Output a message per file converted
+        keepfile: Keep the file after reading. HIGHLY RECOMMENDED
 
     Returns:
         ds: The netcdf dataset
@@ -399,30 +409,39 @@ def convert_primitive(ds, sizes, rundir, folder='output/primitive', verbose=Fals
     reshapes = ['rfdsol', 'ifdsol', 'isol', 'rsol']
     dimx, dimn, nions, numsols = sizes.values()
     for name in primi_subsets:
-        try:
-            dir = os.path.join(rundir, folder)
-            basename = name + suffix
-            with open(os.path.join(dir, basename), 'rb') as file:
-                if verbose:
-                    print ('loading ' + basename.ljust(20) + ' from ' + dir)
-                try:
-                    if genfromtxt:
-                        data = np.genfromtxt(file)
+        for prefix in ['r', 'i']:
+            if name is not 'ntor':
+                typename = prefix + name
+            else:
+                typename = name
+            try:
+                dir = os.path.join(rundir, folder)
+                basename = typename + suffix
+                path_ = os.path.join(dir, basename)
+                with open(path_, 'rb') as file:
+                    if verbose:
+                        print ('loading ' + basename.ljust(20) + ' from ' + dir)
+                    try:
+                        if genfromtxt:
+                            data = np.genfromtxt(file)
+                        else:
+                            data = np.loadtxt(file)
+                    except Exception as ee:
+                        print('Exception loading ' + file.name)
+                        raise type(ee)(str(ee) + ' happens at %s' % file.name).with_traceback(sys.exc_info()[2])
+                    if typename.endswith('i'):
+                        data = data.reshape(numsols,nions,dimx,dimn)
+                        ds[typename] = xr.DataArray(data, dims=['numsols', 'nions', 'dimx', 'dimn'], name=typename).transpose('dimx', 'dimn', 'nions', 'numsols')
+                    elif typename.endswith('e') or typename in reshapes:
+                        data = data.reshape(numsols,dimx,dimn)
+                        ds[typename] = xr.DataArray(data, dims=['numsols', 'dimx', 'dimn'], name=typename).transpose('dimx', 'dimn', 'numsols')
                     else:
-                        data = np.loadtxt(file)
-                except Exception as ee:
-                    print('Exception loading ' + file.name)
-                    raise type(ee)(str(ee) + ' happens at %s' % file.name).with_traceback(sys.exc_info()[2])
-                if name.endswith('i'):
-                    data = data.reshape(numsols,nions,dimx,dimn)
-                    ds[name] = xr.DataArray(data, dims=['numsols', 'nions', 'dimx', 'dimn'], name=name).transpose('dimx', 'dimn', 'nions', 'numsols')
-                elif name.endswith('e') or name in reshapes:
-                    data = data.reshape(numsols,dimx,dimn)
-                    ds[name] = xr.DataArray(data, dims=['numsols', 'dimx', 'dimn'], name=name).transpose('dimx', 'dimn', 'numsols')
-                else:
-                    ds[name] = xr.DataArray(data, dims=['dimx','dimn'], name=name)
-        except FileNotFoundError:
-            pass
+                        ds[typename] = xr.DataArray(data, dims=['dimx','dimn'], name=typename)
+                if not keepfile:
+                    os.remove(path_)
+            except FileNotFoundError:
+                print('not found' + path_)
+                pass
     return ds
 
 

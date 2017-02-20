@@ -724,7 +724,7 @@ def create_folder_prompt(path, overwrite=None):
         os.makedirs(path)
 
 def run_to_netcdf(path, mode='orthogonal', overwrite=None,
-                  genfromtxt=False, encode={'zlib': True}):
+                  genfromtxt=False, keepfile=True, encode={'zlib': True}):
     """ Convert a QuaLiKizRun to netCDF
 
     Arguments:
@@ -744,10 +744,10 @@ def run_to_netcdf(path, mode='orthogonal', overwrite=None,
     name = os.path.basename(path)
     netcdf_path = os.path.join(path, name + '.nc')
     if overwrite_prompt(netcdf_path, overwrite=overwrite):
-        sizes = determine_sizes(path)
-        ds = convert_debug(sizes, path, genfromtxt=genfromtxt)
-        ds = convert_output(ds, sizes, path, genfromtxt=genfromtxt)
-        ds = convert_primitive(ds, sizes, path, genfromtxt=genfromtxt)
+        sizes = determine_sizes(path, keepfile=keepfile)
+        ds = convert_debug(sizes, path, genfromtxt=genfromtxt, keepfile=keepfile)
+        ds = convert_output(ds, sizes, path, genfromtxt=genfromtxt, keepfile=keepfile)
+        ds = convert_primitive(ds, sizes, path, genfromtxt=genfromtxt, keepfile=keepfile)
         if mode == 'orthogonal':
             ds = squeeze_dataset(ds)
             ds = orthogonalize_dataset(ds)
