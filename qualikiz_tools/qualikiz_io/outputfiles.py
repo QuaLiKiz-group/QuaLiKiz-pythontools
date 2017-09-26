@@ -304,7 +304,7 @@ def convert_debug(sizes, rundir, folder='debug', verbose=False,
                 os.remove(path_)
 
         except FileNotFoundError:
-            pass
+            print('not found' + path_)
     # Nothing in debug depends on numsols, but add it for later use
     ds.coords['numsols'] = xr.DataArray(list(range(0, numsols)), dims='numsols')
     return ds
@@ -374,13 +374,13 @@ def convert_output(ds, sizes, rundir, folder='output', verbose=False,
                     elif newname.endswith('i'):
                         if nions == 1:
                             data = np.expand_dims(data, axis=1)
-                            ds[name] = xr.DataArray(data, dims=['dimx','nions'], name=name)
+                        ds[name] = xr.DataArray(data, dims=['dimx','nions'], name=name)
                     else:
                         raise Exception('Could not process \'' + name + '\'')
             if not keepfile:
                 os.remove(path_)
         except FileNotFoundError:
-            pass
+            print('not found' + path_)
     return ds
 
 
