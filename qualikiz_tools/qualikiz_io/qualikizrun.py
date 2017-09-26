@@ -315,7 +315,8 @@ class QuaLiKizBatch:
             json.JSONEncoder().default(obj)
 
     def to_netcdf(self, runmode='orthogonal', mode='glue', overwrite=None,
-                  genfromtxt=False, encode={'zlib': True}, clean=True):
+                  genfromtxt=False, encode={'zlib': True}, clean=True,
+                  cores=1):
         """ Convert QuaLiKizBatch output to netcdf
 
         This function converts the output contained in the output and debug
@@ -353,11 +354,15 @@ class QuaLiKizBatch:
 
 
         # We want to run one job per core max
-        tasks = min((mp.cpu_count(), len(self.runlist)))
-        
-        pool = mp.Pool(processes=tasks)
-        pool.map(partial(run_to_netcdf, mode=runmode, encode=encode,
-                         genfromtxt=genfromtxt), joblist)
+        if cores == 'max':
+            tasks = min((mp.cpu_count(), len(self.runlist)))
+
+            pool = mp.Pool(processes=tasks)
+            pool.map(partial(run_to_netcdf, mode=runmode, encode=encode,
+                             genfromtxt=genfromtxt), joblist)
+        elif cores == 1:
+            for job in joblist:
+                run_to_netcdf(job, runmode, encode, genfromtxt)
         print('jobs netcdfized')
 
         # Now we have the hypercubes. Let's find out which dimensions
