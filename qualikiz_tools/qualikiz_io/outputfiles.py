@@ -502,7 +502,10 @@ def remove_dependent_axes(ds):
     # Remove placeholder for kthetarhos
     if 'dimn' in ds.dims and 'kthetarhos' in ds.coords:
         ds = ds.swap_dims({'dimn': 'kthetarhos'})
-        ds = ds.drop('dimn')
+        try:
+            ds = ds.drop('dimn')
+        except ValueError:
+            warn('WARNING! dimn not found in dataset. Might be nothing, debugging still on TODO list')
     return ds
 
 
@@ -636,8 +639,13 @@ def orthogonalize_dataset(ds, verbose=False):
     ds.load()
 
     # Determine the new (orthogonal) dimensions
-    ortho_dims = [coord for name, coord in ds.coords.items() if name not in ds.dims and 'dimx' in coord.dims]
+    ortho_dims = [coord for name, coord in ds.coords.items() if name not in ds.dims and ('dimx', ) == coord.dims]
     new_dims = OrderedDict([(dim.name, np.unique(dim.values)) for dim in ortho_dims])
+
+    # Temporarely convert coordinates with dimx and one or more other dims to datavars so they get folded
+    duo_coords = [(name, coord) for name, coord in ds.coords.items() if name not in ds.dims and ('dimx', ) != coord.dims and 'dimx' in coord.dims]
+    duo_coords = OrderedDict(duo_coords)
+    ds.reset_coords(names=duo_coords.keys(), inplace=True)
 
     # Create new dataset with these dimensions, plus all old non-dimx dims
     dims = copy.deepcopy(new_dims)
@@ -672,6 +680,9 @@ def orthogonalize_dataset(ds, verbose=False):
         # To save memory, we delete the old ds entry
         del ds[name]
         newds[name] = xr.DataArray(placeholder, coords=newcoords)
+
+    # Copy temporarly converted coordinates back to coordinates
+    newds.set_coords(duo_coords.keys(), inplace=True)
 
     # Copy over attributes
     for attr in ds.attrs:
@@ -808,7 +819,7 @@ def to_input_json(ds, rundir, inputdir='input'):
     as scan values. The cleanest JSON will be generated if a
     squeezed dataset is used.
     """
-    ignore = ['Zeffx', 'Nustar']
+    ignore = ['Zeff', 'Nustar']
     conversion_dict = {'Tex': 'Te',
                         'Nex': 'ne',
                         'ion_type': 'typei',
