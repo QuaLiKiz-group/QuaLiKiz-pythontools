@@ -16,65 +16,78 @@ from .inputfiles import QuaLiKizXpoint, QuaLiKizPlan
 import array
 import pandas as pd
 from IPython import embed
+import re
 
 output_meth_0_sep_0 = {
-    'pfe_GB': None,
-    'pfi_GB': None,
-    'gam_GB': None,
-    'ome_GB': None,
-    'efe_GB': None,
+    'pfe': None,
+    'pfi': None,
+    'gam': None,
+    'ome': None,
+    'efe': None,
+    'efi': None,
+    'vfe': None,
+    'vfi': None,
+    'vre': None,
+    'vri': None,
+    'pfe_cm': None,
+    'pfi_cm': None,
     'efe_cm': None,
-    'efi_GB': None,
     'efi_cm': None,
-    'vfi_GB': None,
-    'vri_GB': None}
+    'vfe_cm': None,
+    'vfi_cm': None,
+    'ecoefs': None, #No suffix
+    'npol':   None, #No suffix
+    'cftrans': None #No suffix
+    }
 
 output_meth_0_sep_1 = {
-    'dfeITG_GB': None,
-    'dfeTEM_GB': None,
-    'dfiITG_GB': None,
-    'dfiTEM_GB': None,
-    'vteITG_GB': None,
-    'vteTEM_GB': None,
-    'vtiITG_GB': None,
-    'vtiTEM_GB': None,
-    'vciITG_GB': None,
-    'vceITG_GB': None,
-    'vceTEM_GB': None,
-    'vciTEM_GB': None}
+    'dfeITG': None,
+    'dfeTEM': None,
+    'dfiITG': None,
+    'dfiTEM': None,
+    'vteITG': None,
+    'vteTEM': None,
+    'vtiITG': None,
+    'vtiTEM': None,
+    'vciITG': None,
+    'vceITG': None,
+    'vceTEM': None,
+    'vciTEM': None}
 
 output_meth_1_sep_0 = {
-    'cke': None,
-    'cki': None,
-    'dfe_GB': None,
-    'dfi_GB': None,
-    'vte_GB': None,
-    'vti_GB': None,
-    'vce_GB': None,
-    'vci_GB': None}
+    'cke': None, #No suffix
+    'cki': None, #No suffix
+    'dfe': None,
+    'dfi': None,
+    'vte': None,
+    'vti': None,
+    'vce': None,
+    'vci': None}
 
 output_meth_1_sep_1 = {
-    'efeETG_GB': None,
-    'efeITG_GB': None,
-    'efeTEM_GB': None,
-    'efiITG_GB': None,
-    'efiTEM_GB': None,
-    'vfiITG_GB': None,
-    'vfiTEM_GB': None,
-    'vriITG_GB': None,
-    'vriTEM_GB': None}
+    'efeETG': None,
+    'efeITG': None,
+    'efeTEM': None,
+    'efiITG': None,
+    'efiTEM': None,
+    'vfiITG': None,
+    'vfiTEM': None,
+    'vreITG': None,
+    'vriITG': None,
+    'vreTEM': None,
+    'vriTEM': None}
 
 output_meth_2_sep_0 = {
     'ceke': None,
     'ceki': None,
-    'chiee_SI': None,
-    'chiei_SI': None,
-    'vece_SI': None,
-    'veci_SI': None,
-    'vene_SI': None,
-    'veni_SI': None,
-    'vere_SI': None,
-    'veri_SI': None}
+    'chiee': None,
+    'chiei': None,
+    'vece': None,
+    'veci': None,
+    'vene': None,
+    'veni': None,
+    'vere': None,
+    'veri': None}
 
 primi_meth_0 = {
     'Lcirce': None,
@@ -94,7 +107,12 @@ primi_meth_0 = {
     'modewidth': None,
     'sol': None,
     'solflu': None,
-    'ntor': None}
+    'ntor': None,
+    'distan': None,
+    'kperp2': None,
+    'kymaxETG': None,
+    'kymaxITG': None
+    }
 
 primi_meth_1 = {
     'Lcircgne': None,
@@ -150,7 +168,11 @@ debug_eleclike = {
     'Ro': None,
     'Rmin': None,
     'smag': None,
-    'Te': None}
+    'Te': None,
+    'alpha': None,
+    'modeflag': None,
+    'rho': None}
+
 
 debug_ionlike = {
     'Ai': None,
@@ -176,7 +198,9 @@ debug_single = {
     'ETGmult': None,
     'rot_flag': None,
     'separateflux': None,
-    'timeout': None}
+    'timeout': None,
+    'phys_meth': None,
+    'verbose': None}
 
 debug_special = {'kthetarhos': None}
 # Some magic to group all datasets. In principe the granularity
@@ -203,6 +227,9 @@ subsets.update(primi_subsets)
 subsets.update(debug_subsets)
 
 suffix = '.dat'
+numecoefs = 13
+numicoefs = 7
+ntheta = 64
 
 
 
@@ -296,7 +323,10 @@ def convert_debug(sizes, rundir, folder='debug', verbose=False,
                 else:
                     raise Exception('Could not process \'' + name + '\'')
                 try:
-                    ds.coords[name] = xr.DataArray(data, dims=dims)
+                    if name == 'modeflag':
+                        ds[name] = xr.DataArray(data, dims=dims)
+                    else:
+                        ds.coords[name] = xr.DataArray(data, dims=dims)
                 except Exception as e:
                     raise type(e)(str(e) +
                       ' happens at %s' % name).with_traceback(sys.exc_info()[2])
@@ -335,52 +365,65 @@ def convert_output(ds, sizes, rundir, folder='output', verbose=False,
     """
     dimx, dimn, nions, numsols = sizes.values()
     for name in output_subsets:
-        try:
-            dir = os.path.join(rundir, folder)
-            basename = name + suffix
-            path_ = os.path.join(dir, basename)
-            with open(path_, 'rb') as file:
-                if verbose:
-                    print ('loading ' + basename.ljust(20) + ' from ' + dir)
-                try:
-                    if genfromtxt:
-                        data = np.genfromtxt(file)
-                    else:
-                        data = np.loadtxt(file)
-                except Exception as ee:
-                    print('Exception loading ' + file.name)
-                    raise
-                if name == 'gam_GB' or name == 'ome_GB':
-                    data = data.reshape(numsols,dimx,dimn)
-                    ds[name] = xr.DataArray(data, dims=['numsols', 'dimx', 'dimn'], name=name).transpose('dimx', 'dimn', 'numsols')
-                elif name == 'cke' or name == 'ceke':
-                    ds[name] = xr.DataArray(data, dims=['dimx'], name=name)
-                elif  name == 'cki' or name == 'ceki' or name == 'ion_type':
-                    if nions == 1:
-                        data = np.expand_dims(data, axis=1)
-                    ds[name] = xr.DataArray(data, dims=['dimx','nions'], name=name)
-                elif name == 'efi_cm':
-                    data = data.reshape(nions,dimx,dimn)
-                    ds[name] = xr.DataArray(data, dims=['nions', 'dimx', 'dimn'], name=name).transpose('dimx', 'dimn', 'nions')
-                elif name == 'efe_cm':
-                    data = data.reshape(dimx,dimn)
-                    ds[name] = xr.DataArray(data, dims=['dimx', 'dimn'], name=name).transpose('dimx', 'dimn')
-                elif name.endswith('_GB') or name.endswith('_SI'):
-                    newname = name[:-3]
-                    if newname.endswith('ETG') or newname.endswith('ITG') or newname.endswith('TEM'):
-                        newname = newname[:-3]
-                    if newname.endswith('e'):
+        if name not in ['cke', 'ceke', 'cki', 'ceki', 'ion_type', 'ecoefs', 'npol', 'cftrans'] and not name.endswith('_cm'):
+            names = [name + '_SI', name + '_GB']
+        else:
+            names = [name]
+        for name in names:
+            try:
+                dir = os.path.join(rundir, folder)
+                basename = name + suffix
+                path_ = os.path.join(dir, basename)
+                with open(path_, 'rb') as file:
+                    if verbose:
+                        print ('loading ' + basename.ljust(20) + ' from ' + dir)
+                    try:
+                        if genfromtxt:
+                            data = np.genfromtxt(file)
+                        else:
+                            data = np.loadtxt(file)
+                    except Exception as ee:
+                        print('Exception loading ' + file.name)
+                        raise
+                    if name.startswith('gam') or name.startswith('ome'):
+                        data = data.reshape(numsols,dimx,dimn)
+                        ds[name] = xr.DataArray(data, dims=['numsols', 'dimx', 'dimn'], name=name).transpose('dimx', 'dimn', 'numsols')
+                    elif name in ['cke', 'ceke']:
                         ds[name] = xr.DataArray(data, dims=['dimx'], name=name)
-                    elif newname.endswith('i'):
+                    elif  name in ['cki', 'ceki', 'ion_type']:
                         if nions == 1:
                             data = np.expand_dims(data, axis=1)
                         ds[name] = xr.DataArray(data, dims=['dimx','nions'], name=name)
+                    elif name.endswith('i_cm'):
+                        data = data.reshape(nions,dimx,dimn)
+                        ds[name] = xr.DataArray(data, dims=['nions', 'dimx', 'dimn'], name=name).transpose('dimx', 'dimn', 'nions')
+                    elif name.endswith('e_cm'):
+                        data = data.reshape(dimx,dimn)
+                        ds[name] = xr.DataArray(data, dims=['dimx', 'dimn'], name=name).transpose('dimx', 'dimn')
+                    elif name == 'ecoefs':
+                        tmp = xr.DataArray(data.reshape(dimx, nions+1, numecoefs), dims=['dimx','ionelec', 'ecoefs'], name=name)
+                        ds[name + 'e'] = tmp.sel(ionelec=0, drop=True)
+                        ds[name + 'i'] = tmp.sel(ionelec=slice(1, None)).rename({'ionelec': 'nions'})
+                    elif name == 'npol':
+                        ds[name] = xr.DataArray(data.reshape(dimx, ntheta, nions), dims=['dimx', 'ntheta', 'nions'], name=name)
+                    elif name == 'cftrans':
+                        ds[name] = xr.DataArray(data.reshape(dimx, nions, numicoefs), dims=['dimx', 'nions', 'numicoefs'], name=name)
                     else:
-                        raise Exception('Could not process \'' + name + '\'')
-            if not keepfile:
-                os.remove(path_)
-        except FileNotFoundError:
-            print('not found' + path_)
+                        subname = name[:-3]
+                        if subname.endswith('ETG') or subname.endswith('ITG') or subname.endswith('TEM'):
+                            subname = subname[:-3]
+                        if subname.endswith('e'):
+                            ds[name] = xr.DataArray(data, dims=['dimx'], name=name)
+                        elif subname.endswith('i'):
+                            if nions == 1:
+                                data = np.expand_dims(data, axis=1)
+                            ds[name] = xr.DataArray(data, dims=['dimx','nions'], name=name)
+                        else:
+                            raise Exception('Could not process \'' + name + '\'')
+                if not keepfile:
+                    os.remove(path_)
+            except FileNotFoundError:
+                print('not found' + path_)
     return ds
 
 
@@ -409,14 +452,14 @@ def convert_primitive(ds, sizes, rundir, folder='output/primitive', verbose=Fals
     reshapes = ['rfdsol', 'ifdsol', 'isol', 'rsol']
     dimx, dimn, nions, numsols = sizes.values()
     for name in primi_subsets:
-        for prefix in ['r', 'i']:
-            if name is not 'ntor':
-                typename = prefix + name
-            else:
-                typename = name
+        if name in ['fdsol', 'jonsolflu', 'modeshift', 'modewidth', 'sol', 'solflu']:
+            names = ['r' + name, 'i' + name]
+        else:
+            names = [name]
+        for name in names:
             try:
                 dir = os.path.join(rundir, folder)
-                basename = typename + suffix
+                basename = name + suffix
                 path_ = os.path.join(dir, basename)
                 with open(path_, 'rb') as file:
                     if verbose:
@@ -429,19 +472,20 @@ def convert_primitive(ds, sizes, rundir, folder='output/primitive', verbose=Fals
                     except Exception as ee:
                         print('Exception loading ' + file.name)
                         raise type(ee)(str(ee) + ' happens at %s' % file.name).with_traceback(sys.exc_info()[2])
-                    if typename.endswith('i'):
+                    if name.endswith('i'):
                         data = data.reshape(numsols,nions,dimx,dimn)
-                        ds[typename] = xr.DataArray(data, dims=['numsols', 'nions', 'dimx', 'dimn'], name=typename).transpose('dimx', 'dimn', 'nions', 'numsols')
-                    elif typename.endswith('e') or typename in reshapes:
+                        ds[name] = xr.DataArray(data, dims=['numsols', 'nions', 'dimx', 'dimn'], name=name).transpose('dimx', 'dimn', 'nions', 'numsols')
+                    elif name.endswith('e') or name in reshapes:
                         data = data.reshape(numsols,dimx,dimn)
-                        ds[typename] = xr.DataArray(data, dims=['numsols', 'dimx', 'dimn'], name=typename).transpose('dimx', 'dimn', 'numsols')
+                        ds[name] = xr.DataArray(data, dims=['numsols', 'dimx', 'dimn'], name=name).transpose('dimx', 'dimn', 'numsols')
+                    elif name in ['kymaxETG', 'kymaxITG']:
+                        ds[name] = xr.DataArray(data, dims=['dimx'], name=name)
                     else:
-                        ds[typename] = xr.DataArray(data, dims=['dimx','dimn'], name=typename)
+                        ds[name] = xr.DataArray(data, dims=['dimx','dimn'], name=name)
                 if not keepfile:
                     os.remove(path_)
             except FileNotFoundError:
                 print('not found' + path_)
-                pass
     return ds
 
 
@@ -532,16 +576,18 @@ def squeeze_dataset(ds):
     ds = squeeze_coords(ds, 'dimx')
 
     # Squeeze Ane and Ani into An
-    if ds['Ane'].equals(ds['Ani']):
-        ds.coords['An'] = ds['Ane'].copy()
-        ds = ds.drop('Ane')
-        ds = ds.drop('Ani')
+    if 'Ane' in ds.coords and 'Ani' in ds.coords:
+        if ds['Ane'].equals(ds['Ani']):
+            ds.coords['An'] = ds['Ane'].copy()
+            ds = ds.drop('Ane')
+            ds = ds.drop('Ani')
 
     # Squeeze Ate and Ati into At
-    if ds['Ate'].equals(ds['Ati']):
-        ds.coords['At'] = ds['Ate'].copy()
-        ds = ds.drop('Ate')
-        ds = ds.drop('Ati')
+    if 'Ate' in ds.coords and 'Ati' in ds.coords:
+        if ds['Ate'].equals(ds['Ati']):
+            ds.coords['At'] = ds['Ate'].copy()
+            ds = ds.drop('Ate')
+            ds = ds.drop('Ati')
 
     # Squeeze constant for dimx
     ds = squeeze_coords(ds, 'dimx')
@@ -877,7 +923,7 @@ def xarray_to_pandas(ds):
     panda_dict = {}
 
     for name, var in ds.items():
-        tablename = str(var.dims)
+        tablename = var.dims
         try:
             panda_dict[tablename]
         except KeyError:
