@@ -941,7 +941,7 @@ def xarray_to_pandas(ds):
             panda_dict[tablename] = df
 
         newcols = var.to_dataframe().columns.difference(
-        panda_dict[tablename].columns)
+                                panda_dict[tablename].columns)
         if not newcols.equals(pd.Index([], dtype='object')):
             panda_dict[tablename][newcols] = var.to_dataframe()[newcols]
     return panda_dict
