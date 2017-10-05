@@ -66,6 +66,9 @@ def main():
     elif args['<command>'] == 'output':
         from qualikiz_tools.commands import output
         output.run(passing)
+    elif args['<command>'] == 'plot':
+        from qualikiz_tools.commands import plot
+        plot.run(passing)
     elif args['<command>'] == 'poll':
         from qualikiz_tools.commands import poll
         poll.run(passing)
