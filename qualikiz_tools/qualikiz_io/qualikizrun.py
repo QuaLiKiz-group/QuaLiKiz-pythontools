@@ -135,16 +135,23 @@ class QuaLiKizBatch:
         for run in self.runlist:
             run.prepare(overwrite=overwrite_runs)
 
-    def generate_input(self, dotprint=False):
+    def generate_input(self, dotprint=False, processes=1):
         """ Generate the input files for all runs
 
         Keyword arguments:
             - dotprint: Print a dot after each generation. Used for debugging.
         """
-        tasks = min((mp.cpu_count(), len(self.runlist)))
+        if processes == 1:
+            for run in self.runlist:
+                run.generate_input(dotprint=dotprint)
+        else:
+            if processes == 'max':
+                tasks = min((mp.cpu_count(), len(self.runlist)))
+            else:
+                tasks = cores
 
-        pool = mp.Pool(processes=tasks)
-        pool.map(QuaLiKizRun.generate_input, self.runlist)
+            pool = mp.Pool(processes=tasks)
+            pool.map(partial(QuaLiKizRun.generate_input, dotprint=dotprint), self.runlist)
 
     # TODO: generalize for non-edison machines
     def generate_batchscript(self, ncpu,
