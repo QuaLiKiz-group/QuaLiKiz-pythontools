@@ -250,6 +250,7 @@ class QuaLiKizBatch:
         qualikizbatch.runlist = []
         # Try to find the contained runs. If they can't be found at the path
         # in the batch script, they are usually in one of the children
+        # TODO: Generalize to non-Edison machines
         for srun_instance in qualikizbatch.batch.srun_instances:
             rundir = srun_instance.chdir
             if not os.path.isdir(rundir):
@@ -611,7 +612,7 @@ class QuaLiKizRun:
         return srun
 
     @classmethod
-    def from_dir(cls, dir, binaryrelpath,
+    def from_dir(cls, dir, binaryrelpath=None,
                  stdout=Srun.default_stdout,
                  stderr=Srun.default_stderr):
         """ Reconstruct Run from directory
@@ -620,17 +621,26 @@ class QuaLiKizRun:
 
         Arguments:
             - dir: Root directory of the Run
-            - binaryrelpath: Path to the binary that should be used in the Run
 
         Keyword arguments:
+            - binarylinkpath: Path to the link pointing to the QuaLiKiz binary
             - stdout: Where to look for the STDOUT file
             - stderr: Where to look for the STDERR file
         """
         rundir = os.path.realpath(dir.rstrip('/'))
         runsdir, name = os.path.split(rundir)
         runsdir = os.path.abspath(runsdir)
-        binarybasepath = os.path.basename(binaryrelpath)
-        binaryrelpath = os.readlink(os.path.join(rundir, binarybasepath))
+        # We assume the binary is named something with 'QuaLiKiz' in it
+        if binaryrelpath is None:
+            with os.scandir(rundir) as it:
+                for entry in it:
+                    if entry.is_symlink() and 'QuaLiKiz' in entry.name:
+                        binaryrelpath = os.readlink(entry.path)
+                        break
+        if binaryrelpath is None:
+            raise Exception('Could not find link to QuaLiKiz binary. Please supply `binaryrelpath`')
+        #binarybasepath = os.path.basename(binaryrelpath)
+        #binaryrelpath = os.readlink(os.path.join(rundir, binarybasepath))
         planpath = os.path.join(rundir, cls.parameterspath)
         qualikiz_plan = QuaLiKizPlan.from_json(planpath)
         stdout = cls._find_file(stdout, rundir)
