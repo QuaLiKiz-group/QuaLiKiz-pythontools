@@ -57,7 +57,7 @@ def run(args):
             verbose = True
         else:
             verbose = False
-        run = QuaLiKizRun(parent_dir, name, reldir, verbose=verbose)
+        run = QuaLiKizRun(parent_dir, name, reldir, qualikiz_plan=plan, verbose=verbose)
         run.prepare()
     elif args['<target>'] in ['help', None]:
         exit(call([sys.executable, os.path.join(ROOT, 'commands', 'create.py'), '--help']))
