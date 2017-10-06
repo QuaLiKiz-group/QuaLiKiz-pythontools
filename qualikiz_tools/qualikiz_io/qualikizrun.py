@@ -454,7 +454,8 @@ class QuaLiKizRun:
 
     def __init__(self, runsdir, name, binaryrelpath, qualikiz_plan=None,
                  stdout=Srun.default_stdout,
-                 stderr=Srun.default_stderr):
+                 stderr=Srun.default_stderr,
+                 verbose=False):
         """ Initialize an empty QuaLiKiz run
         Arguments:
             - runsdir:       Parent of where the run folder will be. Should
@@ -475,6 +476,9 @@ class QuaLiKizRun:
             self.rundir = os.path.join(runsdir, name)
         else:
             raise PathException('runsdir')
+
+        if verbose:
+            print('Creating new QuaLiKiz run in {!s}'.format(self.rundir))
 
         # Set the STDERR and STDOUT of the run
         if not os.path.isabs(stdout):
@@ -519,10 +523,6 @@ class QuaLiKizRun:
         binarybasepath = os.path.basename(self.binaryrelpath)
         os.symlink(self.binaryrelpath,
                    os.path.join(rundir, binarybasepath))
-        # Create link to python scripts
-        if not os.path.exists(os.path.join(rundir, self.pythonreldir)):
-            os.symlink(self.pythondir,
-                       os.path.join(rundir, self.pythonreldir))
         # Create a parameters file
         self.qualikiz_plan.to_json(os.path.join(rundir, self.parameterspath))
 
