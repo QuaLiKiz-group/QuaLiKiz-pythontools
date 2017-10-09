@@ -64,7 +64,7 @@ class QuaLiKizBatch:
     scriptname = 'edison.sbatch'
 
     # TODO: generalize for non-edison machines
-    def __init__(self, batchsdir, name, runlist, ncpu,
+    def __init__(self, batchsdir, name, runlist, ncpu=1,
                  safetytime=2, style='sequential',
                  stdout=Sbatch.default_stdout,
                  stderr=Sbatch.default_stderr,
@@ -127,11 +127,6 @@ class QuaLiKizBatch:
         create_folder_prompt(batchdir, overwrite=overwrite_batch)
         self.batch.to_file(batchpath)
         # Create link to python scripts
-        os.symlink(QuaLiKizRun.pythondir,
-                   os.path.join(batchdir, QuaLiKizRun.pythonreldir))
-        # Create link to run script
-        os.symlink(os.path.join(QuaLiKizRun.pythondir, 'qualikiz_io/run.py'),
-                   os.path.join(batchdir, 'run.py'))
         for run in self.runlist:
             run.prepare(overwrite=overwrite_runs)
 

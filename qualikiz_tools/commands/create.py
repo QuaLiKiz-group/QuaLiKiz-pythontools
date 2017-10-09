@@ -1,6 +1,6 @@
 """
-Usage: 
-  qualikiz_tools [-v | -vv] create [--in_dir <directory>] [--binary_dir <directory>] <target> [<parameter_json>]
+Usage:
+  qualikiz_tools [-v | -vv] create [--as_batch] [--in_dir <directory>] [--binary_dir <directory>] <target> [<parameter_json>]
 
 Options:
     --in_dir <directory>              Create folder in this folder [default: runs]
@@ -49,7 +49,7 @@ def run(args):
         else:
             raise Exception('`{!s}` is not a valid JSON file'.format(json_path))
 
-        from qualikiz_tools.qualikiz_io.qualikizrun import QuaLiKizRun
+        from qualikiz_tools.qualikiz_io.qualikizrun import QuaLiKizRun, QuaLiKizBatch
         name = os.path.basename(json_path.split('.')[0])
         reldir = os.path.relpath(args['--binary_dir'],
                                  start=os.path.join(parent_dir, name))
@@ -58,7 +58,12 @@ def run(args):
         else:
             verbose = False
         run = QuaLiKizRun(parent_dir, name, reldir, qualikiz_plan=plan, verbose=verbose)
-        run.prepare()
+        kwargs = {}
+        if args['--as_batch']:
+            batch = QuaLiKizBatch(parent_dir, name, [run], **kwargs)
+            batch.prepare()
+        else:
+            run.prepare()
     elif args['<target>'] in ['help', None]:
         exit(call([sys.executable, os.path.join(ROOT, 'commands', 'create.py'), '--help']))
     else:
