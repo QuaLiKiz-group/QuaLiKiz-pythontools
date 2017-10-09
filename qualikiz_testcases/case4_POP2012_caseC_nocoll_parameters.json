@@ -1,0 +1,99 @@
+{
+    "scan_dict": {
+        "smag": [
+            -1.1,
+            -0.8,
+            -0.5,
+            -0.2,
+            0.1,
+            0.4,
+            0.7,
+            1.0 ,
+            1.3,
+            1.6,
+            1.9
+        ]
+    },
+    "scan_type": "hyperedge",
+    "xpoint_base": {
+        "meta": {
+            "phys_meth": 1,
+            "coll_flag": false,
+            "rot_flag": false,
+            "verbose": true,
+            "separateflux": true,
+            "numsols": 3,
+            "relacc1": 0.001,
+            "relacc2": 0.02,
+            "maxruns": 1,
+            "maxpts": 2.5e5,
+            "timeout": 600,
+            "ETGmult": 1,
+            "collmult": 1,
+            "R0": 3.0
+        },
+        "special": {
+            "kthetarhos": [
+                0.1,
+                0.175,
+                0.25,
+                0.325,
+                0.4,
+                0.5,
+                0.6,
+                1.0,
+                1.8,
+                3.0,
+                9.0,
+                15,
+                21,
+                27,
+                36,
+                45
+            ]
+        },
+        "spatial": {
+            "x": 0.5,
+            "rho": 0.45,
+            "Ro": 3.0,
+            "Rmin": 1.0,
+            "Bo": 3.0,
+            "q": 2.0,
+            "smag": 1.0,
+            "alpha": 0.0,
+            "Machtor": 0.0,
+            "Autor": 0.0,
+            "Machpar": 0.0,
+            "Aupar": 0.0,
+            "gammaE": 0.0
+        },
+        "elec": {
+            "T": 3.0,
+            "n": 3.1,
+            "At": 5.5,
+            "An": 3.3,
+            "type": 1,
+            "anis": 1.0,
+            "danisdr": 0.0
+        },
+        "ions": [
+            {
+                "T": 4.2,
+                "n": 1.0,
+                "At": 6.3,
+                "An": 3.3,
+                "type": 1,
+                "anis": 1.0,
+                "danisdr": 0.0,
+                "A": 2.0,
+                "Z": 1.0
+            }
+        ],
+        "norm": {
+            "Ani1": true,
+            "ninorm1": true,
+            "QN_grad": true,
+            "x_rho": true
+        }
+    }
+}
