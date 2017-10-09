@@ -4,11 +4,15 @@ Contributors: Karel van de Plassche (karelvandeplassche@gmail.com)
 License: CeCILL v2.1
 """
 from warnings import warn
+import os
+from .system import System
+from ..qualikiz_io.qualikizrun import QuaLiKizRun, QuaLiKizBatch
+import multiprocessing as mp
 cores_per_node = 24
 vcores_per_task = None
 
 
-class Sbatch:
+class Batch(System.Batch):
     """ Defines a batch job
 
     This class uses the OpenMP/MPI parameters as defined by Edison,
@@ -43,14 +47,13 @@ class Sbatch:
               'output',
               'qos']
     shell = '/bin/bash'
-    default_stderr = 'stderr.batch'
-    default_stdout = 'stdout.batch'
 
-    def __init__(self, srun_instances, name, tasks, maxtime,
-                 stdout=default_stdout, stderr=default_stderr,
+    def __init__(self, qualikiz_batch, run_instances, name, tasks, maxtime,
+                 stdout=None, stderr=None,
                  filesystem='SCRATCH', partition='regular',
                  qos='normal', repo=None, HT=True,
-                 vcores_per_task=2):
+                 vcores_per_task=2,
+                 safetytime=1.5, style='sequential'):
         """ Initialize Edison batch job
 
         Arguments:
@@ -58,6 +61,7 @@ class Sbatch:
             - name:           Name of the Sbatch job
             - tasks:          Amount of MPI tasks
             - maxtime:        Maximum walltime needed
+            - ncpu:      Amount of cpus to be used
 
         Keyword Arguments:
             - stdout:     File to write stdout to. By default 'stdout.batch'
@@ -69,6 +73,10 @@ class Sbatch:
             - repo:       The default repo to bill hours to. Usually None
             - HT:         Hyperthreading on/off. Default=True
             - vcores_per_task: Amount of cores to use per task
+            - safetytime: An extra factor that will be used in the calculation
+                          of requested runtime. 1.5x by default
+            - style:      How to glue the different runs together. Currently
+                          only 'sequential' is used
 
 
         Calculated:
@@ -102,9 +110,28 @@ class Sbatch:
         self.maxtime = maxtime
         self.partition = partition
         self.name = name
-        self.srun_instances = srun_instances
+        self.run_instances = run_instances
         self.stdout = stdout
         self.stderr = stderr
+
+        if style == 'sequential':
+            totwallsec = 0.
+            tottasks = 0
+            runclasslist = []
+            for run in self.run_instances:
+                totwallsec += run.qualikiz_run.estimate_walltime(ncpu)
+                tasks = run.qualikiz_run.calculate_tasks(ncpu, HT=HT)
+                tottasks += tasks
+            totwallsec *= safetytime
+            m, s = divmod(totwallsec, 60)
+            h, m = divmod((m + 1), 60)
+
+            # TODO: generalize for non-edison machines
+            if partition == 'debug' and (h >= 1 or m >= 30):
+                warn('Walltime requested too high for debug partition')
+            self.maxtime = ("%d:%02d:%02d" % (h, m, s))
+        else:
+            raise NotImplementedError('Style {!s} not implemented yet.'.format(style))
 
     def to_file(self, path):
         """ Writes sbatch script to file
@@ -134,7 +161,6 @@ class Sbatch:
     def from_file(cls, path):
         """ Reconstruct sbatch from sbatch file """
         new = Sbatch.__new__(cls)
-        srun_strings = []
         with open(path, 'r') as file:
             for line in file:
                 if line.startswith('#SBATCH --'):
@@ -181,52 +207,76 @@ def str_to_number(string):
     return value
 
 
-class Srun:
+class Run(System.Run, QuaLiKizRun):
     """ Defines the srun command """
-    default_stderr = 'stderr.run'
-    default_stdout = 'stdout.run'
 
-    def __init__(self, binary_name, tasks,
-                 chdir='.',
-                 stdout=default_stdout, stderr=default_stderr):
+    def __init__(self, parent_dir, name, binaryrelpath,
+                 qualikiz_plan=None, stdout=None, stderr=None, verbose=False,
+                 tasks=None, chdir='.', **kwargs):
         """ Initializes the Srun class
 
         Arguments:
             - binary_name: The name of the binary relative to where
                            the sbatch script will be
-            - tasks: Amount of MPI tasks needed for the job
+            - tasks:       Amount of MPI tasks needed for the job
         Keyword Arguments:
             - chdir:  Dir to change to before running the command
             - stdout: Standard target of redirect of STDOUT
             - stderr: Standard taget of redirect of STDERR
         """
-        self.binary_name = binary_name
-        self.tasks = tasks
+        super().__init__(parent_dir, name, binaryrelpath,
+                         qualikiz_plan=qualikiz_plan,
+                         stdout=stdout, stderr=stderr,
+                         verbose=verbose)
+        if tasks is None:
+            ncpu = mp.cpu_count()
+            HT = True
+            self.tasks = self.calculate_tasks(ncpu, HT=HT)
+        else:
+            self.tasks = tasks
         self.chdir = chdir
-        self.stdout = stdout
-        self.stderr = stderr
 
-    def to_string(self):
-        """ Create the srun string """
-        string = 'srun'
-        string += ' -n ' + str(self.tasks)
-        string += ' --chdir ' + self.chdir
-        string += ' --output ' + self.stdout
-        string += ' --error ' + self.stderr
-        string += ' ' + self.binary_name
+    def to_batchstring(self, batch_parent_dir='.'):
+        """ Create the run string """
+        paths = []
+        for path in [self.chdir, self.stdout, self.stderr, self.binaryrelpath]:
+            if os.path.isabs(path):
+                paths.append(path)
+            else:
+                paths.append(os.path.relpath(path, batch_parent_dir))
+
+        string = ' '.join(['srun'     ,
+                           '-n'       , str(self.tasks)  ,
+                           '--chdir'  , paths[0]      ,
+                           '--output' , paths[1]      ,
+                           '--error'  , paths[2]      ,
+                                        paths[3]])
         return string
 
     @classmethod
-    def from_string(cls, string):
-        """ Reconstruct the Srun from a string """
-        new = Srun.__new__(cls)
+    def from_batchstring(cls, string):
+        """ Reconstruct the Run from a string """
         split = string.split(' ')
-        new.tasks = int(split[2])
-        new.chdir = split[4]
-        new.stdout = split[6]
-        new.stderr = split[8]
-        new.binary_name = split[9].strip()
-        return new
+        tasks = int(split[2])
+        chdir = split[4]
+        stdout = split[6]
+        stderr = split[8]
+        binary_name = split[9].strip()
+        paths = []
+        for path in [binary_name, stdout, stderr]:
+            if os.path.isabs(path):
+                paths.append(path)
+            else:
+                paths.append(os.path.normpath(os.path.relpath(path, chdir)))
+        return Run(os.path.abspath(os.path.dirname(chdir)), os.path.basename(chdir),
+                   paths[0], stdout=paths[1], stderr=paths[2])
+
+    @classmethod
+    def from_dir(cls, dir, **kwargs):
+        qualikiz_run = QuaLiKizRun.from_dir(dir, **kwargs)
+        parent_dir = os.path.dirname(qualikiz_run.rundir)
+        name = os.path.basename(qualikiz_run.rundir)
+        return Run(parent_dir, name, qualikiz_run.binaryrelpath, **kwargs)
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):

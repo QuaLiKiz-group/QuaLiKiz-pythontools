@@ -17,7 +17,7 @@ from subprocess import call
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
-from qualikiz_tools.qualikiz_io.qualikizrun import QuaLiKizRun, QuaLiKizBatch
+from qualikiz_tools.qualikiz_io.qualikizrun import QuaLiKizRun, QuaLiKizBatch, qlk_from_dir
 from qualikiz_tools import __version__ as VERSION
 from qualikiz_tools import __path__ as ROOT
 ROOT = ROOT[0]
@@ -33,20 +33,11 @@ def run(args):
         print (args)
         print ()
 
-    dirtype = None
     # Detect the type of path given; QuaLiKizBatch or QuaLiKizRun
     if args['<target_path>']:
-        if os.path.exists(os.path.join(args['<target_path>'], QuaLiKizBatch.scriptname)):
-            qlk_instance = QuaLiKizBatch.from_dir(args['<target_path>'])
-        elif os.path.exists(os.path.join(args['<target_path>'], QuaLiKizRun.parameterspath)):
-            qlk_instance = QuaLiKizRun.from_dir(args['<target_path>'])
-        else:
-            raise Exception('Could not determine folder type')
-
+        dirtype, qlk_instance = qlk_from_dir(args['<target_path>'])
         if args['-v'] >= 1:
             print('Supplied dir ' + args['<target_path>'] + ' is of type ' + str(qlk_instance.__class__))
-
-
         kwargs = {}
         if args['<command>'] == 'generate':
             if args['-v'] >= 2:
