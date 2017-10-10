@@ -1,12 +1,13 @@
 """
 Usage:
-  qualikiz_tools input [-v | -vv] <command> <target_path>
+  qualikiz_tools input [-v | -vv] [--version <version>] <command> <target_path>
   qualikiz_tools input [-v | -vv] help
 
   For example, create input binaries for QuaLiKiz batch or run contained in <target_path>
       qualikiz_tools input create <target_path>
 
 Options:
+  --version <version>               Version of QuaLiKiz to generate input for [default: current]
   -h --help                         Show this screen.
   [-v | -vv]                        Verbosity 
 
@@ -45,7 +46,16 @@ def run(args):
         if args['<command>'] == 'generate':
             if args['-v'] >= 2:
                 kwargs['dotprint'] = True
+            if args['--version'] == 'current':
+                pass
+            elif args['--version'] in ['2.4.0', '2.3.2', '2.3.1', 'CEA_QuaLiKiz']:
+                from qualikiz_tools.qualikiz_io.legacy import convert_current_to
+                convert = lambda inputdir: convert_current_to(inputdir, target=args['--version'])
+                kwargs['conversion'] = convert
+            else:
+                raise Exception('Unknown version {!s}'.format(args['--version']))
             qlk_instance.generate_input(**kwargs)
+
     elif args['<target_path>'] in ['help', None] or args['<command>'] in ['help', None]:
         exit(call([sys.executable, os.path.join(ROOT, 'commands', 'output.py'), '--help']))
     else:

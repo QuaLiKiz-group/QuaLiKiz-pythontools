@@ -17,6 +17,21 @@ def convert_current_to_2_4_0(inputdir):
         except FileNotFoundError:
             warn('File ' + os.path.join(inputdir, new_name + '.bin') + ' not found, skipping..')
 
+def convert_current_to(inputdir, target='2.4.0'):
+    convert_current_to_2_4_0(inputdir)
+    if target == '2.4.0':
+        return
+    convert_2_4_0_to_2_3_2(inputdir)
+    if target == '2.3.2':
+        return
+    convert_2_3_2_to_2_3_1(inputdir)
+    if target == '2.3.1':
+        return
+    convert_2_3_1_to_CEA_QuaLiKiz(inputdir)
+    if target == 'CEA_QuaLiKiz':
+        return
+    raise Exception('Unknown target {!s}. Input files are now in CEA_QuaLiKiz style'.format(target))
+
 def convert_2_4_0_to_2_3_2(inputdir):
     input_table = {'p1' : 'dimx',
                    'p2' : 'dimn',

@@ -140,7 +140,7 @@ class QuaLiKizBatch():
         for run in self.runlist:
             run.prepare(overwrite=overwrite_runs)
 
-    def generate_input(self, dotprint=False, processes=1):
+    def generate_input(self, dotprint=False, processes=1, conversion=None):
         """ Generate the input files for all runs
 
         Keyword arguments:
@@ -148,7 +148,7 @@ class QuaLiKizBatch():
         """
         if processes == 1:
             for run in self.runlist:
-                run.generate_input(dotprint=dotprint)
+                run.generate_input(dotprint=dotprint, conversion=conversion)
         else:
             if processes == 'max':
                 tasks = min((mp.cpu_count(), len(self.runlist)))
@@ -156,7 +156,7 @@ class QuaLiKizBatch():
                 tasks = cores
 
             pool = mp.Pool(processes=tasks)
-            pool.map(partial(QuaLiKizRun.generate_input, dotprint=dotprint), self.runlist)
+            pool.map(partial(QuaLiKizRun.generate_input, dotprint=dotprint, conversion=conversion), self.runlist)
 
 
     @classmethod
@@ -322,7 +322,6 @@ class QuaLiKizBatch():
                 newds.load()
 
                 print('Merging ' + os.path.join(self.parent_dir, self.name))
-                embed()
                 for run in self.runlist[1:]:
                     name = os.path.basename(run.rundir)
                     netcdf_path = os.path.join(run.rundir, name + '.nc')
@@ -490,7 +489,7 @@ class QuaLiKizRun:
         os.makedirs(os.path.join(path, self.primitivedir), exist_ok=True)
         os.makedirs(os.path.join(path, self.debugdir), exist_ok=True)
 
-    def generate_input(self, dotprint=False):
+    def generate_input(self, dotprint=False, conversion=None):
         """ Generate the input binaries for a QuaLiKiz run
 
         Keyword arguments:
@@ -508,6 +507,9 @@ class QuaLiKizRun:
         for name, value in input_binaries.items():
             with open(os.path.join(inputdir, name + '.bin'), 'wb') as file_:
                 value.tofile(file_)
+
+        if conversion is not None:
+            conversion(inputdir)
 
     def inputbinaries_exist(self):
         """ Check if the input binaries exist
