@@ -259,7 +259,7 @@ class QuaLiKizBatch():
         else:
             json.JSONEncoder().default(obj)
 
-    def to_netcdf(self, runmode='dimx', mode='glue', overwrite=None,
+    def to_netcdf(self, runmode='dimx', mode='noglue', overwrite=None,
                   genfromtxt=False, encode={'zlib': True}, clean=True,
                   cores=1):
         """ Convert QuaLiKizBatch output to netcdf
@@ -312,8 +312,8 @@ class QuaLiKizBatch():
 
         # Now we have the hypercubes. Let's find out which dimensions
         # we're missing and glue the datasets together
+        newds = None
         if mode == 'glue':
-            newds = None
             if len(self.runlist) > 1:
                 dss = []
                 name = os.path.basename(self.runlist[0].rundir)

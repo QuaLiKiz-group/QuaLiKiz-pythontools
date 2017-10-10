@@ -48,8 +48,8 @@ def run(args):
         if args['--orthogonal']:
             kwargs['runmode'] = 'orthogonal'
             if dirtype == 'batch':
-                kwargs['mode'] = 'noglue'
-                kwargs['clean'] = False
+                kwargs['mode'] = 'glue'
+                kwargs['clean'] = True
         qlk_instance.to_netcdf(**kwargs)
 
     # Some legacy commands that might need to be re-implemented
