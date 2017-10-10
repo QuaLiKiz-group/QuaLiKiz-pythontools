@@ -944,4 +944,5 @@ def xarray_to_pandas(ds):
                                 panda_dict[tablename].columns)
         if not newcols.equals(pd.Index([], dtype='object')):
             panda_dict[tablename][newcols] = var.to_dataframe()[newcols]
+    panda_dict['constants'] = pd.Series(ds.attrs)
     return panda_dict
