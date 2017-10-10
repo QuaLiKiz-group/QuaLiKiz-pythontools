@@ -24,6 +24,7 @@ def determine_scandim(ds):
     #new_dims = OrderedDict([(dim.name, np.unique(dim.values)) for dim in ortho_dims])
     if len(scan_dims) == 0:
         print('No scan dim found')
+        scan_dim = ds['dimx']
     elif len(scan_dims) == 1:
         scan_dim = scan_dims[0]
         if scan_dim.dims == ('dimx', ):
@@ -40,7 +41,7 @@ def determine_scandim(ds):
                 except ValueError:
                     scan_dim = scan_dim.sel(nions=0)
             else:
-                print('Warning! More than 1 scanned variable! Behaviour untested!')
+                print('Warning! Ions unsqueezable. Behaviour untested!')
                 scan_dim = ds['dimx']
         else:
             print('Scan_dim dims are {!s}. Not sure what to do'.format(scan_dim.dims))
@@ -58,9 +59,17 @@ def change_efeline():
 def build_plot(datasets, flux_type, normalization, instability_tag='', sum_hydrogen=True, drop_non_hydrogen=True, lowwave_boundry=2):
     squeezed = []
     for dataset in datasets:
-        squeezed.append(squeeze_dataset(dataset))
+        squeeze = squeeze_dataset(dataset)
+        # We need an unsqueezed Zi for hydrogen detection
+        if 'nions' not in squeeze['Zi'].dims:
+            squeeze.coords['Zi'] = xr.DataArray([squeeze['Zi']], dims='nions')
+        squeezed.append(squeeze)
 
-    ds = xr.concat(squeezed, dim='set')
+    try:
+        ds = xr.concat(squeezed, dim='set')
+    except KeyError:
+        raise Exception('Incompatible datasets for simple plotting')
+
 
     # Determine scan dimension
     scan_dim_array = determine_scandim(ds)
@@ -185,8 +194,7 @@ def build_plot(datasets, flux_type, normalization, instability_tag='', sum_hydro
             if part == 'low':
                 # Sum all dimxs and sets together
                 sums = freqlike_table[name].unstack(level=['dimx', 'numsols']).sum('columns')
-                idx = np.where(sums.ne(0))[0][-1]
-                kthetarhos_max = sums.index[idx + 1]
+                kthetarhos_max = sums.ne(0)[::-1].argmax()
                 axes[name].set_xlim(left=0, right=kthetarhos_max)
 
     #freq_table = freqlike[freq_name].loc[0].unstack()
