@@ -110,6 +110,7 @@ class QuaLiKizXpoint(dict):
                  when writing to binary
         geometric: a Geometry instance with all values that change for
                    different radial points
+        norm: information about how to normalize input.
 
     """
     def __init__(self, kthetarhos, electrons, ions, **kwargs):

@@ -1,7 +1,9 @@
 """
-Usage: 
+Usage:
   qualikiz_tools dump <target_path>
   qualikiz_tools [-v | -vv] dump <target_path>
+
+  Dump contents of target (binary) file to STDOUT in human-readable form
 
 Options:
   -h --help                         Show this screen.
@@ -13,7 +15,6 @@ Often used commands:
 
 """
 from docopt import docopt
-from json import dumps
 from subprocess import call
 import sys
 import os
@@ -32,7 +33,7 @@ def run(args):
         print ('create received:')
         print (args)
         print ()
-    
+
     #TODO: Check type of file. Currently only work for binary
     if args['<target_path>']:
         args['<target_path>'] = os.path.abspath(args['<target_path>'])

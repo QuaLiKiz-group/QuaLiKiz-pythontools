@@ -14,11 +14,11 @@ Options:
   --keepnH                            Keep non-hydrogen isotopes
   --dropnH                            Drop non-hydrogen isotopes
   -h --help                           Show this screen.
-  [-v | -vv]                          Verbosity 
+  [-v | -vv]                          Verbosity
 
 Examples:
     Plot ITG heat flux not summing over all hydrogen species and dropping all non-hydrogen species:
-    qualikiz_tools plot --flux ef --mode ITG --sepH --dropnH .
+    qualikiz_tools plot --flux ef --mode ITG --sepH --dropnH.
 
 """
 from docopt import docopt

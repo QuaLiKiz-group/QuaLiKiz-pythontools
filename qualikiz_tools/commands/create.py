@@ -3,19 +3,19 @@ Usage:
   qualikiz_tools [-v | -vv] create [--as_batch <machine>] [--in_dir <directory>] [--binary_dir <directory>] <target> [<parameter_json>]
 
 Options:
-    --in_dir <directory>              Create folder in this folder [default: runs]
-    --binary_dir <directory>          Path to the QuaLiKiz binary [default: ./QuaLiKiz]
+    --in_dir <directory>            Create folder in this folder [default: runs]
+    --binary_dir <directory>        Path to the QuaLiKiz binary [default: ./QuaLiKiz]
     --as_batch <machine>            Create a batch script for the specified machine
   -h --help                         Show this screen.
   [-v | -vv]                        Verbosity
 
 Often used commands:
-  qualikiz_tools create mini
-  qualikiz_tools create performance
+  qualikiz_tools create example
+  qualikiz_tools create regression
+  qualikiz_tools create from_json <path_to_json>
 
 """
 from docopt import docopt
-from json import dumps
 from subprocess import call
 import sys
 import os

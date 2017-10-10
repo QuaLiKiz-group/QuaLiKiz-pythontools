@@ -1,5 +1,5 @@
 """
-Usage: 
+Usage:
   qualikiz_tools poll [-v | -vv]  <command> <poll_path> [<database_path>]
   qualikiz_tools poll [-v | -vv] help
 
@@ -11,7 +11,6 @@ Often used commands:
 
 """
 from docopt import docopt
-from json import dumps
 from subprocess import call
 import sys
 import os
@@ -24,6 +23,7 @@ if __name__ == '__main__':
     print (docopt(__doc__))
 
 def run(args):
+    raise NotImplementedError('Polling of statistics not available yet')
     args = docopt(__doc__, argv=args)
 
     if args['-v'] >= 2:

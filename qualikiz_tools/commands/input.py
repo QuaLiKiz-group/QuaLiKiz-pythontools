@@ -1,7 +1,10 @@
 """
-Usage: 
+Usage:
   qualikiz_tools input [-v | -vv] <command> <target_path>
   qualikiz_tools input [-v | -vv] help
+
+  For example, create input binaries for QuaLiKiz batch or run contained in <target_path>
+      qualikiz_tools input create <target_path>
 
 Options:
   -h --help                         Show this screen.
