@@ -213,11 +213,13 @@ class QuaLiKizBatch():
             except:
                 for subpath in os.listdir(batchdir):
                     if os.path.isdir(subpath):
+                        rundir = os.path.join(batchdir, subpath)
                         try:
-                            rundir = os.path.join(batchdir, subpath)
-                            runlist.append(QuaLiKizRun.from_dir(rundir))
+                            run = QuaLiKizRun.from_dir(rundir)
                         except:
                             pass
+                        else:
+                            runlist.append(run)
             batch = QuaLiKizBatch(parent_dir, name, runlist)
 
         return batch
@@ -586,11 +588,10 @@ class QuaLiKizRun:
         parent_dir = os.path.abspath(parent_dir)
         # We assume the binary is named something with 'QuaLiKiz' in it
         if binaryrelpath is None:
-            with os.scandir(rundir) as it:
-                for entry in it:
-                    if entry.is_symlink() and 'QuaLiKiz' in entry.name:
-                        binaryrelpath = os.readlink(entry.path)
-                        break
+            for file in os.listdir(rundir):
+                if 'QuaLiKiz' in file:
+                    binaryrelpath = os.readlink(os.path.join(rundir, file))
+                    break
         if binaryrelpath is None:
             raise Exception('Could not find link to QuaLiKiz binary. Please supply `binaryrelpath`')
         #binarybasepath = os.path.basename(binaryrelpath)
