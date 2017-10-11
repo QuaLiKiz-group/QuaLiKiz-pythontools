@@ -14,8 +14,10 @@ Options:
 Examples:
   qualikiz_tools create
   qualikiz_tools dump
+  qualikiz_tools input
+  qualikiz_tools launcher
   qualikiz_tools output
-  qualikiz_tools poll
+  qualikiz_tools plot
 
 Help:
   For help using this tool, please open an issue on the Github repository:
