@@ -9,7 +9,7 @@ Usage:
 Options:
   --version <version>               Version of QuaLiKiz to generate input for [default: current]
   -h --help                         Show this screen.
-  [-v | -vv]                        Verbosity 
+  [-v | -vv]                        Verbosity
 
 Often used commands:
   qualikiz_tools output to_netcdf <target_path>

@@ -1,11 +1,13 @@
 """
-Usage: 
+Usage:
   qualikiz_tools output [-v | -vv] [--orthogonal] [--genfromtxt]  <command> <target_path>
   qualikiz_tools output [-v | -vv] help
 
+Process QuaLiKiz ASCII output files. For example, convert to netCDF.
+
 Options:
   -h --help                         Show this screen.
-  [-v | -vv]                        Verbosity 
+  [-v | -vv]                        Verbosity
 
 Often used commands:
   qualikiz_tools output to_netcdf <target_path>

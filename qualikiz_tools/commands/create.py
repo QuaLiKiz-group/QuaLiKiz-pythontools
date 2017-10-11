@@ -1,6 +1,8 @@
 """
 Usage:
   qualikiz_tools [-v | -vv] create [--as_batch <machine>] [--in_dir <directory>] [--binary_dir <directory>] <target> [<parameter_json>]
+  qualikiz_tools [-v | -vv] create --as_batch <machine> [--in_dir <directory>] [--binary_dir <directory>] regression
+  qualikiz_tools [-v | -vv] create --as_batch <machine> [--in_dir <directory>] [--binary_dir <directory>] from_json <path_to_json>
 
 Options:
     --in_dir <directory>            Create folder in this folder [default: runs]
