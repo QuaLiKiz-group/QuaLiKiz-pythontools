@@ -7,65 +7,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 from os import path
 
-output_dir = 'output'
-file_list = ['cftrans.dat', 'cke.dat', 'cki.dat', 'dfe_SI.dat', 'dfi_SI.dat',
-             'ecoefs.dat', 'eef_cm.dat', 'eefETG_SI.dat', 'eef_GB.dat',
-             'eef_SI.dat', 'epf_cm.dat', 'epfETG_SI.dat', 'epf_GB.dat',
-             'epf_SI.dat', 'evf_cm.dat', 'evf_GB.dat', 'evf_SI.dat',
-             'gam_GB.dat', 'gam_SI.dat', 'ief_cm.dat', 'ief_GB.dat',
-             'ief_SI.dat', 'ipf_cm.dat', 'ipf_GB.dat', 'ipf_SI.dat',
-             'ivf_cm.dat', 'ivf_GB.dat', 'ivf_SI.dat', 'modeflag.dat',
-             'npol.dat', 'ome_GB.dat', 'ome_SI.dat', 'phi.dat', 'vce_SI.dat',
-             'vci_SI.dat', 'vre_SI.dat', 'vri_SI.dat', 'vte_SI.dat',
-             'vti_SI.dat']
-file_list = [path.join(output_dir, file) for file in file_list]
-             
-def listify(file_path):
-    with open(file_path) as file:
-        array = []
-        for line in file.readlines():
-            words = line.split(None)
-            line_array = []
-            for word in words:
-                line_array.append(float(word))
-            array.append(line_array)
-    return array
- 
-def plotScanWrapper(values, label=None, filter_zeros=True):
-    if not np.all(values == 0.) or not filter_zeros:
-        plt.plot(values, label=label)
-
-def plotWrapper(data, plot_style):
-    name, style, ylabel = plot_style
-    print (data)
-    print (name)
-    print (style)
-    plt.figure(name)
-    plt.title(name)
-    if style.startswith('w'):
-        xlabel = r'wavenumber'
-        for scan in data:
-            plotScanWrapper(scan, label='temp')
-    if style.startswith('i'):
-        xlabel = r'scan value'
-        data = data.T
-        labels = ['D', 'Be', 'W']
-        for label, scan in zip(labels, data):
-            plotScanWrapper(scan, label, filter_zeros=False)
-    if style.startswith('e'):
-        xlabel = r'scan value'
-        plotScanWrapper(data, filter_zeros=False)
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
-    plt.legend()
-
-
 plot_styles = {
     'gam_GB': ['Growth Rate [GB]', 'wavenumber', r'growth rate [$\sqrt{T_e/mi}/a$]'],
     'gam_SI': ['Growth Rate [SI]', 'wavenumber', r'growth rate [$\sqrt{T_e/mi}/a$]'],
     'ome_GB': ['Frequencies [GB]', 'wavenumber', r'frequency [?]'],
     'ome_SI': ['Frequencies [SI]', 'wavenumber', r'frequency [$s^-1$]'],
-    
+
     'ief_GB': ['Ion Heat Conductivity [GB]', 'ions', r'heat conductivity [$\sqrt{mi}T_e^{1.5}/(q_e^2B^2a)$]'],
     'ief_SI': ['Ion Heat Flux [SI]', 'ions', r'heat flux [$W/m^2$]'],
     'eef_GB': ['Electron Heat Conductivity [GB]', 'electrons', r'heat conductivity [$\sqrt{mi}T_e^{1.5}/(q_e^2B^2a)$]'],
@@ -99,9 +46,9 @@ prims = {
     'ven': ['heat', 'thermopinch', None],
     'ver': ['heat', 'rotodiffusion pinch', None],
     'vec': ['heat', 'compressebility pinch', None]}
-    
 
-output = {}
+
+file_list = []
 for file_dir in file_list:
     __, temp = path.split(file_dir)
     name, __ = path.splitext(temp)
@@ -109,7 +56,7 @@ for file_dir in file_list:
     if unit == "SI" and not (base.startswith("e") or base.startswith("i")) \
         and not (base == "gam" or base == "ome"):
         base = base[-1] + base[:-1]
-    
+
     if base == "gam" or base == "ome":
         prim = base
         title = prims[prim][0] + " "
