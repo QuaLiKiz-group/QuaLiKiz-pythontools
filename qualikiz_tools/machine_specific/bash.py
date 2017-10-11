@@ -8,9 +8,9 @@ import os
 import stat
 from .system import System
 from ..qualikiz_io.qualikizrun import QuaLiKizRun, QuaLiKizBatch
+import subprocess
 import multiprocessing as mp
-cores_per_node = 24
-vcores_per_task = None
+
 class Batch(System.Batch):
     """ Defines a batch job
 
@@ -86,6 +86,23 @@ class Batch(System.Batch):
 
         return Batch(parent_dir, name, runlist)
 
+    def launch(self):
+        for run in self.runlist:
+            run.inputbinaries_exist()
+        # Check if batch script is generated
+        batchdir = os.path.join(self.parent_dir, self.name)
+        batchpath = os.path.join(batchdir, self.scriptname)
+        if not os.path.exists(batchpath):
+            raise Exception('Batch script does not exist!')
+
+        self.clean()
+
+        cmd = ' '.join(['cd', batchdir, '&& bash', self.scriptname])
+        stdout = open(os.path.join(batchdir, self.stdout), 'w')
+        stderr = open(os.path.join(batchdir, self.stderr), 'w')
+        subprocess.check_call(cmd, shell=True, stdout=stdout, stderr=stderr)
+
+
 #    def __eq__(self, other):
 #        if isinstance(other, self.__class__):
 #            return self.__dict__ == other.__dict__
@@ -151,7 +168,7 @@ class Run(System.Run):
         string = ' '.join([self.runstring ,
                            '-n'     , str(self.tasks) ,
                            '-wdir'  , self.rundir     ,
-                                      self.binaryrelpath ,
+                                      './' + os.path.basename(self.binaryrelpath) ,
                            '>'      , paths[0]        ,
                            '2>'     , paths[1]        ,
         ])
@@ -164,6 +181,7 @@ class Run(System.Run):
         tasks = int(split[2])
         rundir = split[4]
         binary_name = split[5].strip()
+        binaryrelpath = os.readlink(os.path.join(rundir, binary_name))
         paths = []
         for path in [split[7], split[9]]:
             if os.path.isabs(path):
@@ -171,10 +189,8 @@ class Run(System.Run):
             else:
                 path = os.path.relpath(path, rundir)
             paths.append(path)
-        from IPython import embed
-        #embed()
         return Run(os.path.dirname(rundir), os.path.basename(rundir),
-                   binary_name, stdout=paths[0], stderr=paths[1])
+                   binaryrelpath, stdout=paths[0], stderr=paths[1])
 
     @classmethod
     def from_dir(cls, dir, tasks=None, **kwargs):
@@ -184,6 +200,18 @@ class Run(System.Run):
         return Run(parent_dir, name, qualikiz_run.binaryrelpath, tasks=tasks,
                    stdout=qualikiz_run.stdout, stderr=qualikiz_run.stderr,
                    **kwargs)
+
+    def launch(self):
+        self.inputbinaries_exist()
+        # Check if batch script is generated
+        self.clean()
+
+        cmd = ' '.join(['cd', self.rundir, '&&', self.runstring,
+                        '-n', str(self.tasks), './' + os.path.basename(self.binaryrelpath)])
+        stdout = open(os.path.join(self.rundir, self.stdout), 'w')
+        stderr = open(os.path.join(self.rundir, self.stderr), 'w')
+        subprocess.check_call(cmd, shell=True, stdout=stdout, stderr=stderr)
+
 
     #def __eq__(self, other):
     #    if isinstance(other, self.__class__):

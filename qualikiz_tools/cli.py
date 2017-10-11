@@ -66,6 +66,9 @@ def main():
     elif args['<command>'] == 'input':
         from qualikiz_tools.commands import input
         input.run(passing)
+    elif args['<command>'] == 'launcher':
+        from qualikiz_tools.commands import launcher
+        launcher.run(passing)
     elif args['<command>'] == 'output':
         from qualikiz_tools.commands import output
         output.run(passing)
