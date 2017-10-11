@@ -1,6 +1,6 @@
 """
 Usage:
-  qualikiz_tools plot [-v | -vv] [--norm <normalization>] [--flux <flux>] [--mode <mode>] [--sepH | --sumH] [--keepnH | --dropnH] <target_path>
+  qualikiz_tools plot [-v | -vv] [--norm <normalization>] [--flux <flux>] [--mode <mode>] [--sepH | --sumH] [--keepnH | --dropnH] <target_path>...
   qualikiz_tools plot [-v | -vv] help
 
 Searches all sub-directories for QuaLiKiz output netCDF files (for example, generated with `qualikiztool output to_netcdf`) and plot them.
@@ -65,16 +65,17 @@ def run(args):
     if args['--keepnH']:
         drop_non_hydrogen = False
 
-    root_path = args['<target_path>']
+    path_list = args['<target_path>']
     dataset_paths = []
-    if os.path.isdir(root_path):
-        for root, dirs, files in os.walk(root_path):
-            for file in files:
-                if file.endswith('.nc'):
-                    file_path = os.path.join(root, file)
-                    dataset_paths.append(file_path)
-                    if args['-v'] >= 1:
-                        print(file_path)
+    if all([os.path.isdir(path) for path in path_list]):
+        for root_path in path_list:
+            for root, dirs, files in os.walk(root_path):
+                for file in files:
+                    if file.endswith('.nc'):
+                        file_path = os.path.join(root, file)
+                        dataset_paths.append(file_path)
+                        if args['-v'] >= 1:
+                            print(file_path)
         if len(dataset_paths) == 0:
             raise Exception('No datasets found')
         else:
