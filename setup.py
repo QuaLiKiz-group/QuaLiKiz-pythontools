@@ -38,7 +38,7 @@ setup(
     version = __version__,
     description = 'Python tools for the QuaLiKiz Quasi-linear gyrokinetic code.',
     long_description = long_description,
-    url = 'https://github.com/QuaLiKiz-group/QuaLiKiz',
+    url = 'https://github.com/QuaLiKiz-group/QuaLiKiz-pythontools',
     author = 'Karel van de Plassche',
     author_email = 'karelvandeplassche@gmail.com',
     license = 'CeCill v2.1',
