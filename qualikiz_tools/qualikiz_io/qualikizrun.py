@@ -1,41 +1,30 @@
 """
-Copyright Dutch Institute for Fundamental Energy Research (2016)
+Copyright Dutch Institute for Fundamental Energy Research (2016-2017)
 Contributors: Karel van de Plassche (karelvandeplassche@gmail.com)
 License: CeCILL v2.1
 """
 import os
-import datetime
-import subprocess
 import warnings
 from warnings import warn
-from collections import OrderedDict
-import math
 import shutil
-import json
-from multiprocessing import Process, Manager
 import multiprocessing as mp
-import subprocess
-import pickle
-from qualikiz_tools.qualikiz_io.outputfiles import find_nonmatching_coords, merge_orthogonal, sort_dims
-from IPython import embed
 from logging import info
+from functools import partial
 
-threads_per_task = 2  # Stuck as per QuaLiKiz code
-threads_per_vcore = 1  # Never give one (virtual) CPU more than one task
-vcores_per_task = int(threads_per_task / threads_per_vcore)  # == 2
+import xarray as xr
 
-#from ..machine_specific.slurm import Srun, Sbatch
 from ..qualikiz_io.inputfiles import QuaLiKizPlan
 from ..qualikiz_io.outputfiles import (convert_debug, convert_output,
                                        convert_primitive, squeeze_dataset,
                                        orthogonalize_dataset, determine_sizes)
+from ..qualikiz_io.outputfiles import (merge_orthogonal, sort_dims)
 from .. import netcdf4_engine
 from . import __path__ as ROOT
-
-import xarray as xr
-from functools import partial
 ROOT = ROOT[0]
 
+threads_per_task = 2  # Stuck as per QuaLiKiz code
+threads_per_vcore = 1  # Never give one (virtual) CPU more than one task
+vcores_per_task = int(threads_per_task / threads_per_vcore)  # == 2
 
 warnings.simplefilter('always', UserWarning)
 
@@ -54,10 +43,12 @@ class QuaLiKizBatch():
     or less equivalent with a batch script, but with path awareness and some
     extra smarts built-in.
 
-    Class variables:
-        - batchinfofile: The default name of batchinfo file. Used to store
-                         batch metadata
-        - scriptname:    The default name of the sbatch scipt file.
+    Attributes:
+        batchinfofile:  The default name of batchinfo file. Used to store
+                        batch metadata
+        scriptname:     The default name of the sbatch scipt file.
+        default_stdout: Default name to write STDOUT to
+        default_stderr: Default name to write STDERR to
     """
 
     batchinfofile = 'batchinfo.json'
@@ -66,59 +57,32 @@ class QuaLiKizBatch():
     default_stderr = 'stderr.batch'
     default_stdout = 'stdout.batch'
 
-    # TODO: generalize for non-edison machines
     def __init__(self, parent_dir, name, runlist,
-                 #ncpu=1,
-                 #safetytime=2, style='sequential',
                  stdout=None,
                  stderr=None):
-                 #filesystem='SCRATCH', partition='regular',
-                 #qos='normal', repo=None, HT=True,
-                 #vcores_per_task=vcores_per_task):
         """ Initialize a batch
-        Arguments:
-            - parent_dir: Parent directory of the batch directory.
-            - name:      Name of the batch. This will also be the folder name
-            - runlist:   A list of QuaLiKizRuns contained in this batch
+        Args:
+            parent_dir: Parent directory of the batch directory.
+            name:       Name of the batch. This will also be the folder name
+            runlist:    A list of QuaLiKizRuns contained in this batch
 
-        Keyword arguments:
-            - ncpu:      Amount of cpus to be used
-            - safetytime: An extra factor that will be used in the calculation
-                          of requested runtime. 1.5x by default
-            - style:      How to glue the different runs together. Currently
-                          only 'sequential' is used
-            - stdout:     Standard target of redirect of STDOUT
-            - stderr:     Standard taget of redirect of STDERR
-            - filesystem: SLURM filesystem to be used. SCRATCH by default
-            - partition:  Which Edison partition to use. 'regular' by default
-            - qos:        SLURM qos to be used. normal by default
-            - HT:         Use hyperthreading. True by default
+        Kwargs:
+            stdout:     File to write stdout to. By default 'stdout.batch'
+            stderr:     File to write stderr to. By default 'stderr.batch'
         """
-        # To be always sure to find the dir, this needs to be absolute
         self.parent_dir = parent_dir
         self.name = name
-
         self.runlist = runlist
+
         if stdout is None:
             self.stdout = QuaLiKizBatch.default_stdout
         else:
             self.stdout = stdout
-        #if not os.path.isabs(stderr):
-        #    stderr = os.path.abspath(os.path.join(self.rundir, stderr))
+
         if stderr is None:
             self.stderr = QuaLiKizBatch.default_stderr
         else:
             self.stderr = stderr
-        # TODO: generalize for non-edison machines
-        #self.batch = self.generate_batchscript(ncpu,
-        #                                       safetytime=safetytime,
-        #                                       style=style,
-        #                                       stdout=stdout, stderr=stderr,
-        #                                       filesystem=filesystem,
-        #                                       partition=partition,
-        #                                       repo=repo,
-        #                                       qos=qos,
-        #                                       HT=HT)
 
     def prepare(self, overwrite_batch=None, overwrite_runs=False):
         """ Prepare the batch and runs to be submitted
@@ -128,9 +92,9 @@ class QuaLiKizBatch():
         generate_input function.
 
         Keyword arguments:
-            - overwrite_batch: Flag to overwrite the batch folder if it
+            overwrite_batch: Flag to overwrite the batch folder if it
                                already exists. Prompts the user by default.
-            - overwrite_runs:  Flag to overwrite the runs folders if they
+            overwrite_runs:  Flag to overwrite the runs folders if they
                                already exist. False by default.
         """
         batchdir = os.path.join(self.parent_dir, self.name)
@@ -145,7 +109,11 @@ class QuaLiKizBatch():
         """ Generate the input files for all runs
 
         Keyword arguments:
-            - dotprint: Print a dot after each generation. Used for debugging.
+            dotprint:   Print a dot after each generation. Used for debugging.
+            processes:  Amount of processes used to generate. Defaults to 1.
+                        Set this to 'max' to autodetect.
+            conversion: Function will be called as conversion(input_dir). Can
+                        be used to convert input files to older version.
         """
         if processes == 1:
             for run in self.runlist:
@@ -154,11 +122,11 @@ class QuaLiKizBatch():
             if processes == 'max':
                 tasks = min((mp.cpu_count(), len(self.runlist)))
             else:
-                tasks = cores
+                tasks = processes
 
             pool = mp.Pool(processes=tasks)
-            pool.map(partial(QuaLiKizRun.generate_input, dotprint=dotprint, conversion=conversion), self.runlist)
-
+            pool.map(partial(QuaLiKizRun.generate_input, dotprint=dotprint, conversion=conversion),
+                     self.runlist)
 
     @classmethod
     def from_dir_recursive(cls, searchdir):
@@ -167,16 +135,16 @@ class QuaLiKizBatch():
         QuaLiKizBatch.scriptname, and tries to reconstruct the
         batch from there.
 
-        Arguments:
-            - searchdir: The path to search
+        Args:
+            searchdir: The path to search
 
         Returns:
-            - batchlist: A list of batches found
+            batchlist: A list of batches found
         """
         batchlist = []
-        for (dirpath, dirnames, filenames) in os.walk(searchdir):
+        for (dirpath, __, filenames) in os.walk(searchdir):
             if QuaLiKizBatch.scriptname in filenames:
-                batchlist.append(QuaLiKizBatch.from_dir(dirpath))
+                batchlist.append(QuaLiKizBatch.from_subdirs(dirpath))
         return batchlist
 
     @classmethod
@@ -187,12 +155,14 @@ class QuaLiKizBatch():
         with the functions contained in this module, it should always
         be succesfully re-contructed.
 
+        Args:
+            batchdir:   The top directory of the batch
 
-        Arguments:
-            - batchdir: The top directory of the batch
+        Kwargs:
+            scriptname: name of the script to search for. Defaults to qualikiz.batch.
 
         Returns:
-            - qualikizbatch: The reconstructed batch
+            qualikizbatch: The reconstructed batch
         """
         batchdir = os.path.realpath(batchdir.rstrip('/'))
         # The name should be the same as the directory name given
@@ -225,46 +195,9 @@ class QuaLiKizBatch():
 
         return batch
 
-    def queue_batch(self):
-        """ Queue the batch
-        Queues the batch. Has some sanity checks to check if the run will
-        be succesful. Also dumps some run information to file that can be
-        used to profile the runs.
-        """
-        # Check if the input binaries are generated
-        for run in self.runlist:
-            run.inputbinaries_exist()
-        # Check if batch script is generated
-        batchdir = os.path.join(self.parent_dir, self.name)
-        batchpath = os.path.join(batchdir, self.scriptname)
-        if not os.path.exists(batchpath):
-            raise Exception('batch script does not exist!')
-
-        # TODO: generalize for non-edison machines
-        cmd = 'sbatch --workdir=' + os.getcwd() + ' ' + batchpath
-        output = subprocess.check_output(cmd, shell=True)
-        batchinfo = {}
-        batchinfo['jobnumber'] = output.split()[-1].decode('utf-8')
-        batchinfo['submittime'] = datetime.datetime.now()
-
-        print('Queued batch with jobnumber ' + str(batchinfo['jobnumber']))
-
-        # Dump some important profiling stuff to file
-        batchinfopath = os.path.join(batchdir, QuaLiKizBatch.batchinfofile)
-        with open(batchinfopath, 'w') as file_:
-            # Some magic to correctly handle date/time info
-            json.dump(batchinfo, file_, default=self.dthandler)
-        return batchinfo['jobnumber']
-
-    def dthandler(self, obj):
-        if isinstance(obj, datetime.datetime):
-            obj.isoformat()
-        else:
-            json.JSONEncoder().default(obj)
-
-    def to_netcdf(self, runmode='dimx', mode='noglue', overwrite=None,
-                  genfromtxt=False, encode={'zlib': True}, clean=True,
-                  cores=1):
+    def to_netcdf(self, runmode='dimx', mode='noglue',
+                  genfromtxt=False, encode=None, clean=True,
+                  processes=1):
         """ Convert QuaLiKizBatch output to netcdf
 
         This function converts the output contained in the output and debug
@@ -272,18 +205,23 @@ class QuaLiKizBatch():
         afterwards by setting the 'mode' keyword argument. Compresses
         the dataset by default.
 
-        Keyword Arguments:
-            runmode:   Mode to pass to QuaLiKizRun.to_netcdf
-            mode:      What to do after netcdfizing runs. 'glue' by default; glue
-                       datasets together
-            overwrite: Overwrite existing netcdf file? Ask user by default
+        Kwargs:
+            runmode:    Mode to pass to QuaLiKizRun.to_netcdf. Defaults to 'dimx'
+            mode:       What to do after netcdfizing runs. 'noglue' by default.abs
+                        set 'glue' to glue datasets together
             genfromtxt: Use genfromtxt instead of loadtxt. Slower and loads
-                        unreadable values as nan
-            encode:    Default encoding passed to QuaLiKizRun.to_netcdf and
-                       to the new dataset. Compresses by default
-            clean:     Remove netcdf files generated by QuaLiKizRun.to_netcdf
-                       when done. True by default
+                        unreadable values as NaN
+            encode:     Default encoding passed to QuaLiKizRun.to_netcdf and
+                        to the new dataset. Compresses by default
+            clean:      Remove netcdf files generated by QuaLiKizRun.to_netcdf
+                        when done. True by default
+            processes:  Amount of processes used to generate. Defaults to 1.
+                        Set this to 'max' to autodetect.
+
         """
+
+        if encode is None:
+            encode = {'zlib': True}
 
         new_netcdf_path = os.path.join(self.parent_dir, self.name, self.name + '.nc')
 
@@ -296,20 +234,20 @@ class QuaLiKizBatch():
                 warn('User does not want to overwrite ' + netcdf_path)
             else:
                 joblist.append(run.rundir)
-        print ('Found {:d} jobs'.format(len(joblist)))
+        print('Found {:d} jobs'.format(len(joblist)))
 
         if not overwrite_prompt(new_netcdf_path):
             raise Exception('User does not want to overwrite ' + new_netcdf_path)
 
 
         # We want to run one job per core max
-        if cores == 'max':
+        if processes == 'max':
             tasks = min((mp.cpu_count(), len(self.runlist)))
 
             pool = mp.Pool(processes=tasks)
             pool.map(partial(run_to_netcdf, runmode=runmode, encode=encode,
                              genfromtxt=genfromtxt), joblist)
-        elif cores == 1:
+        elif processes == 1:
             for job in joblist:
                 run_to_netcdf(job, runmode=runmode, encode=encode, genfromtxt=genfromtxt)
         print('jobs netcdfized')
@@ -319,7 +257,6 @@ class QuaLiKizBatch():
         newds = None
         if mode == 'glue':
             if len(self.runlist) > 1:
-                dss = []
                 name = os.path.basename(self.runlist[0].rundir)
                 netcdf_path = os.path.join(self.runlist[0].rundir, name + '.nc')
                 newds = xr.open_dataset(netcdf_path, engine=netcdf4_engine)
@@ -336,11 +273,12 @@ class QuaLiKizBatch():
 
                 newds = sort_dims(newds)
                 encoding = {}
-                for name, array in newds.items():
+                for name, __ in newds.items():
                     encoding[name] = {}
                     for enc_name, enc in encode.items():
                         encoding[name][enc_name] = enc
-                newds.to_netcdf(new_netcdf_path, engine=netcdf4_engine, format='NETCDF4', encoding=encoding)
+                newds.to_netcdf(new_netcdf_path,
+                                engine=netcdf4_engine, format='NETCDF4', encoding=encoding)
                 newds.close()
         elif mode == 'noglue':
             pass
@@ -359,14 +297,17 @@ class QuaLiKizBatch():
             run.clean()
         batchdir = os.path.join(self.parent_dir, self.name)
         try:
-            os.remove(os.path.join(batchdir, QuaLiKizBatch.batchinfofile))
-            os.remove(os.path.join(batchdir, Sbatch.default_stdout))
-            os.remove(os.path.join(batchdir, Sbatch.default_stderr))
+            os.remove(os.path.join(batchdir, self.batchinfofile))
+            os.remove(os.path.join(batchdir, self.default_stdout))
+            os.remove(os.path.join(batchdir, self.default_stderr))
         except FileNotFoundError:
             pass
 
     def is_done(self):
-        """ Check if job is done running """
+        """ Check if job is done running
+        Returns:
+            True if job is done
+        """
         done = True
         for run in self.runlist:
             done &= run.is_done()
@@ -391,18 +332,16 @@ class QuaLiKizBatch():
 class QuaLiKizRun:
     """ Defines everything needed for a single run of QuaLiKiz
 
-    Class variables:
-        - parameterspath: Default path where the parameters json is
-        - pythonreldir:   Default name of link to the python module
-        - pythondir:      Absolute path to the python module
-        - outputdir:      Relative path to the output folder
-        - primitivedir:   Relative path to the primitive output folder
-        - debugdir:       Relative path to the debug folder
-        - inputdir:       Relative path to the input folder
+    Attributes:
+        parameterspath: Default path where the parameters json is
+        outputdir:      Relative path to the output folder
+        primitivedir:   Relative path to the primitive output folder
+        debugdir:       Relative path to the debug folder
+        inputdir:       Relative path to the input folder
+        default_stdout: Default name to write STDOUT to
+        default_stderr: Default name to write STDERR to
     """
     parameterspath = 'parameters.json'
-    pythondir = os.path.realpath(os.path.dirname(ROOT))
-    pythonreldir = os.path.basename(pythondir)
     outputdir = 'output'
     primitivedir = 'output/primitive'
     debugdir = 'debug'
@@ -411,49 +350,46 @@ class QuaLiKizRun:
     default_stderr = 'stderr.run'
     default_stdout = 'stdout.run'
 
-    def __init__(self, parent_dir, name, binaryrelpath, *args, qualikiz_plan=None,
+    def __init__(self, parent_dir, name, binaryrelpath,
+                 qualikiz_plan=None,
                  stdout=None,
                  stderr=None,
                  verbose=False):
         """ Initialize an empty QuaLiKiz run
-        Arguments:
-            - parent_dir:       Parent of where the run folder will be. Should
-                             be an absolute path
-            - name:          The name of the QuaLiKiz Run. This will be the
-                             name of the folder that will be generated
-            - binaryrelpath: The name of the binary that needs to be run.
-                             Usually a relative path to the run folder.
+        Args:
+            parent_dir:    Parent of where the run folder will be.
+            name:          The name of the QuaLiKiz Run. This will be the
+                           name of the folder that will be generated
+            binaryrelpath: The name of the binary that needs to be run.
+                           Usually a relative path to the run folder.
 
-        Keyword arguments:
-            - qualikiz_plan: The QuaLiKizPlan, usually read from json. Will
-                             load the parameter_template by default
-            - stdout:        Path to the STDOUT file.
-            - stderr:        Path to the STDERR file.
+        Kwargs:
+            qualikiz_plan: The QuaLiKizPlan, usually read from json. Will
+                           load the parameter_template by default
+            stdout:        Path to the STDOUT file.
+            stderr:        Path to the STDERR file.
+            verbose:       Print verbose information when initializing.
         """
         self.rundir = os.path.join(parent_dir, name)
 
         if verbose:
             print('Creating new QuaLiKiz run in {!s}'.format(self.rundir))
 
-        # Set the STDERR and STDOUT of the run
-        #if not os.path.isabs(stdout):
-        #    stdout = os.path.abspath(os.path.join(self.rundir, stdout))
         if stdout is None:
             self.stdout = QuaLiKizRun.default_stdout
         else:
             self.stdout = stdout
-        #if not os.path.isabs(stderr):
-        #    stderr = os.path.abspath(os.path.join(self.rundir, stderr))
+
         if stderr is None:
             self.stderr = QuaLiKizRun.default_stderr
         else:
             self.stderr = stderr
 
         self.binaryrelpath = binaryrelpath
+
         # Load the default parameters if no plan is defined
         if qualikiz_plan is None:
-            templatepath = os.path.join(self.pythondir,
-                                        'qualikiz_io/parameters_template.json')
+            templatepath = os.path.join(ROOT, 'parameters_template.json')
             qualikiz_plan = QuaLiKizPlan.from_json(templatepath)
         self.qualikiz_plan = qualikiz_plan
 
@@ -464,8 +400,8 @@ class QuaLiKizRun:
         the input generation can take a while. Generate input binaries using
         the generate_input function.
 
-        Keyword Arguments:
-            - overwrite:  Overwrite the directory if it exists. Prompts the
+        Kwargs:
+            overwrite:  Overwrite the directory if it exists. Prompts the
                           user by default.
         """
 
@@ -496,8 +432,10 @@ class QuaLiKizRun:
     def generate_input(self, dotprint=False, conversion=None):
         """ Generate the input binaries for a QuaLiKiz run
 
-        Keyword arguments:
-            - dotprint: Print a dot after each generation. Used for debugging.
+        Kwargs:
+            dotprint:   Print a dot after each generation. Used for debugging.
+            conversion: Function will be called as conversion(input_dir). Can
+                        be used to convert input files to older version.
         """
         parameterspath = os.path.join(self.rundir, 'parameters.json')
 
@@ -519,6 +457,9 @@ class QuaLiKizRun:
         """ Check if the input binaries exist
         Currently only checks for R0.bin. Change this if the QuaLiKiz
         input files ever change!
+
+        Returns:
+            True if the input binaries exist
         """
         input_binary = os.path.join(self.rundir, self.inputdir, 'R0.bin')
         exist = True
@@ -532,6 +473,9 @@ class QuaLiKizRun:
         """ Estimate the walltime needed to run
         This directely depends on the CPU time needed and cores needed to run.
         Currently uses worst-case estimate.
+
+        Returns:
+            Estimated walltime in seconds
         """
         cputime = self.estimate_cputime(cores)
         return cputime / cores
@@ -541,6 +485,9 @@ class QuaLiKizRun:
         Currently just uses a worst-case assumtion. In reality cpus_per_dimxn
         should depend on the dimxn per core. It also depends on the amount of
         stable points in the run, which is not known a-priori.
+
+        Returns:
+            Estimated cputime in seconds
         """
         dimxn = self.qualikiz_plan.calculate_dimxn()
         cpus_per_dimxn = 0.8
@@ -549,12 +496,15 @@ class QuaLiKizRun:
     def calculate_tasks(self, cores, HT=True):
         """ Calulate the amount of MPI tasks needed based on the cores used
 
-        Arguments:
-            - cores: The amount of cores to use
+        Args:
+            cores: The amount of cores to use
 
-        Keyword Arguments:
-            - HT: Flag to use HyperThreading. By default True.
-"""
+        Kwargs:
+            HT: Flag to use HyperThreading. By default True.
+
+        Returns:
+            Tasks to use to run this QuaLiKizRun
+        """
         if HT:
             vcores_per_core = 2  # Per definition
         else:
@@ -577,13 +527,16 @@ class QuaLiKizRun:
         Try to reconstruct the Run from a directory. Gives a warning if
         STDOUT and STDERR cannot be found on their given or default location.
 
-        Arguments:
-            - dir: Root directory of the Run
+        Args:
+            dir: Root directory of the Run
 
-        Keyword arguments:
-            - binarylinkpath: Path to the link pointing to the QuaLiKiz binary
-            - stdout: Where to look for the STDOUT file
-            - stderr: Where to look for the STDERR file
+        Kwargs:
+            binarylinkpath: Path to the link pointing to the QuaLiKiz binary
+            stdout:         Where to look for the STDOUT file
+            stderr:         Where to look for the STDERR file
+
+        Returns:
+            Reconstructed QuaLiKizRun
         """
         rundir = os.path.realpath(dir.rstrip('/'))
         parent_dir, name = os.path.split(rundir)
@@ -670,9 +623,12 @@ class QuaLiKizRun:
 def overwrite_prompt(path, overwrite=None):
     """ Prompt user if file/path can be overwritten
 
-    Keyword Arguments:
+    Kwargs:
         overwrite: If None, prompt user. If True, overwrite and if False,
                    throw Exception. None by default
+
+    Returns:
+        True if user wants to overwrite
     """
     if os.path.isfile(path) or os.path.isdir(path):
         if overwrite is None:
@@ -694,7 +650,7 @@ def overwrite_prompt(path, overwrite=None):
 def create_folder_prompt(path, overwrite=None):
     """ Overwrite folder prompt
 
-    Keyword Arguments:
+    Kwargs:
         overwrite: If None, prompt user. If True, overwrite and if False,
                    throw Exception. None by default
     """
@@ -702,14 +658,14 @@ def create_folder_prompt(path, overwrite=None):
         os.makedirs(path)
 
 def run_to_netcdf(path, runmode='dimx', overwrite=None,
-                  genfromtxt=False, keepfile=True, encode={'zlib': True}):
+                  genfromtxt=False, keepfile=True, encode=None):
     """ Convert a QuaLiKizRun to netCDF
 
-    Arguments:
+    Args:
         path:       Path of the run folder to netcdfize. Should contain the debug,
                     output and output/primitive folders.
 
-    Keyword Arguments:
+    Kwargs:
         runmode:       runmode of netcdfizing. If orthogonal, fold the dataset as an
                     hyperrectangle. Any dimx will extract the values
                     in a 1D array.
@@ -719,6 +675,9 @@ def run_to_netcdf(path, runmode='dimx', overwrite=None,
         encode:     Default encoding. This encoding will be added to all
                     variables. Compresses (zlib) by default. See overwrite_prompt.
     """
+    if encode is None:
+        encode = {'zlib': True}
+
     name = os.path.basename(path)
     netcdf_path = os.path.join(path, name + '.nc')
     if overwrite_prompt(netcdf_path, overwrite=overwrite):
@@ -736,7 +695,7 @@ def run_to_netcdf(path, runmode='dimx', overwrite=None,
 
         encoding = {}
         # Encode all variables
-        for name, array in ds.items():
+        for name, __ in ds.items():
             encoding[name] = {}
             for enc_name, enc in encode.items():
                 encoding[name][enc_name] = enc
@@ -759,4 +718,3 @@ def qlk_from_dir(dir):
     else:
         raise Exception('Could not determine folder type')
     return dirtype, qlk_instance
-

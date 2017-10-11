@@ -22,7 +22,7 @@ def poll_sacct(batch):
     """ Poll a job in a specific directory using sacct
     We exploit the fact that every 'run' should be unique, e.g.
     having a unique job-id.
-    Arguments:
+    Args:
         - path: Path to poll. Path should contain a metadata
                 and job file.
 
@@ -71,11 +71,11 @@ def header_to_sql(header):
 
 def create_sacct_database(batchlist, database_path, append=None, overwrite=None):
     """ Create a database with sacct data
-    Arguments:
+    Args:
         -  path:          The path to be polled
         - database_path: Path to the database to be created
 
-    Keyword Arguments:
+    Kwargs:
         - overwrite: Overwrite database if exists? Default 'ask user'
         - append:    Append to table if exists? Default 'ask user'
     """

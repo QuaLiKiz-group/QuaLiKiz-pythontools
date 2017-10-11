@@ -1,206 +1,203 @@
 """
-Copyright Dutch Institute for Fundamental Energy Research (2016)
+Copyright Dutch Institute for Fundamental Energy Research (2016-2017)
 Contributors: Karel van de Plassche (karelvandeplassche@gmail.com)
 License: CeCILL v2.1
 """
-import itertools
 import os
 import copy
 from warnings import warn
 from collections import OrderedDict
-import numpy as np
-import xarray as xr
 from itertools import chain
 import sys
-from .inputfiles import QuaLiKizXpoint, QuaLiKizPlan
 import array
+
 import pandas as pd
-from IPython import embed
-import re
+import numpy as np
+import xarray as xr
 
 output_meth_0_sep_0 = {
-    'pfe': None,
-    'pfi': None,
-    'gam': None,
-    'ome': None,
-    'efe': None,
-    'efi': None,
-    'vfe': None,
-    'vfi': None,
-    'vre': None,
-    'vri': None,
-    'pfe_cm': None,
-    'pfi_cm': None,
-    'efe_cm': None,
-    'efi_cm': None,
-    'vfe_cm': None,
-    'vfi_cm': None,
-    'ecoefs': None, #No suffix
-    'npol':   None, #No suffix
-    'cftrans': None #No suffix
+    'pfe'               : None,
+    'pfi'               : None,
+    'gam'               : None,
+    'ome'               : None,
+    'efe'               : None,
+    'efi'               : None,
+    'vfe'               : None,
+    'vfi'               : None,
+    'vre'               : None,
+    'vri'               : None,
+    'pfe_cm'            : None,
+    'pfi_cm'            : None,
+    'efe_cm'            : None,
+    'efi_cm'            : None,
+    'vfe_cm'            : None,
+    'vfi_cm'            : None,
+    'ecoefs'            : None, #No suffix
+    'npol'              : None, #No suffix
+    'cftrans'           : None  #No suffix
     }
 
 output_meth_0_sep_1 = {
-    'dfeITG': None,
-    'dfeTEM': None,
-    'dfiITG': None,
-    'dfiTEM': None,
-    'vteITG': None,
-    'vteTEM': None,
-    'vtiITG': None,
-    'vtiTEM': None,
-    'vciITG': None,
-    'vceITG': None,
-    'vceTEM': None,
-    'vciTEM': None}
+    'dfeITG'            : None,
+    'dfeTEM'            : None,
+    'dfiITG'            : None,
+    'dfiTEM'            : None,
+    'vteITG'            : None,
+    'vteTEM'            : None,
+    'vtiITG'            : None,
+    'vtiTEM'            : None,
+    'vciITG'            : None,
+    'vceITG'            : None,
+    'vceTEM'            : None,
+    'vciTEM'            : None}
 
 output_meth_1_sep_0 = {
-    'cke': None, #No suffix
-    'cki': None, #No suffix
-    'dfe': None,
-    'dfi': None,
-    'vte': None,
-    'vti': None,
-    'vce': None,
-    'vci': None}
+    'cke'               : None, #No suffix
+    'cki'               : None, #No suffix
+    'dfe'               : None,
+    'dfi'               : None,
+    'vte'               : None,
+    'vti'               : None,
+    'vce'               : None,
+    'vci'               : None}
 
 output_meth_1_sep_1 = {
-    'efeETG': None,
-    'efeITG': None,
-    'efeTEM': None,
-    'efiITG': None,
-    'efiTEM': None,
-    'vfiITG': None,
-    'vfiTEM': None,
-    'vreITG': None,
-    'vriITG': None,
-    'vreTEM': None,
-    'vriTEM': None}
+    'efeETG'            : None,
+    'efeITG'            : None,
+    'efeTEM'            : None,
+    'efiITG'            : None,
+    'efiTEM'            : None,
+    'vfiITG'            : None,
+    'vfiTEM'            : None,
+    'vreITG'            : None,
+    'vriITG'            : None,
+    'vreTEM'            : None,
+    'vriTEM'            : None}
 
 output_meth_2_sep_0 = {
-    'ceke': None,
-    'ceki': None,
-    'chiee': None,
-    'chiei': None,
-    'vece': None,
-    'veci': None,
-    'vene': None,
-    'veni': None,
-    'vere': None,
-    'veri': None}
+    'ceke'              : None,
+    'ceki'              : None,
+    'chiee'             : None,
+    'chiei'             : None,
+    'vece'              : None,
+    'veci'              : None,
+    'vene'              : None,
+    'veni'              : None,
+    'vere'              : None,
+    'veri'              : None}
 
 primi_meth_0 = {
-    'Lcirce': None,
-    'Lcirci': None,
-    'Lecirce': None,
-    'Lecirci': None,
-    'Lepiege': None,
-    'Lpiege': None,
-    'Lpiegi': None,
-    'Lvcirce': None,
-    'Lvcirci': None,
-    'Lvpiege': None,
-    'Lvpiegi': None,
-    'fdsol': None,
-    'jonsolflu': None,
-    'modeshift': None,
-    'modewidth': None,
-    'sol': None,
-    'solflu': None,
-    'ntor': None,
-    'distan': None,
-    'kperp2': None,
-    'kymaxETG': None,
-    'kymaxITG': None
+    'Lcirce'            : None,
+    'Lcirci'            : None,
+    'Lecirce'           : None,
+    'Lecirci'           : None,
+    'Lepiege'           : None,
+    'Lpiege'            : None,
+    'Lpiegi'            : None,
+    'Lvcirce'           : None,
+    'Lvcirci'           : None,
+    'Lvpiege'           : None,
+    'Lvpiegi'           : None,
+    'fdsol'             : None,
+    'jonsolflu'         : None,
+    'modeshift'         : None,
+    'modewidth'         : None,
+    'sol'               : None,
+    'solflu'            : None,
+    'ntor'              : None,
+    'distan'            : None,
+    'kperp2'            : None,
+    'kymaxETG'          : None,
+    'kymaxITG'          : None
     }
 
 primi_meth_1 = {
-    'Lcircgne': None,
-    'Lcircgni': None,
-    'Lcircgte': None,
-    'Lcircgti': None,
-    'Lcircgue': None,
-    'Lcircgui': None,
-    'Lcircce': None,
-    'Lcircci': None,
-    'Lpiegce': None,
-    'Lpiegci': None,
-    'Lpieggte': None,
-    'Lpieggti': None,
-    'Lpieggue': None,
-    'Lpieggui': None,
-    'Lpieggne': None,
-    'Lpieggni': None}
+    'Lcircgne'          : None,
+    'Lcircgni'          : None,
+    'Lcircgte'          : None,
+    'Lcircgti'          : None,
+    'Lcircgue'          : None,
+    'Lcircgui'          : None,
+    'Lcircce'           : None,
+    'Lcircci'           : None,
+    'Lpiegce'           : None,
+    'Lpiegci'           : None,
+    'Lpieggte'          : None,
+    'Lpieggti'          : None,
+    'Lpieggue'          : None,
+    'Lpieggui'          : None,
+    'Lpieggne'          : None,
+    'Lpieggni'          : None}
 
 primi_meth_2 = {
-    'Lecircce': None,
-    'Lecircci': None,
-    'Lecircgne': None,
-    'Lecircgni': None,
-    'Lecircgte': None,
-    'Lecircgti': None,
-    'Lecircgue': None,
-    'Lecircgui': None,
-    'Lepiegce': None,
-    'Lepiegci': None,
-    'Lepieggne': None,
-    'Lepieggni': None,
-    'Lepieggue': None,
-    'Lepieggui': None,
-    'Lepiegi': None,
-    'Lepieggte': None,
-    'Lepieggti': None}
+    'Lecircce'          : None,
+    'Lecircci'          : None,
+    'Lecircgne'         : None,
+    'Lecircgni'         : None,
+    'Lecircgte'         : None,
+    'Lecircgti'         : None,
+    'Lecircgue'         : None,
+    'Lecircgui'         : None,
+    'Lepiegce'          : None,
+    'Lepiegci'          : None,
+    'Lepieggne'         : None,
+    'Lepieggni'         : None,
+    'Lepieggue'         : None,
+    'Lepieggui'         : None,
+    'Lepiegi'           : None,
+    'Lepieggte'         : None,
+    'Lepieggti'         : None}
 
 debug_eleclike = {
-    'Ane': None,
-    'Ate': None,
-    'Aupar': None,
-    'Autor': None,
-    'Machpar': None,
-    'Machtor': None,
-    'x': None,
-    'Zeff': None,
-    'Bo': None,
-    'gammaE': None,
-    'ne': None,
-    'Nustar': None,
-    'q': None,
-    'Ro': None,
-    'Rmin': None,
-    'smag': None,
-    'Te': None,
-    'alpha': None,
-    'modeflag': None,
-    'rho': None}
+    'Ane'               : None,
+    'Ate'               : None,
+    'Aupar'             : None,
+    'Autor'             : None,
+    'Machpar'           : None,
+    'Machtor'           : None,
+    'x'                 : None,
+    'Zeff'              : None,
+    'Bo'                : None,
+    'gammaE'            : None,
+    'ne'                : None,
+    'Nustar'            : None,
+    'q'                 : None,
+    'Ro'                : None,
+    'Rmin'              : None,
+    'smag'              : None,
+    'Te'                : None,
+    'alpha'             : None,
+    'modeflag'          : None,
+    'rho'               : None}
 
 
 debug_ionlike = {
-    'Ai': None,
-    'Ani': None,
-    'Ati': None,
-    'Zi': None,
-    'typei': None,
-    'normni': None,
-    'Ti': None}
+    'Ai'                : None,
+    'Ani'               : None,
+    'Ati'               : None,
+    'Zi'                : None,
+    'typei'             : None,
+    'normni'            : None,
+    'Ti'                : None}
 
 debug_single = {
-    'dimn': None,
-    'dimx': None,
-    'nions': None,
-    'numsols': None,
-    'coll_flag': None,
-    'maxpts': None,
-    'maxruns': None,
-    'R0': None,
-    'relacc1': None,
-    'relacc2': None,
-    'collmult': None,
-    'ETGmult': None,
-    'rot_flag': None,
-    'separateflux': None,
-    'timeout': None,
-    'phys_meth': None,
-    'verbose': None}
+    'dimn'              : None,
+    'dimx'              : None,
+    'nions'             : None,
+    'numsols'           : None,
+    'coll_flag'         : None,
+    'maxpts'            : None,
+    'maxruns'           : None,
+    'R0'                : None,
+    'relacc1'           : None,
+    'relacc2'           : None,
+    'collmult'          : None,
+    'ETGmult'           : None,
+    'rot_flag'          : None,
+    'separateflux'      : None,
+    'timeout'           : None,
+    'phys_meth'         : None,
+    'verbose'           : None}
 
 debug_special = {'kthetarhos': None}
 # Some magic to group all datasets. In principe the granularity
@@ -231,8 +228,6 @@ numecoefs = 13
 numicoefs = 7
 ntheta = 64
 
-
-
 def determine_sizes(rundir, folder='debug', keepfile=True):
     """ Determine the sizes needed for re-shaping arrays
 
@@ -240,15 +235,15 @@ def determine_sizes(rundir, folder='debug', keepfile=True):
     are needed to reshape all the other output arrays, so this should be done
     first.
 
-    Arguments:
-        rundir: The root directory of the run. Should contain the debug folder
+    Args:
+        rundir:   The root directory of the run. Should contain the debug folder
 
-    Keyword Arguments:
-        folder: Name of the debug folder
+    Kwargs:
+        folder:   Name of the debug folder
         keepfile: Delete the file after reading. NOT RECOMMENDED
 
     Returns:
-        sizes:  A dictionary with the four sizes.
+        sizes:    A dictionary with the four sizes.
     """
     names = ['dimx', 'dimn', 'nions', 'numsols']
     sizes = OrderedDict()
@@ -274,20 +269,20 @@ def convert_debug(sizes, rundir, folder='debug', verbose=False,
     meant to be passed to convert_output and convert_primitive so that the
     final result can be written to file.
 
-    Arguments:
-        sizes: A dictionary with the sizes for reshaping the arrays. Usually
-               generated with determine_sizes
-        rundir: The root directory of the run. Should contain the debug folder
+    Args:
+        sizes:      A dictionary with the sizes for reshaping the arrays. Usually
+                    generated with determine_sizes
+        rundir:     The root directory of the run. Should contain the debug folder
 
-    Keyword Arguments:
-        folder:  Name of the debug folder
-        verbose: Output a message per file converted
+    Kwargs:
+        folder:     Name of the debug folder
+        verbose:    Output a message per file converted
         genfromtxt: Use genfromtxt instead of loadtxt. Slower and loads
                     unreadable values as nan
-        keepfile: Keep the file after reading. HIGHLY RECOMMENDED
+        keepfile:   Keep the file after reading. HIGHLY RECOMMENDED
 
     Returns:
-        ds: The netcdf dataset
+        ds:         The netcdf dataset
     """
     ds = xr.Dataset()
     dimx, dimn, nions, numsols = sizes.values()
@@ -298,7 +293,7 @@ def convert_debug(sizes, rundir, folder='debug', verbose=False,
             path_ = os.path.join(dir, basename)
             with open(path_, 'rb') as file:
                 if verbose:
-                    print ('loading ' + basename.ljust(20) + ' from ' + dir)
+                    print('loading ' + basename.ljust(20) + ' from ' + dir)
                 try:
                     if genfromtxt:
                         data = np.genfromtxt(file)
@@ -311,7 +306,7 @@ def convert_debug(sizes, rundir, folder='debug', verbose=False,
                 if name in ['dimx', 'dimn', 'nions', 'numsols']:
                     continue
                 elif name in debug_eleclike:
-                    dims=['dimx']
+                    dims = ['dimx']
                 elif name in debug_ionlike:
                     dims = ['dimx', 'nions']
                     if nions == 1:
@@ -329,7 +324,7 @@ def convert_debug(sizes, rundir, folder='debug', verbose=False,
                         ds.coords[name] = xr.DataArray(data, dims=dims)
                 except Exception as e:
                     raise type(e)(str(e) +
-                      ' happens at %s' % name).with_traceback(sys.exc_info()[2])
+                                  ' happens at %s' % name).with_traceback(sys.exc_info()[2])
             if not keepfile:
                 os.remove(path_)
 
@@ -349,23 +344,26 @@ def convert_output(ds, sizes, rundir, folder='output', verbose=False,
     meant to be passed to convert_primitive so that the final result
     can be written to file.
 
-    Arguments:
-        ds:     Dataset the loaded data should be appended to
-        sizes:  A dictionary with the sizes for reshaping the arrays. Usually
-                generated with determine_sizes
-        rundir: The root directory of the run. Should contain the output folder
+    Args:
+        ds:         Dataset the loaded data should be appended to
+        sizes:      A dictionary with the sizes for reshaping the arrays. Usually
+                    generated with determine_sizes
+        rundir:     The root directory of the run. Should contain the output folder
 
-    Keyword Arguments:
-        folder:  Name of the output folder
-        verbose: Output a message per file converted
-        keepfile: Keep the file after reading. HIGHLY RECOMMENDED
+    Kwargs:
+        folder:     Name of the output folder
+        verbose:    Output a message per file converted
+        genfromtxt: Use genfromtxt instead of loadtxt. Slower and loads
+                    unreadable values as NaN
+        keepfile:   Keep the file after reading. HIGHLY RECOMMENDED
 
     Returns:
-        ds: The netcdf dataset
+        ds:         The netcdf dataset
     """
     dimx, dimn, nions, numsols = sizes.values()
     for name in output_subsets:
-        if name not in ['cke', 'ceke', 'cki', 'ceki', 'ion_type', 'ecoefs', 'npol', 'cftrans'] and not name.endswith('_cm'):
+        if (name not in ['cke', 'ceke', 'cki', 'ceki', 'ion_type', 'ecoefs', 'npol', 'cftrans']
+                and not name.endswith('_cm')):
             names = [name + '_SI', name + '_GB']
         else:
             names = [name]
@@ -376,7 +374,7 @@ def convert_output(ds, sizes, rundir, folder='output', verbose=False,
                 path_ = os.path.join(dir, basename)
                 with open(path_, 'rb') as file:
                     if verbose:
-                        print ('loading ' + basename.ljust(20) + ' from ' + dir)
+                        print('loading ' + basename.ljust(20) + ' from ' + dir)
                     try:
                         if genfromtxt:
                             data = np.genfromtxt(file)
@@ -386,38 +384,46 @@ def convert_output(ds, sizes, rundir, folder='output', verbose=False,
                         print('Exception loading ' + file.name)
                         raise
                     if name.startswith('gam') or name.startswith('ome'):
-                        data = data.reshape(numsols,dimx,dimn)
-                        ds[name] = xr.DataArray(data, dims=['numsols', 'dimx', 'dimn'], name=name).transpose('dimx', 'dimn', 'numsols')
+                        data = data.reshape(numsols, dimx, dimn)
+                        ds[name] = xr.DataArray(data, dims=['numsols', 'dimx', 'dimn'],
+                                                name=name).transpose('dimx', 'dimn', 'numsols')
                     elif name in ['cke', 'ceke']:
                         ds[name] = xr.DataArray(data, dims=['dimx'], name=name)
                     elif  name in ['cki', 'ceki', 'ion_type']:
                         if nions == 1:
                             data = np.expand_dims(data, axis=1)
-                        ds[name] = xr.DataArray(data, dims=['dimx','nions'], name=name)
+                        ds[name] = xr.DataArray(data, dims=['dimx', 'nions'], name=name)
                     elif name.endswith('i_cm'):
-                        data = data.reshape(nions,dimx,dimn)
-                        ds[name] = xr.DataArray(data, dims=['nions', 'dimx', 'dimn'], name=name).transpose('dimx', 'dimn', 'nions')
+                        data = data.reshape(nions, dimx, dimn)
+                        ds[name] = xr.DataArray(data, dims=['nions', 'dimx', 'dimn'],
+                                                name=name).transpose('dimx', 'dimn', 'nions')
                     elif name.endswith('e_cm'):
-                        data = data.reshape(dimx,dimn)
-                        ds[name] = xr.DataArray(data, dims=['dimx', 'dimn'], name=name).transpose('dimx', 'dimn')
+                        data = data.reshape(dimx, dimn)
+                        ds[name] = xr.DataArray(data, dims=['dimx', 'dimn'],
+                                                name=name).transpose('dimx', 'dimn')
                     elif name == 'ecoefs':
-                        tmp = xr.DataArray(data.reshape(dimx, nions+1, numecoefs), dims=['dimx','ionelec', 'ecoefs'], name=name)
+                        tmp = xr.DataArray(data.reshape(dimx, nions+1, numecoefs),
+                                           dims=['dimx', 'ionelec', 'ecoefs'], name=name)
                         ds[name + 'e'] = tmp.sel(ionelec=0, drop=True)
                         ds[name + 'i'] = tmp.sel(ionelec=slice(1, None)).rename({'ionelec': 'nions'})
                     elif name == 'npol':
-                        ds[name] = xr.DataArray(data.reshape(dimx, ntheta, nions), dims=['dimx', 'ntheta', 'nions'], name=name)
+                        ds[name] = xr.DataArray(data.reshape(dimx, ntheta, nions),
+                                                dims=['dimx', 'ntheta', 'nions'], name=name)
                     elif name == 'cftrans':
-                        ds[name] = xr.DataArray(data.reshape(dimx, nions, numicoefs), dims=['dimx', 'nions', 'numicoefs'], name=name)
+                        ds[name] = xr.DataArray(data.reshape(dimx, nions, numicoefs),
+                                                dims=['dimx', 'nions', 'numicoefs'], name=name)
                     else:
                         subname = name[:-3]
-                        if subname.endswith('ETG') or subname.endswith('ITG') or subname.endswith('TEM'):
+                        if (subname.endswith('ETG') or
+                            subname.endswith('ITG') or
+                            subname.endswith('TEM')):
                             subname = subname[:-3]
                         if subname.endswith('e'):
                             ds[name] = xr.DataArray(data, dims=['dimx'], name=name)
                         elif subname.endswith('i'):
                             if nions == 1:
                                 data = np.expand_dims(data, axis=1)
-                            ds[name] = xr.DataArray(data, dims=['dimx','nions'], name=name)
+                            ds[name] = xr.DataArray(data, dims=['dimx', 'nions'], name=name)
                         else:
                             raise Exception('Could not process \'' + name + '\'')
                 if not keepfile:
@@ -435,19 +441,21 @@ def convert_primitive(ds, sizes, rundir, folder='output/primitive', verbose=Fals
     Note that this function does not write anything to disk! The resulting
     dataset should be written to file using xarray's to_netcdf function.
 
-    Arguments:
-        ds:     Dataset the loaded data should be appended to
-        sizes:  A dictionary with the sizes for reshaping the arrays. Usually
-                generated with determine_sizes
-        rundir: The root directory of the run. Should contain the output folder
+    Args:
+        ds:         Dataset the loaded data should be appended to
+        sizes:      A dictionary with the sizes for reshaping the arrays. Usually
+                    generated with determine_sizes
+        rundir:     The root directory of the run. Should contain the output folder
 
-    Keyword Arguments:
-        folder:  Name of the output/primitive folder
-        verbose: Output a message per file converted
-        keepfile: Keep the file after reading. HIGHLY RECOMMENDED
+    Kwargs:
+        folder:     Name of the output/primitive folder
+        verbose:    Output a message per file converted
+        genfromtxt: Use genfromtxt instead of loadtxt. Slower and loads
+                    unreadable values as NaN
+        keepfile:   Keep the file after reading. HIGHLY RECOMMENDED
 
     Returns:
-        ds: The netcdf dataset
+        ds:         The netcdf dataset
     """
     reshapes = ['rfdsol', 'ifdsol', 'isol', 'rsol']
     dimx, dimn, nions, numsols = sizes.values()
@@ -474,14 +482,16 @@ def convert_primitive(ds, sizes, rundir, folder='output/primitive', verbose=Fals
                         raise type(ee)(str(ee) + ' happens at %s' % file.name).with_traceback(sys.exc_info()[2])
                     if name.endswith('i'):
                         data = data.reshape(numsols,nions,dimx,dimn)
-                        ds[name] = xr.DataArray(data, dims=['numsols', 'nions', 'dimx', 'dimn'], name=name).transpose('dimx', 'dimn', 'nions', 'numsols')
+                        ds[name] = xr.DataArray(data, dims=['numsols', 'nions', 'dimx', 'dimn'],
+                                                name=name).transpose('dimx', 'dimn', 'nions', 'numsols')
                     elif name.endswith('e') or name in reshapes:
-                        data = data.reshape(numsols,dimx,dimn)
-                        ds[name] = xr.DataArray(data, dims=['numsols', 'dimx', 'dimn'], name=name).transpose('dimx', 'dimn', 'numsols')
+                        data = data.reshape(numsols, dimx, dimn)
+                        ds[name] = xr.DataArray(data, dims=['numsols', 'dimx', 'dimn'],
+                                                name=name).transpose('dimx', 'dimn', 'numsols')
                     elif name in ['kymaxETG', 'kymaxITG']:
                         ds[name] = xr.DataArray(data, dims=['dimx'], name=name)
                     else:
-                        ds[name] = xr.DataArray(data, dims=['dimx','dimn'], name=name)
+                        ds[name] = xr.DataArray(data, dims=['dimx', 'dimn'], name=name)
                 if not keepfile:
                     os.remove(path_)
             except FileNotFoundError:
@@ -497,12 +507,12 @@ def squeeze_coords(ds, dim):
     value. For arrays that contain data of ions, squeeze it to an array
     of length nions.
 
-    Arguments:
+    Args:
         ds:  Dataset with coordinates to squeeze
         dim: Dimension to squeeze over
 
     Returns:
-        ds: The netcdf dataset
+        ds: The netcdf dataset with coordinates squeezed
     """
     for name, item in ds.coords.items():
         if dim in item.dims:
@@ -510,11 +520,12 @@ def squeeze_coords(ds, dim):
             if len(new) == 1 and len(item) != 1:
                 ds.coords[name] = xr.DataArray(float(new))
             elif 'nions' in item.dims and name != 'nions':
-                bool = True
+                squeezable = True
                 for i in range(item['nions'].size):
-                    bool &= (len(np.unique(item.sel(nions=i).values)) == 1)
-                if bool:
-                    ds.coords[name] = xr.DataArray(item[0,:].values, coords={'nions': item['nions']})
+                    squeezable &= (len(np.unique(item.sel(nions=i).values)) == 1)
+                if squeezable:
+                    ds.coords[name] = xr.DataArray(item[0,:].values,
+                                                   coords={'nions': item['nions']})
     return ds
 
 
@@ -526,8 +537,11 @@ def remove_dependent_axes(ds):
     Ti_Te depends both on Ti and on Te. As we assume orthogonality for most
     functions, move these coordinates to the DataVariables.
 
-    Arguments:
+    Args:
         ds: Dataset with dependent Coordinates to remove
+
+    Returns:
+        xarray.DataSet with dependent Coordinates removed
     """
     # Ni is captured in Zeff
     if 'normni' in ds.coords:
@@ -565,8 +579,11 @@ def squeeze_dataset(ds):
     value. For arrays that contain data of ions, squeeze it to an array
     of length nions.
 
-    Arguments:
+    Args:
         ds: Dataset with dependent Coordinates to remove
+
+    Returns:
+        xarray.DataSet with data_vars squeezed
     """
     ds.load()
 
@@ -600,6 +617,7 @@ def squeeze_dataset(ds):
     return ds
 
 def to_meta_0d(ds):
+    """ Move 0d variables to attrs """
     for name, item in ds.items():
         if item.shape == ():
             ds.attrs[name] = float(item)
@@ -672,10 +690,10 @@ def orthogonalize_dataset(ds, verbose=False):
     arrays to an orthogonal base. This will lead to many missing values if
     the scan parameters do not form a (hyper)-rectangle together.
 
-    Arguments:
+    Args:
         ds: The dataset to be orhogonalized
 
-    Keyword Arguments:
+    Kwargs:
         verbose: Print a message for every DataVar to be orhogonalized
 
     Returns:
@@ -743,7 +761,7 @@ def add_dims(ds, newdims):
     netcdf is structured, this means that the whole dataset has to be copied
     over
 
-    Arguments:
+    Args:
         ds:      Dataset to which the dimensions should be added
         newdims: List of names of the dimensions to be added
 
@@ -787,7 +805,7 @@ def add_dims(ds, newdims):
     return newds
 
 def find_nonmatching_coords(ds1, ds2):
-    """ Find non-equal coordinates in datasets """ 
+    """ Find non-equal coordinates in datasets """
     nonmatching = []
     for name in ds1.coords:
         if np.all(ds1[name] != ds2[name]):
@@ -806,10 +824,10 @@ def merge_orthogonal(dss, datavars=None, verbose=False):
 
     Currently can only merge two datasets.
 
-    Arguments:
+    Args:
         dss: List of datasets to merge
 
-    Keyword Arguments:
+    Kwargs:
         datavars: DataVariables to keep in the merged dataset
         verbose:  Print message for each variables to be merged
     """
@@ -843,7 +861,7 @@ def merge_orthogonal(dss, datavars=None, verbose=False):
                     print('merging ' + name)
                 # Concatenate objects. We need to supply an existing dimension to
                 # Prevent the creation of a new dimension
-                newds[name] = xr.concat((ds1[name], ds2[name]), nonmatching[0], 
+                newds[name] = xr.concat((ds1[name], ds2[name]), nonmatching[0],
                                         coords='all', compat='identical')
                 del ds1[name]
                 del ds2[name]
@@ -859,7 +877,7 @@ def sort_dims(ds):
         ds = ds.reindex(**{dim: np.sort(ds[dim])})
     return ds
 
-def to_input_json(ds, rundir, inputdir='input'):
+def to_input_json(ds, inputdir='input'):
     """ Create an input json file from dataset
     This functions created a input JSON file using the coordinates
     as scan values. The cleanest JSON will be generated if a
@@ -867,12 +885,12 @@ def to_input_json(ds, rundir, inputdir='input'):
     """
     ignore = ['Zeff', 'Nustar']
     conversion_dict = {'Tex': 'Te',
-                        'Nex': 'ne',
-                        'ion_type': 'typei',
-                        'ninorm': 'normni',
-                        'Tix': 'Ti'}
+                       'Nex': 'ne',
+                       'ion_type': 'typei',
+                       'ninorm': 'normni',
+                       'Tix': 'Ti'}
     for name, item in ds.coords.items():
-        print (name)
+        print(name)
         dimx = len(ds['dimx'])
         nions = len(ds['nions'])
         if name in ['dimx', 'dimn', 'nions', 'numsols']:
@@ -918,6 +936,16 @@ def to_input_json(ds, rundir, inputdir='input'):
         array.array('d', ds['x'].data).tofile(file_)
 
 def xarray_to_pandas(ds):
+    """ Convert xarray.DataSet to dict of pd.DataFrame
+
+    Panda DataFrames are usually easier to understand, as they are
+    equivalent to a 2D table. With this function all variables in
+    the dataset will be converted to a DataFrame grouped together
+    on the shape of the dimensions.
+
+    Returns:
+        A dictionary with pandas.DataFrame
+    """
     ds = squeeze_dataset(ds)
     ds = to_meta_0d(ds)
     panda_dict = {}
@@ -930,18 +958,18 @@ def xarray_to_pandas(ds):
             df = var.to_dataframe()
             # Drop duplicate columns
             cols = list(df.columns)
-            for ii,item in enumerate(df.columns):
+            for ii, item in enumerate(df.columns):
                 if item in df.columns[:ii]:
                     cols[ii] = "toDROP"
             df.columns = cols
             try:
-                df = df.drop("toDROP",1)
+                df = df.drop("toDROP", 1)
             except ValueError:
                 pass
             panda_dict[tablename] = df
 
         newcols = var.to_dataframe().columns.difference(
-                                panda_dict[tablename].columns)
+            panda_dict[tablename].columns)
         if not newcols.equals(pd.Index([], dtype='object')):
             panda_dict[tablename][newcols] = var.to_dataframe()[newcols]
     panda_dict['constants'] = pd.Series(ds.attrs)

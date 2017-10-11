@@ -16,11 +16,11 @@ from warnings import warn
 
 def database_exists(database_path, table_name, append=None, overwrite=None):
     """ Check if database and table exists and handle collisions
-    Arguments:
+    Args:
         - database_path: Path to the database to be checked
         - table_name:    Name of the table to be checked
 
-    Keyword Arguments:
+    Kwargs:
         - overwrite: Overwrite database if exists? Default 'ask user'
         - append:    Append to table if exists? Default 'ask user'
 
@@ -69,7 +69,7 @@ def poll_stdout(stdoutpath):
     run with one of the pythontools scripts. For example, with
     'pythontools.py inputgo runs/mini'
 
-    Arguments:
+    Args:
         - path: Path to poll. Path should contain a metadata
                 and job file.
 
@@ -112,7 +112,7 @@ def poll_batchdata(batch):
     This is always generated if QuaLiKiz was run with one of the
     pythontools scripts. For example, with 'pythontools.py inputgo runs/mini'
 
-    Arguments:
+    Args:
         - path: Path to poll. Path should contain a metadata
                and job file.
     """
@@ -131,11 +131,11 @@ def poll_batchdata(batch):
 
 def create_jobdata_database(batchlist, database_path, append=None, overwrite=None):
     """ Create a database with QuaLiKiz metadata
-    Arguments:
+    Args:
         - path:          The path to be polled
         - database_path: Path to the database to be created
 
-    Keyword Arguments:
+    Kwargs:
         - overwrite: Overwrite database if exists? Default 'ask user'
         - append:    Append to table if exists? Default 'ask user'
     """
@@ -174,11 +174,11 @@ def create_jobdata_database(batchlist, database_path, append=None, overwrite=Non
 
 def create_stdout_database(batchlist, database_path, append=None, overwrite=None):
     """ Create a database with parsed QuaLiKiz STDOUT
-    Arguments:
+    Args:
         - path:          The path to be polled
         - database_path: Path to the database to be created
 
-    Keyword Arguments:
+    Kwargs:
         - overwrite: Overwrite database if exists? Default 'ask user'
         - append:    Append to table if exists? Default 'ask user'
     """
@@ -237,10 +237,10 @@ def create_stdout_database(batchlist, database_path, append=None, overwrite=None
 
 def create_database(path, database_path, append=None, overwrite=None):
     """ Create a database with basic QuaLiKiz data
-    Arguments:
+    Args:
         - database_path: Path to the database to be created
 
-    Keyword Arguments:
+    Kwargs:
         - overwrite: Overwrite database if exists? Default 'ask user'
         - append:    Append to table if exists? Default 'ask user'
     """

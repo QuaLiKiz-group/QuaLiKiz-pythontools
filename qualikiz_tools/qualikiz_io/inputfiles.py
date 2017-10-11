@@ -1,5 +1,5 @@
 """
-Copyright Dutch Institute for Fundamental Energy Research (2016)
+Copyright Dutch Institute for Fundamental Energy Research (2016-2017)
 Contributors: Karel van de Plassche (karelvandeplassche@gmail.com)
 License: CeCILL v2.1
 """
@@ -27,7 +27,7 @@ class Particle(dict):
         """ Initialize a Particle.
         Usually it is better to create an Electron or Ion instead.
 
-        Keyword Arguments:
+        Kwargs:
             T :       Temperature in keV
             n :       Density in 10^19 m^-3 for electrons, relative factor to
                       electron denisity for ions
@@ -35,13 +35,13 @@ class Particle(dict):
                       A_t = - (R/T) * (dT/dr)
             An:       Normalized logarithmic density gradient
                       A_n = - (R/n) * (dn/dr)
-            type: 1:  active
-                  2:  adiabatic
-                  3:  passing at ion scales
-            anis:    Temperature anisotropy T_perp / T_para at LFS
-            danisdr: Radial gradient of temperature anisotropy
+            type: 1:  Active
+                  2:  Adiabatic
+                  3:  Passing at ion scales
+            anis:     Temperature anisotropy T_perp / T_para at LFS
+            danisdr:  Radial gradient of temperature anisotropy
 
-        Keyword Arguments (ion only):
+        Kwargs (ion only):
             Ai: Ion mass in amu
             Zi: Ion charge in e
         """
@@ -102,15 +102,15 @@ class QuaLiKizXpoint(dict):
 
     Typically a QuaLiKiz run scans over multiple xpoints. This class
     contains multiple dicts sorted by meaning. Those dicts are:
-        elec: an Electron that describes the electrons in the plasma
-        ions: an IonList with all ions contained in the plasma
-        meta: a Meta instance with all values that don't change for different
-              radial points
-        special: a Special instance with all values that need special treatment
-                 when writing to binary
+        elec:      an Electron that describes the electrons in the plasma
+        ions:      an IonList with all ions contained in the plasma
+        meta:      a Meta instance with all values that don't change for different
+                   radial points
+        special:   a Special instance with all values that need special treatment
+                   when writing to binary
         geometric: a Geometry instance with all values that change for
                    different radial points
-        norm: information about how to normalize input.
+        norm:      information about how to normalize input.
 
     """
     def __init__(self, kthetarhos, electrons, ions, **kwargs):
@@ -119,13 +119,13 @@ class QuaLiKizXpoint(dict):
         of QuaLiKizXpoint to use as base for the scan. This base_point
         can then be used as argument for an QuaLiKizPlan.
 
-        Arguments:
+        Args:
             kthetarhos:  The wave spectrum to be scanned
             electrons:   An Electron instance describing the electron
                          population
             ions:        An IonList instance describing the ion population
 
-        Keyword Arguments:
+        Kwargs:
             all kwargs described in the Meta, Special and Geometry classes
             ninorm1:          Flag to normalize main ion concentration to maintain
                               quasineutrality
@@ -188,10 +188,6 @@ class QuaLiKizXpoint(dict):
                                           for ion in ions)) /
                                      (self['ions'][0]['Z'] *
                                       self['ions'][0]['n']))
-
-    def equalize_gradient(self):
-        """ Set density gradient of ions the same as electrons """
-        self['ions']['An'] = self['elec']['An']
 
     def check_quasi(self):
         """ Check if quasineutrality is maintained """
@@ -298,39 +294,39 @@ class QuaLiKizXpoint(dict):
         def __init__(self, **kwargs):
             """ Initialize Meta class
             kwargs:
-                phys_meth: Flag for additional calculation of output parameters
-                coll_flag: Flag for collisionality
-                rot_flag:  Flag for rotation
-                verbose:   Flag for level of output verbosity
+                phys_meth:    Flag for additional calculation of output parameters
+                coll_flag:    Flag for collisionality
+                rot_flag:     Flag for rotation
+                verbose:      Flag for level of output verbosity
                 separateflux: Flag for toggling output of separate
                               ITG, TEM, ETG fluxes
-                numsols:   Number of requested solutions
-                relacc1:   Relative accuracy of 1D integrals
-                relacc2:   Relative accuracy of 2D integrals
-                maxruns:   Number of runs jumping directly to Newton between
-                           contour checks
-                maxpts:    Number of integrant evaluations done in 2D integral
-                timeout:   Upper time limit [s] for wavenumber/scan point
-                           solution finding
-                ETGmult:   Multpliers for ETG saturation level
-                collmult:  Multiplier for collisionality
-                R0:       [m] Geometric major radius used for normalizations
+                numsols:      Number of requested solutions
+                relacc1:      Relative accuracy of 1D integrals
+                relacc2:      Relative accuracy of 2D integrals
+                maxruns:      Number of runs jumping directly to Newton between
+                              contour checks
+                maxpts:       Number of integrant evaluations done in 2D integral
+                timeout:      Upper time limit [s] for wavenumber/scan point
+                              solution finding
+                ETGmult:      Multpliers for ETG saturation level
+                collmult:     Multiplier for collisionality
+                R0:           Geometric major radius [m] used for normalizations
             """
             defaults = {
-                'phys_meth': 2,
-                'coll_flag': True,
-                'rot_flag':  False,
-                'verbose':   True,
-                'separateflux':   False,
-                'numsols':   3,
-                'relacc1':   1e-3,
-                'relacc2':   2e-2,
-                'maxruns':   1,
-                'maxpts':    5e5,
-                'timeout':   60,
-                'ETGmult':   1,
-                'collmult':  1,
-                'R0':       None
+                'phys_meth'    : 2,
+                'coll_flag'    : True,
+                'rot_flag'     : False,
+                'verbose'      : True,
+                'separateflux' : False,
+                'numsols'      : 3,
+                'relacc1'      : 1e-3,
+                'relacc2'      : 2e-2,
+                'maxruns'      : 1,
+                'maxpts'       : 5e5,
+                'timeout'      : 60,
+                'ETGmult'      : 1,
+                'collmult'     : 1,
+                'R0'           : None
             }
             values = [kwargs.get(arg, defaults[arg]) for arg in self.keynames]
             super().__init__(zip(self.keynames, values))
@@ -346,8 +342,8 @@ class QuaLiKizXpoint(dict):
 
     class Geometry(dict):
         """ Wraps variables that change per scan point """
-        in_args = ['x', 'rho', 'Ro', 'Rmin', 'Bo', 'q', 'smag',
-                   'alpha', 'Machtor', 'Autor']
+        in_args =    ['x', 'rho', 'Ro', 'Rmin', 'Bo', 'q', 'smag',
+                      'alpha', 'Machtor', 'Autor']
         extra_args = ['Machpar', 'Aupar', 'gammaE']
 
         def __init__(self, **kwargs):
@@ -640,7 +636,7 @@ class QuaLiKizPlan(dict):
                 dimxpoint.match_tite(Ti_Te_rel)
             if dimxpoint['norm']['QN_grad']:
                 dimxpoint.check_quasi()
-            
+
 
             # Now iterate over all the values in the xpoint dict and add them
             # to our array

@@ -1,3 +1,8 @@
+"""
+Copyright Dutch Institute for Fundamental Energy Research (2016-2017)
+Contributors: Karel van de Plassche (karelvandeplassche@gmail.com)
+License: CeCILL v2.1
+"""
 import xarray as xr
 from IPython import embed
 import matplotlib.pyplot as plt

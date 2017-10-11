@@ -56,14 +56,14 @@ class Batch(System.Batch):
                  safetytime=1.5, style='sequential'):
         """ Initialize Edison batch job
 
-        Arguments:
+        Args:
             - srun_instances: List of Srun instances included in the Sbatch job
             - name:           Name of the Sbatch job
             - tasks:          Amount of MPI tasks
             - maxtime:        Maximum walltime needed
             - ncpu:      Amount of cpus to be used
 
-        Keyword Arguments:
+        Kwargs:
             - stdout:     File to write stdout to. By default 'stdout.batch'
             - stderr:     File to write stderr to. By default 'stderr.batch'
             - filesystem: The default filesystem to use. Usually SCRATCH
@@ -136,7 +136,7 @@ class Batch(System.Batch):
     def to_file(self, path):
         """ Writes sbatch script to file
 
-        Arguments:
+        Args:
             - path: Path of the sbatch script file.
         """
         sbatch_lines = ['#!' + self.shell + ' -l\n']
@@ -215,11 +215,11 @@ class Run(System.Run, QuaLiKizRun):
                  tasks=None, chdir='.', **kwargs):
         """ Initializes the Srun class
 
-        Arguments:
+        Args:
             - binary_name: The name of the binary relative to where
                            the sbatch script will be
             - tasks:       Amount of MPI tasks needed for the job
-        Keyword Arguments:
+        Kwargs:
             - chdir:  Dir to change to before running the command
             - stdout: Standard target of redirect of STDOUT
             - stderr: Standard taget of redirect of STDERR

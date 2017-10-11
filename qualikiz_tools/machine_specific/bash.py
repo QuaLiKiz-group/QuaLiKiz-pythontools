@@ -1,5 +1,5 @@
 """
-Copyright Dutch Institute for Fundamental Energy Research (2016)
+Copyright Dutch Institute for Fundamental Energy Research (2016-2017)
 Contributors: Karel van de Plassche (karelvandeplassche@gmail.com)
 License: CeCILL v2.1
 """
@@ -29,13 +29,13 @@ class Batch(System.Batch):
                  style='sequential'):
         """ Initialize Edison batch job
 
-        Arguments:
+        Args:
             - srun_instances: List of Srun instances included in the Sbatch job
             - name:           Name of the Sbatch job
             - tasks:          Amount of MPI tasks
             - ncpu:           Amount of cpus to be used
 
-        Keyword Arguments:
+        Kwargs:
             - stdout:     File to write stdout to. By default 'stdout.batch'
             - stderr:     File to write stderr to. By default 'stderr.batch'
             - HT:         Hyperthreading on/off. Default=True
@@ -53,7 +53,7 @@ class Batch(System.Batch):
     def to_batch_file(self, path):
         """ Writes sbatch script to file
 
-        Arguments:
+        Args:
             - path: Path of the sbatch script file.
         """
         batch_lines = ['#!' + self.shell + '\n\n']
@@ -135,11 +135,11 @@ class Run(System.Run):
                  tasks=None, **kwargs):
         """ Initializes the Srun class
 
-        Arguments:
+        Args:
             - binary_name: The name of the binary relative to where
                            the sbatch script will be
             - tasks:       Amount of MPI tasks needed for the job
-        Keyword Arguments:
+        Kwargs:
             - chdir:  Dir to change to before running the command
             - stdout: Standard target of redirect of STDOUT
             - stderr: Standard target of redirect of STDERR

@@ -24,7 +24,7 @@ def profile_job(job):
     run with one of the pythontools scripts. For example, with
     'pythontools.py inputgo runs/mini'
 
-    Arguments:
+    Args:
         - path: Path to poll. Path should contain a metadata
                 and job file.
 
@@ -78,11 +78,11 @@ def profile_job(job):
 
 def create_profile_database(batchlist, database_path, append=None, overwrite=None):
     """ Create a database with QuaLiKiz metadata
-    Arguments:
+    Args:
         - path:          The path to be polled
         - database_path: Path to the database to be created
 
-    Keyword Arguments:
+    Kwargs:
         - overwrite: Overwrite database if exists? Default 'ask user'
         - append:    Append to table if exists? Default 'ask user'
     """
@@ -146,10 +146,10 @@ def create_profile_database(batchlist, database_path, append=None, overwrite=Non
 
 def create_database(path, database_path, append=None, overwrite=None):
     """ Create a database with basic QuaLiKiz data
-    Arguments:
+    Args:
         - database_path: Path to the database to be created
 
-    Keyword Arguments:
+    Kwargs:
         - overwrite: Overwrite database if exists? Default 'ask user'
         - append:    Append to table if exists? Default 'ask user'
     """
