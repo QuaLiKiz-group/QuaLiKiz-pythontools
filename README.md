@@ -20,27 +20,19 @@ The recommended way to install qualikiz_tools is to use pip. Although
 installation is not strictly necessary to use the python modules,
 it is advised to install anyway for the full power of the CLI.
 
-1. Clone the repository from GitHub.
+1. [Clone the repository from GitHub](https://help.github.com/articles/cloning-a-repository/).
     * If you want to install as submodule of QuaLiKiz (preferred)
 
             git clone git@github.com:QuaLiKiz-group/QuaLiKiz.git
-
-      or
-
-          git clone https://github.com/QuaLiKiz-group/QuaLiKiz.git
 
       and then
 
           git submodule init
           git submodule update
 
-    * If you want to install standalone, just clone using (preferred)
+    * If you want to install standalone, clone using (not recommended)
 
             git clone git@github.com:QuaLiKiz-group/QuaLiKiz-pythontools.git
-
-      or
-
-          git clone https://github.com/QuaLiKiz-group/QuaLiKiz-pythontools.git
 
 2. (Recommended) Install [xarray dependencies](http://xarray.pydata.org/en/stable/installing.html)
 
@@ -55,41 +47,34 @@ it is advised to install anyway for the full power of the CLI.
 Examples scripts can be found in qualikiz_tools/examples. A workflow example is
 given below:
 
-1. Generate a template QuaLiKiz run directory using examples/mini.py
+1. Generate a template QuaLiKiz run directory using the CLI
 
-        qualikiz_tools create mini
-        cd runs/mini
+        qualikiz_tools create example
+        cd runs/example
 
-2. Adjust the `parameters.json` to your liking
-3. Generate the input using the run.py script
+2. Adjust the `parameters.json` to your liking (optional)
+3. Generate the input binaries using the CLI
 
-        ./run.py input
+        qualikiz_tools input generate .
 
-4. Submit the job
-    * Manually (for example, on Edison)
+4. Submit the job. We assume the [machine specific](qualikiz_tools/machine_specific) files exist. Use 'bash' if they do not, which assumes you can run an mpi program using `mpirun`
 
-            sbatch edison.sbatch
+        qualikiz_tools launcher launch bash .
 
-    * Automatically
+5. After the job is done, convert the output to netCDF.
 
-            ./run.py go
+        qualikiz_tools output to_netcdf .
 
-    Step 3 and 4 can be done together by running
+6. Plot your netCDF file, for example:
 
-        ./run.py inputgo
-
-5. After the job is done, convert the output to netCDF (as the mini-example is no hyper-rectangle,
-    the `--nocube` flag makes sure that the resulted dataset is not folded).
-
-        qualikiz_tools output --nocube to_netcdf .
-
-6. Look at your netCDF file, for example, from within `IPython`
-
-        import xarray as xr
-        ds = xr.open_dataset('mini.nc')
-        print(ds)
+        qualikiz_tools plot --flux ef .
 
 ## FAQ
 * How do I run the unit tests?
 
         python setup.py test
+
+* How do I find out what each CLI command does?
+
+        qualikiz_tools help
+        qualikiz_tools <command> help
