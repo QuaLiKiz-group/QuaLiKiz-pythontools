@@ -90,7 +90,7 @@ def run(args):
                        drop_non_hydrogen=drop_non_hydrogen
                        )
 
-    elif args['<target_path>'] in ['help', None]:
+    elif args['<target_path>'][0] in ['help', None]:
         exit(call([sys.executable, os.path.join(ROOT, 'commands', 'plot.py'), '--help']))
     else:
-        exit("%r is not a valid target. See 'qualikiz_tools output help'." % args['<target_path>'])
+        exit("%r is not a valid target. See 'qualikiz_tools plot help'." % args['<target_path>'])
