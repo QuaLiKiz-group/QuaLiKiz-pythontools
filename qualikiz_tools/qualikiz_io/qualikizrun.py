@@ -18,6 +18,7 @@ import subprocess
 import pickle
 from qualikiz_tools.qualikiz_io.outputfiles import find_nonmatching_coords, merge_orthogonal, sort_dims
 from IPython import embed
+from logging import info
 
 threads_per_task = 2  # Stuck as per QuaLiKiz code
 threads_per_vcore = 1  # Never give one (virtual) CPU more than one task
@@ -295,6 +296,7 @@ class QuaLiKizBatch():
                 warn('User does not want to overwrite ' + netcdf_path)
             else:
                 joblist.append(run.rundir)
+        print ('Found {:d} jobs'.format(len(joblist)))
 
         if not overwrite_prompt(new_netcdf_path):
             raise Exception('User does not want to overwrite ' + new_netcdf_path)
@@ -608,14 +610,14 @@ class QuaLiKizRun:
     def _find_file(cls, path, rundir):
         """ Try to find a file. Used for STDOUT and STDERR """
         if not os.path.isfile(path):
-            warn('Could not find file at \'' + str(path) + '\' searching..')
+            info('Could not find file at \'' + str(path) + '\' searching..')
             path = os.path.join(rundir, os.path.basename(path))
             if not os.path.isfile(path):
-                warn('Could not find file at \'' + str(path) +
+                info('Could not find file at \'' + str(path) +
                      '\', file was probably not saved')
                 path = None
             else:
-                warn('Found file at \'' + path + '\'')
+                info('Found file at \'' + path + '\'')
         return path
 
 
