@@ -1,6 +1,6 @@
 from subprocess import PIPE, Popen as popen
 import unittest
-from unittest import TestCase
+from unittest import TestCase, skip
 import copy
 import os
 
@@ -319,6 +319,7 @@ class TestQuaLiKizXpoint(TestCase):
 
         self.assertEqual(self.baseXpoint['Ti_Te_rel'], 1)
 
+    @skip('Removed from mainline for now')
     def test_equalize_gradient(self):
         self.baseXpoint['ions']['An'] = 12.
         self.baseXpoint['elec']['An'] = 8.

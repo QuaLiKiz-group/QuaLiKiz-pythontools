@@ -2,7 +2,7 @@
 
 
 from subprocess import PIPE, Popen as popen
-from unittest import TestCase
+from unittest import TestCase, skip
 import os
 import shutil
 from qualikiz_tools import __path__ as PATH  
@@ -26,6 +26,7 @@ class TestCreate(TestCase):
         lines = output.split('\n')
         self.assertTrue(len(lines) != 1)
 
+@skip('Not included in CLI')
 class TestMini(TestCase):
     def test_mini(self):
         if not os.path.exists('../QuaLiKiz'):
@@ -48,6 +49,7 @@ class TestMini(TestCase):
         except FileNotFoundError:
             pass
 
+@skip('Not included in CLI')
 class TestPerformance(TestCase):
     binrelname = '../QuaLiKiz+pat'
     def test_performance(self):

@@ -1,11 +1,13 @@
 from subprocess import PIPE, Popen as popen
-from unittest import TestCase
+from unittest import TestCase, skip
 import logging
 import os
 from itertools import zip_longest
 import copy
 
-from qualikiz_tools.machine_specific.slurm import Srun, Sbatch
+@skip('Edison specific test not re-written to new structure')
+def setUpModule():
+    from qualikiz_tools.machine_specific.slurm import Srun, Sbatch
 
 logging.basicConfig(level=logging.DEBUG)
 class TestSrun(TestCase):

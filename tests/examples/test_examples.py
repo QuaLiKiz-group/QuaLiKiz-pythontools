@@ -1,6 +1,6 @@
 from subprocess import PIPE, Popen as popen
 import unittest
-from unittest import TestCase
+from unittest import TestCase, skip
 import copy
 import os
 import shutil
@@ -30,6 +30,7 @@ class TestMini(TestCase):
         except FileNotFoundError:
             pass
 
+@skip('Not yet re-written to new machine-specific config')
 class TestPerformance(TestCase):
     binrelname = '../QuaLiKiz+pat'
     def test_performance(self):

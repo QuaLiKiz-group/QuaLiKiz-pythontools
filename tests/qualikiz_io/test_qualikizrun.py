@@ -2,6 +2,7 @@
 from subprocess import PIPE, Popen as popen
 import unittest
 from unittest import TestCase
+import pytest
 import copy
 import os
 import shutil
@@ -120,7 +121,6 @@ class TestQuaLiKizRun(TestCase):
                                                     'primitive')))
         self.assertTrue(os.path.exists(os.path.join(rundir, 'input')))
         self.assertTrue(os.path.exists(os.path.join(rundir, 'testQuaLiKiz')))
-        self.assertTrue(os.path.exists(os.path.join(rundir, 'qualikiz_tools')))
         self.assertTrue(os.path.exists(os.path.join(rundir, 'parameters.json')))
 
     def test_generate_input(self):
@@ -140,10 +140,7 @@ class TestQuaLiKizRun(TestCase):
 
     def test_from_dir(self):
         self.qualikizrun.prepare()
-        binaryrelpath = '../../testQuaLiKiz'
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            newrun = QuaLiKizRun.from_dir(self.qualikizrun.rundir, binaryrelpath)
+        newrun = QuaLiKizRun.from_dir(self.qualikizrun.rundir)
         self.assertEqual(self.qualikizrun, newrun)
 
     def test_clean(self):
@@ -194,33 +191,40 @@ class TestQuaLiKizBatch(TestCase):
         self.qualikizbatch = QuaLiKizBatch(
             os.path.abspath('testbatchsdir'),
             'testbatch',
-            [testrun_0, testrun_1],
-            24)
+            [testrun_0, testrun_1])
 
     def test_initialize(self):
         pass
 
     def test_prepare(self):
-        self.qualikizbatch.prepare()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            self.qualikizbatch.prepare()
 
     def test_generate_input(self):
-        self.qualikizbatch.prepare()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            self.qualikizbatch.prepare()
         self.qualikizbatch.generate_input()
 
-    def test_from_dir(self):
-        self.qualikizbatch.prepare()
+    def test_from_subdirs(self):
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            self.qualikizbatch.prepare()
         self.qualikizbatch.generate_input()
-        batchdir = os.path.join(self.qualikizbatch.batchsdir,
+        batchdir = os.path.join(self.qualikizbatch.parent_dir,
                                 self.qualikizbatch.name)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            self.newbatch = QuaLiKizBatch.from_dir(batchdir)
+            self.newbatch = QuaLiKizBatch.from_subdirs(batchdir)
         self.assertEqual(self.qualikizbatch, self.newbatch)
 
     def test_from_dir_recursive(self):
-        self.qualikizbatch.prepare()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            self.qualikizbatch.prepare()
         self.qualikizbatch.generate_input()
-        searchdir = self.qualikizbatch.batchsdir
+        searchdir = self.qualikizbatch.parent_dir
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             newbatchs = QuaLiKizBatch.from_dir_recursive(searchdir)
@@ -228,12 +232,14 @@ class TestQuaLiKizBatch(TestCase):
         self.assertEqual(self.qualikizbatch, newbatchs[0])
 
     def test_clean(self):
-        self.qualikizbatch.prepare()
-        batchdir = os.path.join(self.qualikizbatch.batchsdir,
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            self.qualikizbatch.prepare()
+        batchdir = os.path.join(self.qualikizbatch.parent_dir,
                                 self.qualikizbatch.name)
         testfiles = [os.path.join(batchdir, QuaLiKizBatch.batchinfofile),
-                     os.path.join(batchdir, Sbatch.default_stdout),
-                     os.path.join(batchdir, Sbatch.default_stderr)]
+                     os.path.join(batchdir, QuaLiKizBatch.default_stdout),
+                     os.path.join(batchdir, QuaLiKizBatch.default_stderr)]
 
         for testfile in testfiles:
             with open(testfile, 'w+') as __:
