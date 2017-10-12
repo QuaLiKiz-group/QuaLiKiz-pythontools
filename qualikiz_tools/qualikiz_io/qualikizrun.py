@@ -100,7 +100,12 @@ class QuaLiKizBatch():
         batchdir = os.path.join(self.parent_dir, self.name)
         batchpath = os.path.join(batchdir, self.scriptname)
         create_folder_prompt(batchdir, overwrite=overwrite_batch)
-        self.to_batch_file(batchpath)
+        try:
+            self.to_batch_file(batchpath)
+        except AttributeError:
+            warn('No to_batch_file function defined for {!s}, creating empty script.'.format(self))
+            with open(os.path.join(batchdir, self.scriptname), 'w') as file_:
+                file_.write('')
         # Create link to python scripts
         for run in self.runlist:
             run.prepare(overwrite=overwrite_runs)
@@ -181,16 +186,20 @@ class QuaLiKizBatch():
         # Try to find the contained runs, they are usually in one of the children
             try:
                 runlist = [QuaLiKizRun.from_dir(batchdir)]
-            except:
+            except OSError:
                 for subpath in os.listdir(batchdir):
+                    subpath = os.path.join(batchdir, subpath)
                     if os.path.isdir(subpath):
                         rundir = os.path.join(batchdir, subpath)
                         try:
                             run = QuaLiKizRun.from_dir(rundir)
-                        except:
+                        except OSError:
                             pass
                         else:
                             runlist.append(run)
+            if len(runlist) == 0:
+                raise OSError('Could not reconstruct runlist from subdirs')
+
             batch = QuaLiKizBatch(parent_dir, name, runlist)
 
         return batch
@@ -199,6 +208,8 @@ class QuaLiKizBatch():
                   genfromtxt=False, encode=None, clean=True,
                   keepfile=True, processes=1):
         """ Convert QuaLiKizBatch output to netcdf
+        iith warnings.catch_warnings():
+            warnings.simplefilter("ignore")
 
         This function converts the output contained in the output and debug
         folders to netcdf. Optionally the datasets are glued together
@@ -321,7 +332,9 @@ class QuaLiKizBatch():
             other_attrs = other.__dict__.copy()
             equal = True
             for name in ['stderr', 'stdout']:
-                equal = equal and os.path.samefile(attrs.pop(name), other_attrs.pop(name))
+                self_path = os.path.normpath(os.path.join(self.parent_dir, self.name, str(attrs.pop(name))))
+                other_path = os.path.normpath(os.path.join(self.parent_dir, self.name, str(other_attrs.pop(name))))
+                equal = equal and self_path == other_path
             return attrs == other_attrs and equal
         return NotImplemented
 
@@ -550,7 +563,7 @@ class QuaLiKizRun:
                     binaryrelpath = os.readlink(os.path.join(rundir, file))
                     break
         if binaryrelpath is None:
-            raise Exception('Could not find link to QuaLiKiz binary. Please supply `binaryrelpath`')
+            raise OSError('Could not find link to QuaLiKiz binary. Please supply `binaryrelpath`')
         #binarybasepath = os.path.basename(binaryrelpath)
         #binaryrelpath = os.readlink(os.path.join(rundir, binarybasepath))
         planpath = os.path.join(rundir, cls.parameterspath)
@@ -604,7 +617,9 @@ class QuaLiKizRun:
             other_attrs = other.__dict__.copy()
             equal = True
             for name in ['binaryrelpath', 'stderr', 'stdout', 'rundir']:
-                equal = equal and os.path.samefile(attrs.pop(name), other_attrs.pop(name))
+                self_path = os.path.normpath(os.path.join(self.rundir, attrs.pop(name)))
+                other_path = os.path.normpath(os.path.join(self.rundir, other_attrs.pop(name)))
+                equal = equal and self_path == other_path
             return attrs == other_attrs and equal
         return NotImplemented
 
