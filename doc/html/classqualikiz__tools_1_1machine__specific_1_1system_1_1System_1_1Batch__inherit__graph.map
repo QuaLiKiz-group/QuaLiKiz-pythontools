@@ -1,0 +1,5 @@
+<map id="qualikiz_tools.machine_specific.system.System.Batch" name="qualikiz_tools.machine_specific.system.System.Batch">
+<area shape="rect" id="node3" href="$classqualikiz__tools_1_1machine__specific_1_1bash_1_1Batch.html" title="Defines a batch job. " alt="" coords="505,5,660,47"/>
+<area shape="rect" id="node4" href="$classqualikiz__tools_1_1machine__specific_1_1slurm_1_1Batch.html" title="Defines a batch job. " alt="" coords="505,71,660,112"/>
+<area shape="rect" id="node2" href="$classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html" title="A collection of QuaLiKiz Runs. " alt="" coords="5,39,201,80"/>
+</map>
