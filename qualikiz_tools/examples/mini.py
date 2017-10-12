@@ -7,8 +7,8 @@ License: CeCILL v2.1
 import os
 import sys
 import inspect
-from qualikiz_tools.qualikiz_io.qualikizrun import QuaLiKizBatch, QuaLiKizRun
-from qualikiz_tools import __path__ as PATH  
+from qualikiz_tools.machine_specific.bash import Batch, Run
+from qualikiz_tools import __path__ as PATH
 PATH = PATH[0]
 
 dirname = '../runs'
@@ -22,25 +22,21 @@ rootdir = os.path.dirname(PATH)
 runsdir = os.path.join(rootdir, dirname)
 
 # We'll make a folder 'mini' inside the 'runs' dir with our example
-# First, we need to know where the binary and qualikiz_tools folder
-# reside
+# First, we need to know where the binary lives relative to the folder
 name = 'mini'
 binreldir = os.path.relpath(os.path.join(rootdir, '../QuaLiKiz'),
                             os.path.join(runsdir, name))
-pythonreldir = os.path.relpath(PATH,
-                               os.path.join(runsdir, name))
 
 # Create the run. By not passing it a QuaLiKizPlan, it will use the
 # parameters_template.json file
-run = QuaLiKizRun(runsdir, name,
-                  binreldir)
+run = Run(runsdir, name, binreldir)
 runlist = [run]
 
-# Our batch only contains one run. Let's run on the debug queue
-batch = QuaLiKizBatch(runsdir, name, runlist, 24, partition='debug')
+# Let's also create a batch script:
+batch = Batch(runsdir, name, runlist)
 batch.prepare()
 batch.generate_input()
 
-resp = input('Submit job to queue? [Y/n]')
+resp = input('Run job? [Y/n]')
 if resp == '' or resp == 'Y' or resp == 'y':
-    batch.queue_batch()
+    batch.launch()
