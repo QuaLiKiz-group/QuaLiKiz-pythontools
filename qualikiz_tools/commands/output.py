@@ -1,11 +1,15 @@
 """
 Usage:
-  qualikiz_tools output [-v | -vv] [--orthogonal] [--genfromtxt]  <command> <target_path>
+  qualikiz_tools output [-v | -vv] [--orthogonal] [--genfromtxt] [--delfile] <command> <target_path>
   qualikiz_tools output [-v | -vv] help
 
 Process QuaLiKiz ASCII output files. For example, convert to netCDF.
 
 Options:
+  --orthogonal                      Try to fold dataset into hypercube. Assumes run was orthogonal
+  --genfromtxt                      Use genfromtxt to read ASCII files. This way unreadable values
+                                    are replace by NaN.
+  --delfile                         Delete files read by output parser.
   -h --help                         Show this screen.
   [-v | -vv]                        Verbosity
 
@@ -45,9 +49,11 @@ def run(args):
 
     kwargs = {}
     if args['<command>'] == 'to_netcdf':
-        if args['--genfromtxt']:
+        if args['--delfile'] is not None:
+            kwargs['keepfile'] = False
+        if args['--genfromtxt'] is not None:
             kwargs['genfromtxt'] = True
-        if args['--orthogonal']:
+        if args['--orthogonal'] is not None:
             kwargs['runmode'] = 'orthogonal'
             if dirtype == 'batch':
                 kwargs['mode'] = 'glue'
