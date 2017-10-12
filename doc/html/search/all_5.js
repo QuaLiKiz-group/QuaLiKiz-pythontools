@@ -5,7 +5,6 @@ var searchData=
   ['electron',['Electron',['../classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1Electron.html',1,'qualikiz_tools::qualikiz_io::inputfiles']]],
   ['end',['end',['../namespacequalikiz__tools_1_1examples_1_1multirun.html#a628d8a127b5a28cefc4e66ff4599b8ec',1,'qualikiz_tools.examples.multirun.end()'],['../namespacequalikiz__tools_1_1examples_1_1performance.html#a472363166d09da1b3e75561119ea73bd',1,'qualikiz_tools.examples.performance.end()']]],
   ['entries',['entries',['../namespacequalikiz__tools_1_1examples_1_1analyse__performance.html#a972f73250537462279d232fd5d0048a1',1,'qualikiz_tools::examples::analyse_performance']]],
-  ['equalize_5fgradient',['equalize_gradient',['../classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1QuaLiKizXpoint.html#a6f08620ea32930b13b6eed4cc6fd2363',1,'qualikiz_tools::qualikiz_io::inputfiles::QuaLiKizXpoint']]],
   ['est_5fcpu_5ftime',['est_cpu_time',['../namespacequalikiz__tools_1_1examples_1_1performance.html#a9ddcfc8badd76435e432e10b63a7e4e6',1,'qualikiz_tools::examples::performance']]],
   ['est_5fwall_5ftime',['est_wall_time',['../namespacequalikiz__tools_1_1examples_1_1performance.html#a32d5954a1ab5ae8de048b819b0ae00fb',1,'qualikiz_tools::examples::performance']]],
   ['estimate_5fcputime',['estimate_cputime',['../classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizRun.html#ad29e9ea8cb13e56569e11feb57dfc114',1,'qualikiz_tools::qualikiz_io::qualikizrun::QuaLiKizRun']]],

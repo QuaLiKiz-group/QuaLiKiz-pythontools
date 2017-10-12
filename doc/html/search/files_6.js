@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['hello_2epy',['hello.py',['../hello_8py.html',1,'']]]
+  ['input_2epy',['input.py',['../input_8py.html',1,'']]],
+  ['inputfiles_2epy',['inputfiles.py',['../inputfiles_8py.html',1,'']]]
 ];

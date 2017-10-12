@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['queue_5fbatch',['queue_batch',['../classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#a7bbf8e522880d309d706d4e49438409c',1,'qualikiz_tools::qualikiz_io::qualikizrun::QuaLiKizBatch']]]
+  ['qlk_5ffrom_5fdir',['qlk_from_dir',['../namespacequalikiz__tools_1_1qualikiz__io_1_1qualikizrun.html#a9a432e49eccd0028866b7f92bafe55f7',1,'qualikiz_tools::qualikiz_io::qualikizrun']]]
 ];

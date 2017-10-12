@@ -1,10 +1,10 @@
 <map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
-<area shape="rect" id="node2" href="$classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1Particle.html" title="Particle (ion or electron) " alt="" coords="137,37,291,79"/>
-<area shape="rect" id="node5" href="$classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1QuaLiKizPlan.html" title="Defines how to generate QuaLiKiz input files from a QuaLiKizXpoint base. " alt="" coords="121,103,307,144"/>
-<area shape="rect" id="node6" href="$classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1QuaLiKizXpoint.html" title="A single xpoint in a QuaLiKiz run. " alt="" coords="115,168,313,209"/>
-<area shape="rect" id="node7" href="$classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1QuaLiKizXpoint_1_1Geometry.html" title="Wraps variables that change per scan point. " alt="" coords="113,234,315,290"/>
-<area shape="rect" id="node8" href="$classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1QuaLiKizXpoint_1_1Meta.html" title="Wraps variables that stay constant during the QuaLiKiz run. " alt="" coords="97,315,331,356"/>
-<area shape="rect" id="node9" href="$classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1QuaLiKizXpoint_1_1Special.html" title="Wraps variables that need special convertion to binary. " alt="" coords="113,381,315,437"/>
-<area shape="rect" id="node3" href="$classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1Electron.html" title="qualikiz_tools.qualikiz\l_io.inputfiles.Electron" alt="" coords="379,5,533,47"/>
-<area shape="rect" id="node4" href="$classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1Ion.html" title="qualikiz_tools.qualikiz\l_io.inputfiles.Ion" alt="" coords="379,71,533,112"/>
+<area shape="rect" id="node2" href="$classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1Particle.html" title="Particle (ion or electron) " alt="" coords="133,37,282,79"/>
+<area shape="rect" id="node5" href="$classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1QuaLiKizPlan.html" title="Defines how to generate QuaLiKiz input files from a QuaLiKizXpoint base. " alt="" coords="118,103,297,144"/>
+<area shape="rect" id="node6" href="$classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1QuaLiKizXpoint.html" title="A single xpoint in a QuaLiKiz run. " alt="" coords="113,168,302,209"/>
+<area shape="rect" id="node7" href="$classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1QuaLiKizXpoint_1_1Geometry.html" title="Wraps variables that change per scan point. " alt="" coords="111,234,304,290"/>
+<area shape="rect" id="node8" href="$classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1QuaLiKizXpoint_1_1Meta.html" title="Wraps variables that stay constant during the QuaLiKiz run. " alt="" coords="96,315,319,356"/>
+<area shape="rect" id="node9" href="$classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1QuaLiKizXpoint_1_1Special.html" title="Wraps variables that need special convertion to binary. " alt="" coords="111,381,304,437"/>
+<area shape="rect" id="node3" href="$classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1Electron.html" title="qualikiz_tools.qualikiz\l_io.inputfiles.Electron" alt="" coords="367,5,516,47"/>
+<area shape="rect" id="node4" href="$classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1Ion.html" title="qualikiz_tools.qualikiz\l_io.inputfiles.Ion" alt="" coords="367,71,516,112"/>
 </map>

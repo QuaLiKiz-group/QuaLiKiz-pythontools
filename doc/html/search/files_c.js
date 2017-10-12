@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['qualikizrun_2epy',['qualikizrun.py',['../qualikizrun_8py.html',1,'']]]
+  ['readme_2emd',['README.md',['../README_8md.html',1,'']]]
 ];

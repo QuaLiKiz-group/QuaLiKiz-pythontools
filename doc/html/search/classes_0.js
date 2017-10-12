@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['electron',['Electron',['../classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1Electron.html',1,'qualikiz_tools::qualikiz_io::inputfiles']]]
+  ['batch',['Batch',['../classqualikiz__tools_1_1machine__specific_1_1bash_1_1Batch.html',1,'qualikiz_tools.machine_specific.bash.Batch'],['../classqualikiz__tools_1_1machine__specific_1_1slurm_1_1Batch.html',1,'qualikiz_tools.machine_specific.slurm.Batch'],['../classqualikiz__tools_1_1machine__specific_1_1system_1_1System_1_1Batch.html',1,'qualikiz_tools.machine_specific.system.System.Batch']]]
 ];

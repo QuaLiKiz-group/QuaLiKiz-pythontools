@@ -1,8 +1,6 @@
 var searchData=
 [
   ['plot_5fsubslice',['plot_subslice',['../namespacequalikiz__tools_1_1qualikiz__io_1_1analyse.html#a4ae21842a33fa9ddc9dab513307979e1',1,'qualikiz_tools::qualikiz_io::analyse']]],
-  ['plotscanwrapper',['plotScanWrapper',['../namespacequalikiz__tools_1_1qualikiz__io_1_1plot__output.html#a8f48c45969e629fc2e22d378d944fa28',1,'qualikiz_tools::qualikiz_io::plot_output']]],
-  ['plotwrapper',['plotWrapper',['../namespacequalikiz__tools_1_1qualikiz__io_1_1plot__output.html#a8de81a037221ff043b365bf84e9d4f6a',1,'qualikiz_tools::qualikiz_io::plot_output']]],
   ['poll_5fbatchdata',['poll_batchdata',['../namespacequalikiz__tools_1_1machine__specific_1_1basicpoll.html#a65b301aa4c2379d7c4bfeb447ad5daac',1,'qualikiz_tools::machine_specific::basicpoll']]],
   ['poll_5fsacct',['poll_sacct',['../namespacequalikiz__tools_1_1machine__specific_1_1sacct.html#abd360a823c745a39700c57fd3ea31b21',1,'qualikiz_tools::machine_specific::sacct']]],
   ['poll_5fstdout',['poll_stdout',['../namespacequalikiz__tools_1_1machine__specific_1_1basicpoll.html#a54a95790abb06135204f171e9dbad9a5',1,'qualikiz_tools::machine_specific::basicpoll']]],
