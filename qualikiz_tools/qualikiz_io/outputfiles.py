@@ -67,6 +67,10 @@ output_meth_1_sep_1 = {
     'efeTEM'            : None,
     'efiITG'            : None,
     'efiTEM'            : None,
+    'pfeITG'            : None,
+    'pfeTEM'            : None,
+    'pfiITG'            : None,
+    'pfiTEM'            : None,
     'vfiITG'            : None,
     'vfiTEM'            : None,
     'vreITG'            : None,
@@ -168,7 +172,8 @@ debug_eleclike = {
     'Te'                : None,
     'alpha'             : None,
     'modeflag'          : None,
-    'rho'               : None}
+    'rho'               : None
+}
 
 
 debug_ionlike = {
@@ -189,6 +194,7 @@ debug_single = {
     'maxpts'            : None,
     'maxruns'           : None,
     'R0'                : None,
+    'typee'             : None,
     'relacc1'           : None,
     'relacc2'           : None,
     'collmult'          : None,
@@ -199,7 +205,8 @@ debug_single = {
     'phys_meth'         : None,
     'verbose'           : None}
 
-debug_special = {'kthetarhos': None}
+debug_special = {'kthetarhos': None,
+                 'phi': None}
 # Some magic to group all datasets. In principe the granularity
 # per subset is not needed, but we keep it for legacy purposes
 output_subsets = OrderedDict()
@@ -313,8 +320,10 @@ def convert_debug(sizes, rundir, folder='debug', verbose=False,
                         data = np.expand_dims(data, axis=1)
                 elif name in debug_single:
                     dims = None
-                elif name in debug_special:
+                elif name in ['kthetarhos']:
                     dims = ['dimn']
+                elif name in ['phi']:
+                    dims = ['ntheta', 'dimx']
                 else:
                     raise Exception('Could not process \'' + name + '\'')
                 try:
