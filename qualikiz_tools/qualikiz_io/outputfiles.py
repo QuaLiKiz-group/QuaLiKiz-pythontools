@@ -413,7 +413,7 @@ def convert_output(ds, sizes, rundir, folder='output', verbose=False,
                     elif name == 'ecoefs':
                         tmp = xr.DataArray(data.reshape(dimx, nions+1, numecoefs),
                                            dims=['dimx', 'ionelec', 'ecoefs'], name=name)
-                        ds[name + 'e'] = tmp.sel(ionelec=0, drop=True)
+                        ds[name + 'e'] = tmp.sel(ionelec=0)
                         ds[name + 'i'] = tmp.sel(ionelec=slice(1, None)).rename({'ionelec': 'nions'})
                     elif name == 'npol':
                         ds[name] = xr.DataArray(data.reshape(dimx, ntheta, nions),
