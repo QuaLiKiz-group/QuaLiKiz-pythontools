@@ -4,18 +4,12 @@ Contributors: Karel van de Plassche (karelvandeplassche@gmail.com)
 License: CeCILL v2.1
 """
 import xarray as xr
-from IPython import embed
 import matplotlib.pyplot as plt
 from matplotlib import gridspec, cycler
 from collections import OrderedDict
 import numpy as np
 import pandas as pd
 from qualikiz_tools.qualikiz_io.outputfiles import squeeze_dataset, orthogonalize_dataset, xarray_to_pandas
-from bokeh.io import output_file, show
-from bokeh.plotting import figure
-from bokeh.layouts import widgetbox,row, column
-from bokeh.models.widgets import Dropdown
-from bokeh.models import ColumnDataSource, CustomJS
 import warnings
 
 try:
