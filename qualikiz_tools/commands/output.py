@@ -49,15 +49,17 @@ def run(args):
 
     kwargs = {}
     if args['<command>'] == 'to_netcdf':
-        if args['--delfile'] is not None:
+        if args['--delfile'] is True:
             kwargs['keepfile'] = False
-        if args['--genfromtxt'] is not None:
+        if args['--genfromtxt']:
             kwargs['genfromtxt'] = True
-        if args['--orthogonal'] is not None:
+        if args['--orthogonal']:
             kwargs['runmode'] = 'orthogonal'
             if dirtype == 'batch':
                 kwargs['mode'] = 'glue'
                 kwargs['clean'] = True
+        if args['-v'] >= 1:
+            print(kwargs)
         qlk_instance.to_netcdf(**kwargs)
 
     # Some legacy commands that might need to be re-implemented
