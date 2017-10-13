@@ -49,12 +49,15 @@ setup(
         'Natural Language :: English',
         'Operating System :: OS Independent',
         'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
     ],
     keywords = 'cli',
     packages = find_packages(exclude=['docs', 'tests*']),
-    install_requires = ['netCDF4', 'xarray', 'docopt', 'tabulate', 'scipy', 'IPython'],
+    python_requires='>=3.5',
+    install_requires = ['xarray', 'docopt', 'tabulate', 'scipy'],
     extras_require = {
         'test': ['coverage', 'pytest', 'pytest-cov'],
+        'netCDF4': ['netCDF4']
     },
     entry_points = {
         'console_scripts': [
