@@ -7,7 +7,7 @@ Usage:
 Options:
     --in_dir <directory>            Create folder in this folder [default: .]
     --name <name>                   Name to give to the main folder of the run
-    --binary_path <path>            Path to the QuaLiKiz binary [default: ./QuaLiKiz]
+    --binary_path <path>            Path to the QuaLiKiz binary
     --as_batch <machine>            Create a batch script for the specified machine
   -h --help                         Show this screen.
   [-v | -vv]                        Verbosity
@@ -45,13 +45,16 @@ def run(args):
     else:
         verbose = False
 
+    if args['--binary_path'] is None:
+        binary_path = os.path.normpath(os.path.join(ROOT, '../../QuaLiKiz'))
+
     name = args['--name']
     kwargs = {}
     if args['<target>'] == 'example':
         from qualikiz_tools.qualikiz_io.qualikizrun import QuaLiKizRun
         if name is None:
             name = 'example'
-        binreldir = os.path.relpath(args['--binary_path'],
+        binreldir = os.path.relpath(binary_path,
                                     start=os.path.join(parent_dir, name))
         run = QuaLiKizRun(parent_dir, name, binreldir, verbose=verbose)
         run.prepare()
@@ -78,7 +81,7 @@ def run(args):
                 json_path = os.path.join(root, path)
                 plan = QuaLiKizPlan.from_json(json_path)
                 name = os.path.basename(path.split('.')[0])
-                binreldir = os.path.relpath(args['--binary_path'],
+                binreldir = os.path.relpath(binary_path,
                                          start=os.path.join(run_parent_dir, name))
                 run = Run(run_parent_dir, name, binreldir, qualikiz_plan=plan, verbose=verbose)
                 runlist.append(run)
@@ -99,7 +102,7 @@ def run(args):
         from qualikiz_tools.qualikiz_io.qualikizrun import QuaLiKizRun, QuaLiKizBatch
         if name is None:
             name = os.path.basename(json_path.split('.')[0])
-        binreldir = os.path.relpath(args['--binary_path'],
+        binreldir = os.path.relpath(binary_path,
                                          start=os.path.join(parent_dir, name))
         if args['--as_batch'] is None:
             run = QuaLiKizRun(parent_dir, name, binreldir, qualikiz_plan=plan, verbose=verbose)
