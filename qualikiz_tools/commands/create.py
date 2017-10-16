@@ -1,12 +1,13 @@
 """
 Usage:
-  qualikiz_tools [-v | -vv] create [--as_batch <machine>] [--in_dir <directory>] [--binary_dir <directory>] <target> [<parameter_json>]
-  qualikiz_tools [-v | -vv] create --as_batch <machine> [--in_dir <directory>] [--binary_dir <directory>] regression
-  qualikiz_tools [-v | -vv] create --as_batch <machine> [--in_dir <directory>] [--binary_dir <directory>] from_json <path_to_json>
+  qualikiz_tools [-v | -vv] create [--as_batch <machine>] [--in_dir <directory>] [--binary_path <path>] [--name <name>] <target> [<parameter_json>]
+  qualikiz_tools [-v | -vv] create --as_batch <machine> [--in_dir <directory>] [--binary_path <path>] regression
+  qualikiz_tools [-v | -vv] create --as_batch <machine> [--in_dir <directory>] [--binary_path <path>] from_json <path_to_json>
 
 Options:
     --in_dir <directory>            Create folder in this folder [default: runs]
-    --binary_dir <directory>        Path to the QuaLiKiz binary [default: ./QuaLiKiz]
+    --name <name>                   Name to give to the main folder of the run
+    --binary_path <path>            Path to the QuaLiKiz binary [default: ./QuaLiKiz]
     --as_batch <machine>            Create a batch script for the specified machine
   -h --help                         Show this screen.
   [-v | -vv]                        Verbosity
@@ -19,6 +20,7 @@ Often used commands:
 """
 from docopt import docopt
 from subprocess import call
+from warnings import warn
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
@@ -43,18 +45,21 @@ def run(args):
     else:
         verbose = False
 
-    name = 'dummy'
+    name = args['--name']
     kwargs = {}
     if args['<target>'] == 'example':
         from qualikiz_tools.qualikiz_io.qualikizrun import QuaLiKizRun
-        name = 'example'
-        binreldir = os.path.relpath(args['--binary_dir'],
+        if name is None:
+            name = 'example'
+        binreldir = os.path.relpath(args['--binary_path'],
                                     start=os.path.join(parent_dir, name))
         run = QuaLiKizRun(parent_dir, name, binreldir, verbose=verbose)
         run.prepare()
     elif args['<target>'] == 'regression':
         if args['--as_batch'] is None:
             raise Exception('Must supply --as_batch for target `{!s}`'.format(args['<target>']))
+        if args['--name'] is not None:
+            warn('--name flag not used in target `regression`')
         try:
             _temp = __import__('qualikiz_tools.machine_specific.' + args['--as_batch'],
                                fromlist=['Run', 'Batch'])
@@ -73,7 +78,7 @@ def run(args):
                 json_path = os.path.join(root, path)
                 plan = QuaLiKizPlan.from_json(json_path)
                 name = os.path.basename(path.split('.')[0])
-                binreldir = os.path.relpath(args['--binary_dir'],
+                binreldir = os.path.relpath(args['--binary_path'],
                                          start=os.path.join(run_parent_dir, name))
                 run = Run(run_parent_dir, name, binreldir, qualikiz_plan=plan, verbose=verbose)
                 runlist.append(run)
@@ -92,8 +97,9 @@ def run(args):
         plan = QuaLiKizPlan.from_json(json_path)
 
         from qualikiz_tools.qualikiz_io.qualikizrun import QuaLiKizRun, QuaLiKizBatch
-        name = os.path.basename(json_path.split('.')[0])
-        binreldir = os.path.relpath(args['--binary_dir'],
+        if name is None:
+            name = os.path.basename(json_path.split('.')[0])
+        binreldir = os.path.relpath(args['--binary_path'],
                                          start=os.path.join(parent_dir, name))
         if args['--as_batch'] is None:
             run = QuaLiKizRun(parent_dir, name, binreldir, qualikiz_plan=plan, verbose=verbose)
