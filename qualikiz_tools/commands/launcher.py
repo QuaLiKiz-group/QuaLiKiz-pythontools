@@ -39,19 +39,20 @@ def run(args):
 
 
     # Detect the type of path given; QuaLiKizBatch or QuaLiKizRun
-    try:
-        _temp = __import__('qualikiz_tools.machine_specific.' + args['<machine>'],
-                           fromlist=['Run', 'Batch'])
-    except ModuleNotFoundError:
-        raise NotImplementedError('Machine {!s} not implemented yet'.format(args['<machine>']))
-    Run, Batch = _temp.Run, _temp.Batch
-    try:
-        qlk_instance = Batch.from_dir(args['<target_path>'])
-    except:
-        qlk_instance = Run.from_dir(args['<target_path>'])
+    if args['<machine>'] not in ['help', None]:
+        try:
+            _temp = __import__('qualikiz_tools.machine_specific.' + args['<machine>'],
+                               fromlist=['Run', 'Batch'])
+        except ModuleNotFoundError:
+            raise NotImplementedError('Machine {!s} not implemented yet'.format(args['<machine>']))
+        Run, Batch = _temp.Run, _temp.Batch
+        try:
+            qlk_instance = Batch.from_dir(args['<target_path>'])
+        except:
+            qlk_instance = Run.from_dir(args['<target_path>'])
 
-    if args['-v'] >= 1:
-        print('Supplied dir ' + args['<target_path>'] + ' is of type ' + str(qlk_instance.__class__))
+        if args['-v'] >= 1:
+            print('Supplied dir ' + args['<target_path>'] + ' is of type ' + str(qlk_instance.__class__))
     #if dirtype != 'batch':
     #    raise Exception('QuaLiKiz instance should be of type `Batch`')
 
