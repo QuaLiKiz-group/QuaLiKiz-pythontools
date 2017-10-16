@@ -36,6 +36,299 @@ class PathException(Exception):
         super().__init__(message)
 
 
+class QuaLiKizRun:
+    """ Defines everything needed for a single run of QuaLiKiz
+
+    Attributes:
+        parameterspath: Default path where the parameters json is
+        outputdir:      Relative path to the output folder
+        primitivedir:   Relative path to the primitive output folder
+        debugdir:       Relative path to the debug folder
+        inputdir:       Relative path to the input folder
+        default_stdout: Default name to write STDOUT to
+        default_stderr: Default name to write STDERR to
+    """
+    parameterspath = 'parameters.json'
+    outputdir = 'output'
+    primitivedir = 'output/primitive'
+    debugdir = 'debug'
+    inputdir = 'input'
+
+    default_stderr = 'stderr.run'
+    default_stdout = 'stdout.run'
+
+    def __init__(self, parent_dir, name, binaryrelpath,
+                 qualikiz_plan=None,
+                 stdout=None,
+                 stderr=None,
+                 verbose=False):
+        """ Initialize an empty QuaLiKiz run
+        Args:
+            parent_dir:    Parent of where the run folder will be.
+            name:          The name of the QuaLiKiz Run. This will be the
+                           name of the folder that will be generated
+            binaryrelpath: The name of the binary that needs to be run.
+                           Usually a relative path to the run folder.
+
+        Kwargs:
+            qualikiz_plan: The QuaLiKizPlan, usually read from json. Will
+                           load the parameter_template by default
+            stdout:        Path to the STDOUT file.
+            stderr:        Path to the STDERR file.
+            verbose:       Print verbose information when initializing.
+        """
+        self.rundir = os.path.join(parent_dir, name)
+
+        if verbose:
+            print('Creating new QuaLiKiz run in {!s}'.format(self.rundir))
+
+        if stdout is None:
+            self.stdout = QuaLiKizRun.default_stdout
+        else:
+            self.stdout = stdout
+
+        if stderr is None:
+            self.stderr = QuaLiKizRun.default_stderr
+        else:
+            self.stderr = stderr
+
+        self.binaryrelpath = binaryrelpath
+
+        # Load the default parameters if no plan is defined
+        if qualikiz_plan is None:
+            templatepath = os.path.join(ROOT, 'parameters_template.json')
+            qualikiz_plan = QuaLiKizPlan.from_json(templatepath)
+        self.qualikiz_plan = qualikiz_plan
+
+    def prepare(self, overwrite=None):
+        """ Write all Run folders to file
+        This will generate a folders for each run. Note that this will not
+        generate the input files, just the skeleton needed. For large runs
+        the input generation can take a while. Generate input binaries using
+        the generate_input function.
+
+        Kwargs:
+            overwrite:  Overwrite the directory if it exists. Prompts the
+                          user by default.
+        """
+
+        rundir = self.rundir
+
+        create_folder_prompt(rundir, overwrite=overwrite)
+
+        self._create_output_folders(rundir)
+        os.makedirs(os.path.join(rundir, self.inputdir), exist_ok=True)
+        # Check if the binary we are trying to link to exists
+        absbindir = os.path.join(rundir, self.binaryrelpath)
+        if not os.path.exists(absbindir):
+            warn('Warning! Binary at ' + absbindir + ' does not ' +
+                 'exist! Run will fail!')
+        # Create link to binary
+        binarybasepath = os.path.basename(self.binaryrelpath)
+        os.symlink(self.binaryrelpath,
+                   os.path.join(rundir, binarybasepath))
+        # Create a parameters file
+        self.qualikiz_plan.to_json(os.path.join(rundir, self.parameterspath))
+
+    def _create_output_folders(self, path):
+        """ Create the output folders """
+        os.makedirs(os.path.join(path, self.outputdir), exist_ok=True)
+        os.makedirs(os.path.join(path, self.primitivedir), exist_ok=True)
+        os.makedirs(os.path.join(path, self.debugdir), exist_ok=True)
+
+    def generate_input(self, dotprint=False, conversion=None):
+        """ Generate the input binaries for a QuaLiKiz run
+
+        Kwargs:
+            dotprint:   Print a dot after each generation. Used for debugging.
+            conversion: Function will be called as conversion(input_dir). Can
+                        be used to convert input files to older version.
+        """
+        parameterspath = os.path.join(self.rundir, 'parameters.json')
+
+        plan = QuaLiKizPlan.from_json(parameterspath)
+        input_binaries = plan.setup()
+        inputdir = os.path.join(self.rundir, self.inputdir)
+
+        if dotprint:
+            print('.', end='', flush=True)
+        os.makedirs(inputdir, exist_ok=True)
+        for name, value in input_binaries.items():
+            with open(os.path.join(inputdir, name + '.bin'), 'wb') as file_:
+                value.tofile(file_)
+
+        if conversion is not None:
+            conversion(inputdir)
+
+    def inputbinaries_exist(self):
+        """ Check if the input binaries exist
+        Currently only checks for R0.bin. Change this if the QuaLiKiz
+        input files ever change!
+
+        Returns:
+            True if the input binaries exist
+        """
+        input_binary = os.path.join(self.rundir, self.inputdir, 'R0.bin')
+        exist = True
+        if not os.path.exists(input_binary):
+            warn('Warning! Input binary at ' + input_binary + ' does not ' +
+                 'exist! Run will fail! Please generate input binaries!')
+            exist = False
+        return exist
+
+    def estimate_walltime(self, cores):
+        """ Estimate the walltime needed to run
+        This directely depends on the CPU time needed and cores needed to run.
+        Currently uses worst-case estimate.
+
+        Returns:
+            Estimated walltime in seconds
+        """
+        cputime = self.estimate_cputime(cores)
+        return cputime / cores
+
+    def estimate_cputime(self, cores):
+        """ Estimate the cpu time needed to run
+        Currently just uses a worst-case assumtion. In reality cpus_per_dimxn
+        should depend on the dimxn per core. It also depends on the amount of
+        stable points in the run, which is not known a-priori.
+
+        Returns:
+            Estimated cputime in seconds
+        """
+        dimxn = self.qualikiz_plan.calculate_dimxn()
+        cpus_per_dimxn = 0.8
+        return dimxn * cpus_per_dimxn
+
+    def calculate_tasks(self, cores, HT=True):
+        """ Calulate the amount of MPI tasks needed based on the cores used
+
+        Args:
+            cores: The amount of cores to use
+
+        Kwargs:
+            HT: Flag to use HyperThreading. By default True.
+
+        Returns:
+            Tasks to use to run this QuaLiKizRun
+        """
+        if HT:
+            vcores_per_core = 2  # Per definition
+        else:
+            vcores_per_core = 1
+
+        cores_per_task = int(vcores_per_task / vcores_per_core)  # HT 1, !HT 2
+        tasks, remainder = divmod(cores, cores_per_task)
+        tasks = int(tasks)
+        if remainder != 0:
+            warn(str(cores) + ' cores not evenly divisible over ' +
+                 str(cores_per_task) + ' cores per task. Using ' +
+                 str(tasks) + ' tasks.')
+        return tasks
+
+    @classmethod
+    def from_dir(cls, dir, binaryrelpath=None,
+                 stdout=default_stdout,
+                 stderr=default_stderr):
+        """ Reconstruct Run from directory
+        Try to reconstruct the Run from a directory. Gives a warning if
+        STDOUT and STDERR cannot be found on their given or default location.
+
+        Args:
+            dir: Root directory of the Run
+
+        Kwargs:
+            binarylinkpath: Path to the link pointing to the QuaLiKiz binary
+            stdout:         Where to look for the STDOUT file
+            stderr:         Where to look for the STDERR file
+
+        Returns:
+            Reconstructed QuaLiKizRun
+        """
+        rundir = os.path.realpath(dir.rstrip('/'))
+        parent_dir, name = os.path.split(rundir)
+        parent_dir = os.path.abspath(parent_dir)
+        # We assume the binary is named something with 'QuaLiKiz' in it
+        if binaryrelpath is None:
+            for file in os.listdir(rundir):
+                if 'QuaLiKiz' in file:
+                    binaryrelpath = os.readlink(os.path.join(rundir, file))
+                    break
+        if binaryrelpath is None:
+            raise OSError('Could not find link to QuaLiKiz binary. Please supply `binaryrelpath`')
+        #binarybasepath = os.path.basename(binaryrelpath)
+        #binaryrelpath = os.readlink(os.path.join(rundir, binarybasepath))
+        planpath = os.path.join(rundir, cls.parameterspath)
+        qualikiz_plan = QuaLiKizPlan.from_json(planpath)
+        stdout = cls._find_file(stdout, rundir)
+        stderr = cls._find_file(stderr, rundir)
+        return QuaLiKizRun(parent_dir, name, binaryrelpath,
+                           qualikiz_plan=qualikiz_plan,
+                           stdout=stdout, stderr=stderr)
+
+    @classmethod
+    def _find_file(cls, path, rundir):
+        """ Try to find a file. Used for STDOUT and STDERR """
+        if not os.path.isfile(path):
+            info('Could not find file at \'' + str(path) + '\' searching..')
+            path = os.path.join(rundir, os.path.basename(path))
+            if not os.path.isfile(path):
+                info('Could not find file at \'' + str(path) +
+                     '\', file was probably not saved')
+                path = None
+            else:
+                info('Found file at \'' + path + '\'')
+        return path
+
+
+    def clean(self):
+        """ Cleans run folder to state before it was run """
+        try:
+            suffix = '.dat'
+            self._clean_suffix(os.path.join(self.rundir, self.outputdir),
+                               suffix)
+            self._clean_suffix(os.path.join(self.rundir, self.primitivedir),
+                               suffix)
+            self._clean_suffix(os.path.join(self.rundir, self.debugdir),
+                               suffix)
+            os.remove(os.path.join(self.rundir, self.stdout))
+            os.remove(os.path.join(self.rundir, self.stderr))
+        except FileNotFoundError:
+            pass
+
+    @classmethod
+    def _clean_suffix(cls, dir, suffix):
+        """ Removes all files with suffix in dir """
+        for file in os.listdir(dir):
+            if file.endswith(suffix):
+                os.remove(os.path.join(dir, file))
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            attrs = self.__dict__.copy()
+            other_attrs = other.__dict__.copy()
+            equal = True
+            for name in ['binaryrelpath', 'stderr', 'stdout', 'rundir']:
+                self_path = os.path.normpath(os.path.join(self.rundir, attrs.pop(name)))
+                other_path = os.path.normpath(os.path.join(self.rundir, other_attrs.pop(name)))
+                equal = equal and self_path == other_path
+            return attrs == other_attrs and equal
+        return NotImplemented
+
+    def __ne__(self, other):
+        if isinstance(other, self.__class__):
+            return not self == other
+        return NotImplemented
+
+    def to_netcdf(self, **kwargs):
+        """ Convert the output and debug to netCDF """
+        run_to_netcdf(self.rundir, **kwargs)
+
+    def is_done(self):
+        last_output = os.path.join(self.rundir, 'output/vfi_GB.dat')
+        return os.path.isfile(last_output)
+
+
 class QuaLiKizBatch():
     """ A collection of QuaLiKiz Runs
 
@@ -342,299 +635,6 @@ class QuaLiKizBatch():
         if isinstance(other, self.__class__):
             return not self == other
         return NotImplemented
-
-
-class QuaLiKizRun:
-    """ Defines everything needed for a single run of QuaLiKiz
-
-    Attributes:
-        parameterspath: Default path where the parameters json is
-        outputdir:      Relative path to the output folder
-        primitivedir:   Relative path to the primitive output folder
-        debugdir:       Relative path to the debug folder
-        inputdir:       Relative path to the input folder
-        default_stdout: Default name to write STDOUT to
-        default_stderr: Default name to write STDERR to
-    """
-    parameterspath = 'parameters.json'
-    outputdir = 'output'
-    primitivedir = 'output/primitive'
-    debugdir = 'debug'
-    inputdir = 'input'
-
-    default_stderr = 'stderr.run'
-    default_stdout = 'stdout.run'
-
-    def __init__(self, parent_dir, name, binaryrelpath,
-                 qualikiz_plan=None,
-                 stdout=None,
-                 stderr=None,
-                 verbose=False):
-        """ Initialize an empty QuaLiKiz run
-        Args:
-            parent_dir:    Parent of where the run folder will be.
-            name:          The name of the QuaLiKiz Run. This will be the
-                           name of the folder that will be generated
-            binaryrelpath: The name of the binary that needs to be run.
-                           Usually a relative path to the run folder.
-
-        Kwargs:
-            qualikiz_plan: The QuaLiKizPlan, usually read from json. Will
-                           load the parameter_template by default
-            stdout:        Path to the STDOUT file.
-            stderr:        Path to the STDERR file.
-            verbose:       Print verbose information when initializing.
-        """
-        self.rundir = os.path.join(parent_dir, name)
-
-        if verbose:
-            print('Creating new QuaLiKiz run in {!s}'.format(self.rundir))
-
-        if stdout is None:
-            self.stdout = QuaLiKizRun.default_stdout
-        else:
-            self.stdout = stdout
-
-        if stderr is None:
-            self.stderr = QuaLiKizRun.default_stderr
-        else:
-            self.stderr = stderr
-
-        self.binaryrelpath = binaryrelpath
-
-        # Load the default parameters if no plan is defined
-        if qualikiz_plan is None:
-            templatepath = os.path.join(ROOT, 'parameters_template.json')
-            qualikiz_plan = QuaLiKizPlan.from_json(templatepath)
-        self.qualikiz_plan = qualikiz_plan
-
-    def prepare(self, overwrite=None):
-        """ Write all Run folders to file
-        This will generate a folders for each run. Note that this will not
-        generate the input files, just the skeleton needed. For large runs
-        the input generation can take a while. Generate input binaries using
-        the generate_input function.
-
-        Kwargs:
-            overwrite:  Overwrite the directory if it exists. Prompts the
-                          user by default.
-        """
-
-        rundir = self.rundir
-
-        create_folder_prompt(rundir, overwrite=overwrite)
-
-        self._create_output_folders(rundir)
-        os.makedirs(os.path.join(rundir, self.inputdir), exist_ok=True)
-        # Check if the binary we are trying to link to exists
-        absbindir = os.path.join(rundir, self.binaryrelpath)
-        if not os.path.exists(absbindir):
-            warn('Warning! Binary at ' + absbindir + ' does not ' +
-                 'exist! Run will fail!')
-        # Create link to binary
-        binarybasepath = os.path.basename(self.binaryrelpath)
-        os.symlink(self.binaryrelpath,
-                   os.path.join(rundir, binarybasepath))
-        # Create a parameters file
-        self.qualikiz_plan.to_json(os.path.join(rundir, self.parameterspath))
-
-    def _create_output_folders(self, path):
-        """ Create the output folders """
-        os.makedirs(os.path.join(path, self.outputdir), exist_ok=True)
-        os.makedirs(os.path.join(path, self.primitivedir), exist_ok=True)
-        os.makedirs(os.path.join(path, self.debugdir), exist_ok=True)
-
-    def generate_input(self, dotprint=False, conversion=None):
-        """ Generate the input binaries for a QuaLiKiz run
-
-        Kwargs:
-            dotprint:   Print a dot after each generation. Used for debugging.
-            conversion: Function will be called as conversion(input_dir). Can
-                        be used to convert input files to older version.
-        """
-        parameterspath = os.path.join(self.rundir, 'parameters.json')
-
-        plan = QuaLiKizPlan.from_json(parameterspath)
-        input_binaries = plan.setup()
-        inputdir = os.path.join(self.rundir, self.inputdir)
-
-        if dotprint:
-            print('.', end='', flush=True)
-        os.makedirs(inputdir, exist_ok=True)
-        for name, value in input_binaries.items():
-            with open(os.path.join(inputdir, name + '.bin'), 'wb') as file_:
-                value.tofile(file_)
-
-        if conversion is not None:
-            conversion(inputdir)
-
-    def inputbinaries_exist(self):
-        """ Check if the input binaries exist
-        Currently only checks for R0.bin. Change this if the QuaLiKiz
-        input files ever change!
-
-        Returns:
-            True if the input binaries exist
-        """
-        input_binary = os.path.join(self.rundir, self.inputdir, 'R0.bin')
-        exist = True
-        if not os.path.exists(input_binary):
-            warn('Warning! Input binary at ' + input_binary + ' does not ' +
-                 'exist! Run will fail! Please generate input binaries!')
-            exist = False
-        return exist
-
-    def estimate_walltime(self, cores):
-        """ Estimate the walltime needed to run
-        This directely depends on the CPU time needed and cores needed to run.
-        Currently uses worst-case estimate.
-
-        Returns:
-            Estimated walltime in seconds
-        """
-        cputime = self.estimate_cputime(cores)
-        return cputime / cores
-
-    def estimate_cputime(self, cores):
-        """ Estimate the cpu time needed to run
-        Currently just uses a worst-case assumtion. In reality cpus_per_dimxn
-        should depend on the dimxn per core. It also depends on the amount of
-        stable points in the run, which is not known a-priori.
-
-        Returns:
-            Estimated cputime in seconds
-        """
-        dimxn = self.qualikiz_plan.calculate_dimxn()
-        cpus_per_dimxn = 0.8
-        return dimxn * cpus_per_dimxn
-
-    def calculate_tasks(self, cores, HT=True):
-        """ Calulate the amount of MPI tasks needed based on the cores used
-
-        Args:
-            cores: The amount of cores to use
-
-        Kwargs:
-            HT: Flag to use HyperThreading. By default True.
-
-        Returns:
-            Tasks to use to run this QuaLiKizRun
-        """
-        if HT:
-            vcores_per_core = 2  # Per definition
-        else:
-            vcores_per_core = 1
-
-        cores_per_task = int(vcores_per_task / vcores_per_core)  # HT 1, !HT 2
-        tasks, remainder = divmod(cores, cores_per_task)
-        tasks = int(tasks)
-        if remainder != 0:
-            warn(str(cores) + ' cores not evenly divisible over ' +
-                 str(cores_per_task) + ' cores per task. Using ' +
-                 str(tasks) + ' tasks.')
-        return tasks
-
-    @classmethod
-    def from_dir(cls, dir, binaryrelpath=None,
-                 stdout=default_stdout,
-                 stderr=default_stderr):
-        """ Reconstruct Run from directory
-        Try to reconstruct the Run from a directory. Gives a warning if
-        STDOUT and STDERR cannot be found on their given or default location.
-
-        Args:
-            dir: Root directory of the Run
-
-        Kwargs:
-            binarylinkpath: Path to the link pointing to the QuaLiKiz binary
-            stdout:         Where to look for the STDOUT file
-            stderr:         Where to look for the STDERR file
-
-        Returns:
-            Reconstructed QuaLiKizRun
-        """
-        rundir = os.path.realpath(dir.rstrip('/'))
-        parent_dir, name = os.path.split(rundir)
-        parent_dir = os.path.abspath(parent_dir)
-        # We assume the binary is named something with 'QuaLiKiz' in it
-        if binaryrelpath is None:
-            for file in os.listdir(rundir):
-                if 'QuaLiKiz' in file:
-                    binaryrelpath = os.readlink(os.path.join(rundir, file))
-                    break
-        if binaryrelpath is None:
-            raise OSError('Could not find link to QuaLiKiz binary. Please supply `binaryrelpath`')
-        #binarybasepath = os.path.basename(binaryrelpath)
-        #binaryrelpath = os.readlink(os.path.join(rundir, binarybasepath))
-        planpath = os.path.join(rundir, cls.parameterspath)
-        qualikiz_plan = QuaLiKizPlan.from_json(planpath)
-        stdout = cls._find_file(stdout, rundir)
-        stderr = cls._find_file(stderr, rundir)
-        return QuaLiKizRun(parent_dir, name, binaryrelpath,
-                           qualikiz_plan=qualikiz_plan,
-                           stdout=stdout, stderr=stderr)
-
-    @classmethod
-    def _find_file(cls, path, rundir):
-        """ Try to find a file. Used for STDOUT and STDERR """
-        if not os.path.isfile(path):
-            info('Could not find file at \'' + str(path) + '\' searching..')
-            path = os.path.join(rundir, os.path.basename(path))
-            if not os.path.isfile(path):
-                info('Could not find file at \'' + str(path) +
-                     '\', file was probably not saved')
-                path = None
-            else:
-                info('Found file at \'' + path + '\'')
-        return path
-
-
-    def clean(self):
-        """ Cleans run folder to state before it was run """
-        try:
-            suffix = '.dat'
-            self._clean_suffix(os.path.join(self.rundir, self.outputdir),
-                               suffix)
-            self._clean_suffix(os.path.join(self.rundir, self.primitivedir),
-                               suffix)
-            self._clean_suffix(os.path.join(self.rundir, self.debugdir),
-                               suffix)
-            os.remove(os.path.join(self.rundir, self.stdout))
-            os.remove(os.path.join(self.rundir, self.stderr))
-        except FileNotFoundError:
-            pass
-
-    @classmethod
-    def _clean_suffix(cls, dir, suffix):
-        """ Removes all files with suffix in dir """
-        for file in os.listdir(dir):
-            if file.endswith(suffix):
-                os.remove(os.path.join(dir, file))
-
-    def __eq__(self, other):
-        if isinstance(other, self.__class__):
-            attrs = self.__dict__.copy()
-            other_attrs = other.__dict__.copy()
-            equal = True
-            for name in ['binaryrelpath', 'stderr', 'stdout', 'rundir']:
-                self_path = os.path.normpath(os.path.join(self.rundir, attrs.pop(name)))
-                other_path = os.path.normpath(os.path.join(self.rundir, other_attrs.pop(name)))
-                equal = equal and self_path == other_path
-            return attrs == other_attrs and equal
-        return NotImplemented
-
-    def __ne__(self, other):
-        if isinstance(other, self.__class__):
-            return not self == other
-        return NotImplemented
-
-    def to_netcdf(self, **kwargs):
-        """ Convert the output and debug to netCDF """
-        run_to_netcdf(self.rundir, **kwargs)
-
-    def is_done(self):
-        last_output = os.path.join(self.rundir, 'output/vfi_GB.dat')
-        return os.path.isfile(last_output)
 
 
 def overwrite_prompt(path, overwrite=None):
