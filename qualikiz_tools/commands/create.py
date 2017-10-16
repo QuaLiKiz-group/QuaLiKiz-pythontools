@@ -5,7 +5,7 @@ Usage:
   qualikiz_tools [-v | -vv] create --as_batch <machine> [--in_dir <directory>] [--binary_path <path>] from_json <path_to_json>
 
 Options:
-    --in_dir <directory>            Create folder in this folder [default: runs]
+    --in_dir <directory>            Create folder in this folder [default: .]
     --name <name>                   Name to give to the main folder of the run
     --binary_path <path>            Path to the QuaLiKiz binary [default: ./QuaLiKiz]
     --as_batch <machine>            Create a batch script for the specified machine
