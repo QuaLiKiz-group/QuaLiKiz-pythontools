@@ -1,6 +1,6 @@
 """
 Usage:
-  qualikiz_tools launcher [-v | -vv] <command> <machine> <target_path>
+  qualikiz_tools launcher [-v | -vv] [--stdout <path>] [--stderr <path>] <command> <machine> <target_path>
   qualikiz_tools launcher [-v | -vv] help
 
   For example, create input binaries for QuaLiKiz batch or run contained in <target_path>
@@ -8,6 +8,8 @@ Usage:
 
 Options:
   --version <version>               Version of QuaLiKiz to generate input for [default: current]
+  --stdout <path>                   Path to put STDOUT. Defaults to piping to terminal.
+  --stderr <path>                   Path to put STDERR. Defaults to piping to terminal.
   -h --help                         Show this screen.
   [-v | -vv]                        Verbosity
 
@@ -46,10 +48,14 @@ def run(args):
         except ModuleNotFoundError:
             raise NotImplementedError('Machine {!s} not implemented yet'.format(args['<machine>']))
         Run, Batch = _temp.Run, _temp.Batch
-        try:
-            qlk_instance = Batch.from_dir(args['<target_path>'])
-        except:
-            qlk_instance = Run.from_dir(args['<target_path>'])
+        kwargs = {}
+        if args['--stdout'] is not None:
+            kwargs['stdout'] = args['--stdout']
+        if args['--stderr'] is not None:
+            kwargs['stderr'] = args['--stderr']
+        if args['-v'] >= 1:
+            kwargs['verbose'] = True
+        __, qlk_instance = qlk_from_dir(args['<target_path>'], batch_class=Batch, run_class=Run, **kwargs)
 
         if args['-v'] >= 1:
             print('Supplied dir ' + args['<target_path>'] + ' is of type ' + str(qlk_instance.__class__))
@@ -58,6 +64,8 @@ def run(args):
 
     kwargs = {}
     if args['<command>'] == 'launch':
+        if not qlk_instance.inputbinaries_exist():
+            qlk_instance.generate_input()
         qlk_instance.launch()
     elif args['<target_path>'] in ['help', None] or args['<command>'] in ['help', None]:
         exit(call([sys.executable, os.path.join(ROOT, 'commands', 'output.py'), '--help']))

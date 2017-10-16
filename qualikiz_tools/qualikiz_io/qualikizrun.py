@@ -229,7 +229,7 @@ class QuaLiKizRun:
     @classmethod
     def from_dir(cls, dir, binaryrelpath=None,
                  stdout=default_stdout,
-                 stderr=default_stderr):
+                 stderr=default_stderr, verbose=False):
         """ Reconstruct Run from directory
         Try to reconstruct the Run from a directory. Gives a warning if
         STDOUT and STDERR cannot be found on their given or default location.
@@ -255,31 +255,14 @@ class QuaLiKizRun:
                     binaryrelpath = os.readlink(os.path.join(rundir, file))
                     break
         if binaryrelpath is None:
-            raise OSError('Could not find link to QuaLiKiz binary. Please supply `binaryrelpath`')
+            raise OSError('Could not find link to QuaLiKiz binary. Please supply \'binaryrelpath\'')
         #binarybasepath = os.path.basename(binaryrelpath)
         #binaryrelpath = os.readlink(os.path.join(rundir, binarybasepath))
         planpath = os.path.join(rundir, cls.parameterspath)
         qualikiz_plan = QuaLiKizPlan.from_json(planpath)
-        stdout = cls._find_file(stdout, rundir)
-        stderr = cls._find_file(stderr, rundir)
         return QuaLiKizRun(parent_dir, name, binaryrelpath,
                            qualikiz_plan=qualikiz_plan,
                            stdout=stdout, stderr=stderr)
-
-    @classmethod
-    def _find_file(cls, path, rundir):
-        """ Try to find a file. Used for STDOUT and STDERR """
-        if not os.path.isfile(path):
-            info('Could not find file at \'' + str(path) + '\' searching..')
-            path = os.path.join(rundir, os.path.basename(path))
-            if not os.path.isfile(path):
-                info('Could not find file at \'' + str(path) +
-                     '\', file was probably not saved')
-                path = None
-            else:
-                info('Found file at \'' + path + '\'')
-        return path
-
 
     def clean(self):
         """ Cleans run folder to state before it was run """
@@ -342,6 +325,7 @@ class QuaLiKizBatch():
         scriptname:     The default name of the sbatch scipt file.
         default_stdout: Default name to write STDOUT to
         default_stderr: Default name to write STDERR to
+        run_class:      The class of the underlying QuaLiKiz run
     """
 
     batchinfofile = 'batchinfo.json'
@@ -349,6 +333,8 @@ class QuaLiKizBatch():
 
     default_stderr = 'stderr.batch'
     default_stdout = 'stdout.batch'
+
+    run_class = QuaLiKizRun
 
     def __init__(self, parent_dir, name, runlist,
                  stdout=None,
@@ -426,6 +412,10 @@ class QuaLiKizBatch():
             pool.map(partial(QuaLiKizRun.generate_input, dotprint=dotprint, conversion=conversion),
                      self.runlist)
 
+    def inputbinaries_exist(self):
+        return all([run.inputbinaries_exist() for run in self.runlist])
+
+
     @classmethod
     def from_dir_recursive(cls, searchdir):
         """ Reconstruct batch from directory tree
@@ -446,7 +436,7 @@ class QuaLiKizBatch():
         return batchlist
 
     @classmethod
-    def from_subdirs(cls, batchdir, scriptname=None):
+    def from_subdirs(cls, batchdir, *args, scriptname=None, verbose=False, **kwargs):
         """ Reconstruct batch from a directory
         This function assumes that the name of the batch can be
         determined by the given batchdir. If the batch was created
@@ -468,34 +458,46 @@ class QuaLiKizBatch():
         #qualikizbatch = QuaLiKizBatch.__new__(cls)
         #qualikizbatch.parent_dir = os.path.abspath(parent_dir)
         #qualikizbatch.name = name
+        kwargs['verbose'] = verbose
         if scriptname is None:
             scriptname = cls.scriptname
         batchscript_path = os.path.join(batchdir, scriptname)
         try:
-            batch = cls.from_batch_file(batchscript_path)
-        except AttributeError:
-            warn('No from_file function defined for {!s}, falling back to subdirs'.format(cls))
-            runlist = []
-        # Try to find the contained runs, they are usually in one of the children
-            try:
-                runlist = [QuaLiKizRun.from_dir(batchdir)]
-            except OSError:
-                for subpath in os.listdir(batchdir):
-                    subpath = os.path.join(batchdir, subpath)
-                    if os.path.isdir(subpath):
-                        rundir = os.path.join(batchdir, subpath)
-                        try:
-                            run = QuaLiKizRun.from_dir(rundir)
-                        except OSError:
-                            pass
-                        else:
-                            runlist.append(run)
-            if len(runlist) == 0:
-                raise OSError('Could not reconstruct runlist from subdirs')
-
-            batch = QuaLiKizBatch(parent_dir, name, runlist)
+            batch = cls.from_batch_file(batchscript_path, **kwargs)
+        except (AttributeError, FileNotFoundError) as ee:
+            if ee.__class__ == AttributeError:
+                warn_msg = 'No from_file function defined for {!s}'
+            elif ee.__class__ == FileNotFoundError:
+                warn_msg = 'No batch file found for {!s}'
+            warn(warn_msg + ', falling back to subdirs'.format(cls))
+            runlist = cls.runlist_from_subdirs(batchdir, **kwargs)
+            batch = cls(parent_dir, name, runlist)
 
         return batch
+
+    @classmethod
+    def runlist_from_subdirs(cls, batchdir, verbose=False, **kwargs):
+        runlist = []
+        # Try to find the contained runs, they are usually in one of the children
+        try:
+            runlist = [cls.run_class.from_dir(batchdir, **kwargs)]
+        except OSError:
+            if verbose:
+                print('Could not reconstruct run from \'{!s}\'. Maybe from its subfolders?'.format(batchdir))
+            for subpath in os.listdir(batchdir):
+                subpath = os.path.join(batchdir, subpath)
+                if os.path.isdir(subpath):
+                    rundir = os.path.join(batchdir, subpath)
+                    try:
+                        run = cls.run_class.from_dir(rundir, **kwargs)
+                        print("Reconstructed run from '{!s}'.".format(rundir))
+                    except OSError:
+                        pass
+                    else:
+                        runlist.append(run)
+        if len(runlist) == 0:
+            raise OSError('Could not reconstruct runlist from subdirs')
+        return runlist
 
     def to_netcdf(self, runmode='dimx', mode='noglue',
                   genfromtxt=False, encode=None, clean=True,
@@ -722,18 +724,30 @@ def run_to_netcdf(path, runmode='dimx', overwrite=None,
             ds.to_netcdf(netcdf_path, engine='netcdf4',
                          format='NETCDF4', encoding=encoding)
         except ModuleNotFoundError:
-            warn('netCDF4 module not found! Please install by `pip install ' +
-                 'netcdf4`. Falling back to netCDF3')
+            warn('netCDF4 module not found! Please install by \'pip install ' +
+                 'netcdf4\'. Falling back to netCDF3')
             ds.to_netcdf(netcdf_path, encoding=encoding)
 
-def qlk_from_dir(dir):
-    try:
+def qlk_from_dir(dir, batch_class=QuaLiKizBatch, run_class=QuaLiKizRun, verbose=False, **kwargs):
+    kwargs['verbose'] = verbose
+    script_path = os.path.join(dir, QuaLiKizBatch.scriptname)
+    if os.path.exists(script_path):
+        qlk_instance = batch_class.from_batch_file(script_path, **kwargs)
         dirtype = 'batch'
-        qlk_instance = QuaLiKizBatch.from_subdirs(dir)
-    except OSError:
+    else:
+        if verbose:
+            print('{!s} does not exist.'.format(QuaLiKizBatch.scriptname))
         try:
+            if verbose:
+                print('Trying to reconstruct run')
+            qlk_instance = run_class.from_dir(dir, **kwargs)
             dirtype = 'run'
-            qlk_instance = QuaLiKizRun.from_dir(dir)
-        except:
-            raise Exception('Could not determine folder type')
+        except OSError:
+            if verbose:
+                print('Not able to reconstruct run, trying to reconstruct batch')
+            try:
+                qlk_instance = batch_class.from_dir(dir, **kwargs)
+                dirtype = 'batch'
+            except:
+                raise Exception('Could not determine folder type')
     return dirtype, qlk_instance

@@ -11,36 +11,13 @@ from ..qualikiz_io.qualikizrun import QuaLiKizRun, QuaLiKizBatch
 import subprocess
 import multiprocessing as mp
 
-#    def __eq__(self, other):
-#        if isinstance(other, self.__class__):
-#            return self.__dict__ == other.__dict__
-#        return NotImplemented
-#
-#    def __ne__(self, other):
-#        if isinstance(other, self.__class__):
-#            return not self == other
-#        return NotImplemented
-
-
-def str_to_number(string):
-    """ Convert a string in a float or int if possible """
-    try:
-        value = float(string)
-    except ValueError:
-        value = string
-    else:
-        if value.is_integer:
-            value = int(value)
-    return value
-
-
 class Run(System.Run):
     runstring = 'mpirun'
     """ Defines the run command """
 
     def __init__(self, parent_dir, name, binaryrelpath,
-                 qualikiz_plan=None, stdout=None, stderr=None, verbose=False,
-                 tasks=None, **kwargs):
+                 qualikiz_plan=None, stdout=None, stderr=None,
+                 verbose=False, tasks=None, **kwargs):
         """ Initializes the Srun class
 
         Args:
@@ -52,6 +29,10 @@ class Run(System.Run):
             - stdout: Standard target of redirect of STDOUT
             - stderr: Standard target of redirect of STDERR
         """
+        if stdout is None:
+            stdout = 'STDOUT'
+        if stderr is None:
+            stderr = 'STDERR'
         super().__init__(parent_dir, name, binaryrelpath,
                          qualikiz_plan=qualikiz_plan,
                          stdout=stdout, stderr=stderr,
@@ -76,48 +57,68 @@ class Run(System.Run):
         string = ' '.join([self.runstring ,
                            '-n'     , str(self.tasks) ,
                            '-wdir'  , self.rundir     ,
-                                      './' + os.path.basename(self.binaryrelpath) ,
-                           '>'      , paths[0]        ,
-                           '2>'     , paths[1]        ,
-        ])
+                                      './' + os.path.basename(self.binaryrelpath)])
+        if self.stdout != 'STDOUT':
+            string += ' > ' + paths[0]
+        if self.stderr != 'STDERR':
+            string += ' 2> ' + paths[1]
         return string
 
     @classmethod
     def from_batch_string(cls, string):
         """ Reconstruct the Run from a string """
         split = string.split(' ')
+        dict_ = {}
+
         tasks = int(split[2])
         rundir = split[4]
         binary_name = split[5].strip()
         binaryrelpath = os.readlink(os.path.join(rundir, binary_name))
         paths = []
-        for path in [split[7], split[9]]:
-            if os.path.isabs(path):
-                pass
+        for path_index in [7, 9]:
+            try:
+                path = split[path_index]
+            except IndexError:
+                path = None
             else:
-                path = os.path.relpath(path, rundir)
+                if not os.path.isabs(path):
+                    path = os.path.relpath(path, rundir)
             paths.append(path)
         return Run(os.path.dirname(rundir), os.path.basename(rundir),
                    binaryrelpath, stdout=paths[0], stderr=paths[1])
 
     @classmethod
     def from_dir(cls, dir, tasks=None, **kwargs):
-        qualikiz_run = QuaLiKizRun.from_dir(dir, **kwargs)
+        stdout = kwargs.pop('stdout', None)
+        stderr = kwargs.pop('stderr', None)
+        qualikiz_run = QuaLiKizRun.from_dir(dir, stdout=stdout, stderr=stderr, **kwargs)
         parent_dir = os.path.dirname(qualikiz_run.rundir)
         name = os.path.basename(qualikiz_run.rundir)
+        if qualikiz_run.stdout == QuaLiKizRun.default_stdout:
+            qualikiz_run.stdout = None
+        if qualikiz_run.stderr == QuaLiKizRun.default_stderr:
+            qualikiz_run.stderr = None
         return Run(parent_dir, name, qualikiz_run.binaryrelpath, tasks=tasks,
                    stdout=qualikiz_run.stdout, stderr=qualikiz_run.stderr,
                    **kwargs)
 
     def launch(self):
+        """ Launch QuaLiKizRun using mpirun
+        """
         self.inputbinaries_exist()
         # Check if batch script is generated
         self.clean()
 
         cmd = ' '.join(['cd', self.rundir, '&&', self.runstring,
                         '-n', str(self.tasks), './' + os.path.basename(self.binaryrelpath)])
-        stdout = open(os.path.join(self.rundir, self.stdout), 'w')
-        stderr = open(os.path.join(self.rundir, self.stderr), 'w')
+        if self.stdout == 'STDOUT':
+            stdout = None
+        else:
+            stdout = open(os.path.join(self.rundir, self.stdout), 'w')
+        if self.stderr == 'STDERR':
+            stderr = None
+        else:
+            stderr = open(os.path.join(self.rundir, self.stderr), 'w')
         subprocess.check_call(cmd, shell=True, stdout=stdout, stderr=stderr)
 
 
@@ -131,12 +132,14 @@ class Batch(System.Batch):
         - shell:            The shell to use for sbatch scripts. Usually bash
     """
     shell = '/bin/bash'
+    run_class = Run
 
     def __init__(self, parent_dir, name, runlist, tasks=None,
                  stdout=None, stderr=None,
                  HT=True,
                  vcores_per_task=2,
-                 style='sequential'):
+                 style='sequential',
+                 verbose=False):
         """ Initialize Edison batch job
 
         Args:
@@ -153,7 +156,12 @@ class Batch(System.Batch):
                           only 'sequential' is used
         """
 
-        super().__init__(parent_dir, name, runlist)
+        if stdout is None:
+            stdout = 'STDOUT'
+        if stderr is None:
+            stderr = 'STDERR'
+        super().__init__(parent_dir, name, runlist,
+                         stdout=stdout, stderr=stderr)
 
         if style == 'sequential':
             pass
@@ -180,8 +188,10 @@ class Batch(System.Batch):
         os.chmod(path, st.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
     @classmethod
-    def from_batch_file(cls, path):
+    def from_batch_file(cls, path, **kwargs):
         """ Reconstruct sbatch from sbatch file """
+        name = os.path.basename(os.path.dirname(path))
+        parent_dir = os.path.dirname(os.path.dirname(path))
         run_strings = []
         with open(path, 'r') as file:
             for line in file:
@@ -191,26 +201,56 @@ class Batch(System.Batch):
         runlist = []
         for run_string in run_strings:
             runlist.append(Run.from_batch_string(run_string))
-        name = os.path.basename(os.path.dirname(path))
-        parent_dir = os.path.dirname(os.path.dirname(path))
+        batch = Batch(parent_dir, name, runlist, **kwargs)
 
-        return Batch(parent_dir, name, runlist)
+        return batch
 
     def launch(self):
-        for run in self.runlist:
-            run.inputbinaries_exist()
+        """ Launch QuaLiKizBatch using a batch script with mpirun
+        """
+        self.inputbinaries_exist()
         # Check if batch script is generated
         batchdir = os.path.join(self.parent_dir, self.name)
-        batchpath = os.path.join(batchdir, self.scriptname)
-        if not os.path.exists(batchpath):
-            raise Exception('Batch script does not exist!')
+        script_path = os.path.join(batchdir, self.scriptname)
+        if not os.path.exists(script_path):
+            warn('Batch script does not exist! Generating.. in {!s}'.format(batchdir))
+            self.to_batch_file(os.path.join(script_path))
 
         self.clean()
 
         cmd = ' '.join(['cd', batchdir, '&& bash', self.scriptname])
-        stdout = open(os.path.join(batchdir, self.stdout), 'w')
-        stderr = open(os.path.join(batchdir, self.stderr), 'w')
+        if self.stdout == 'STDOUT':
+            stdout = None
+        else:
+            stdout = open(os.path.join(batchdir, self.stdout), 'w')
+        if self.stderr == 'STDERR':
+            stderr = None
+        else:
+            stderr = open(os.path.join(batchdir, self.stderr), 'w')
         subprocess.check_call(cmd, shell=True, stdout=stdout, stderr=stderr)
+
+
+#    def __eq__(self, other):
+#        if isinstance(other, self.__class__):
+#            return self.__dict__ == other.__dict__
+#        return NotImplemented
+#
+#    def __ne__(self, other):
+#        if isinstance(other, self.__class__):
+#            return not self == other
+#        return NotImplemented
+
+
+def str_to_number(string):
+    """ Convert a string in a float or int if possible """
+    try:
+        value = float(string)
+    except ValueError:
+        value = string
+    else:
+        if value.is_integer:
+            value = int(value)
+    return value
 
 
     #def __eq__(self, other):
