@@ -727,12 +727,13 @@ def run_to_netcdf(path, runmode='dimx', overwrite=None,
             ds.to_netcdf(netcdf_path, encoding=encoding)
 
 def qlk_from_dir(dir):
-    if os.path.exists(os.path.join(dir, QuaLiKizBatch.scriptname)):
+    try:
         dirtype = 'batch'
         qlk_instance = QuaLiKizBatch.from_subdirs(dir)
-    elif os.path.exists(os.path.join(dir, QuaLiKizRun.parameterspath)):
-        dirtype = 'run'
-        qlk_instance = QuaLiKizRun.from_dir(dir)
-    else:
-        raise Exception('Could not determine folder type')
+    except OSError:
+        try:
+            dirtype = 'run'
+            qlk_instance = QuaLiKizRun.from_dir(dir)
+        except:
+            raise Exception('Could not determine folder type')
     return dirtype, qlk_instance
