@@ -41,14 +41,19 @@ def run(args):
 
     dirtype = None
     # Detect the type of path given; QuaLiKizBatch or QuaLiKizRun
+    kwargs = {}
     if args['<target_path>']:
-        dirtype, qlk_instance = qlk_from_dir(args['<target_path>'])
+        if args['-v'] >= 1:
+            kwargs['verbose'] = True
+        dirtype, qlk_instance = qlk_from_dir(args['<target_path>'], **kwargs)
         if args['-v'] >= 1:
             print('Supplied dir ' + args['<target_path>'] + ' is of type ' + str(dirtype))
 
 
     kwargs = {}
     if args['<command>'] == 'to_netcdf':
+        if args['-v'] >= 1:
+            kwargs['verbose'] = True
         if args['--delfile'] is True:
             kwargs['keepfile'] = False
         if args['--genfromtxt']:
@@ -59,6 +64,7 @@ def run(args):
                 kwargs['mode'] = 'glue'
                 kwargs['clean'] = True
         if args['-v'] >= 1:
+            print('kwargs:')
             print(kwargs)
         qlk_instance.to_netcdf(**kwargs)
 
