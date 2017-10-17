@@ -32,11 +32,6 @@ class Batch(QuaLiKizBatch):
     def from_batch_file(cls, path, *args, **kwargs):
         raise NotImplementedError('Batch from_file not implemented yet')
 
-    @classmethod
-    def from_dir(cls, dir, *args, **kwargs):
-        warn('Specialized from_dir method not defined')
-        return super().from_subdirs(dir, *args, **kwargs)
-
     def launch(self, *args, **kwargs):
         raise NotImplementedError('Batch launch not implemented yet')
 

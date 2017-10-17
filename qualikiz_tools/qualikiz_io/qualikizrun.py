@@ -252,15 +252,19 @@ class QuaLiKizRun:
         if binaryrelpath is None:
             for file in os.listdir(rundir):
                 if 'QuaLiKiz' in file:
-                    binaryrelpath = os.readlink(os.path.join(rundir, file))
-                    break
+                    try:
+                        binaryrelpath = os.readlink(os.path.join(rundir, file))
+                    except OSError:
+                        warn('Failed to read {!s}'.format(os.path.join(rundir, file)))
+                    else:
+                        break
         if binaryrelpath is None:
-            raise OSError('Could not find link to QuaLiKiz binary. Please supply \'binaryrelpath\'')
+            warn('Could not find link to QuaLiKiz binary. Please supply \'binaryrelpath\'')
         #binarybasepath = os.path.basename(binaryrelpath)
         #binaryrelpath = os.readlink(os.path.join(rundir, binarybasepath))
         planpath = os.path.join(rundir, cls.parameterspath)
         qualikiz_plan = QuaLiKizPlan.from_json(planpath)
-        return QuaLiKizRun(parent_dir, name, binaryrelpath,
+        return QuaLiKizRun(parent_dir, name, binaryrelpath=binaryrelpath,
                            qualikiz_plan=qualikiz_plan,
                            stdout=stdout, stderr=stderr)
 
@@ -436,6 +440,11 @@ class QuaLiKizBatch():
         return batchlist
 
     @classmethod
+    def from_dir(cls, dir, *args, **kwargs):
+        warn('Specialized from_dir method not defined')
+        return cls.from_subdirs(dir, *args, **kwargs)
+
+    @classmethod
     def from_subdirs(cls, batchdir, *args, scriptname=None, verbose=False, **kwargs):
         """ Reconstruct batch from a directory
         This function assumes that the name of the batch can be
@@ -485,13 +494,15 @@ class QuaLiKizBatch():
             if verbose:
                 print('Could not reconstruct run from \'{!s}\'. Maybe from its subfolders?'.format(batchdir))
             for subpath in os.listdir(batchdir):
-                subpath = os.path.join(batchdir, subpath)
                 if os.path.isdir(subpath):
                     rundir = os.path.join(batchdir, subpath)
                     try:
+                        print('Trying {!s}'.format(rundir))
                         run = cls.run_class.from_dir(rundir, **kwargs)
                         print("Reconstructed {!s} from '{!s}'.".format(run.__class__, rundir))
-                    except OSError:
+                    except OSError as ee:
+                        print(ee.__class__)
+                        print(ee)
                         pass
                     else:
                         runlist.append(run)
@@ -501,7 +512,7 @@ class QuaLiKizBatch():
 
     def to_netcdf(self, runmode='dimx', mode='noglue',
                   genfromtxt=False, encode=None, clean=True,
-                  keepfile=True, processes=1):
+                  keepfile=True, processes=1, verbose=False):
         """ Convert QuaLiKizBatch output to netcdf
         iith warnings.catch_warnings():
             warnings.simplefilter("ignore")
