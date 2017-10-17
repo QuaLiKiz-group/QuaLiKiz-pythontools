@@ -490,7 +490,7 @@ class QuaLiKizBatch():
                     rundir = os.path.join(batchdir, subpath)
                     try:
                         run = cls.run_class.from_dir(rundir, **kwargs)
-                        print("Reconstructed run from '{!s}'.".format(rundir))
+                        print("Reconstructed {!s} from '{!s}'.".format(run.__class__, rundir))
                     except OSError:
                         pass
                     else:
