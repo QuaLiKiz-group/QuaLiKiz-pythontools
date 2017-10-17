@@ -6,28 +6,33 @@ License: CeCILL v2.1
 from warnings import warn
 import os
 import stat
-from .system import System
+from .system import Run, Batch
 from ..qualikiz_io.qualikizrun import QuaLiKizRun, QuaLiKizBatch
 import subprocess
 import multiprocessing as mp
 
-class Run(System.Run):
-    runstring = 'mpirun'
+class Run(Run):
     """ Defines the run command """
+    runstring = 'mpirun'
 
     def __init__(self, parent_dir, name, binaryrelpath,
                  qualikiz_plan=None, stdout=None, stderr=None,
-                 verbose=False, tasks=None, **kwargs):
-        """ Initializes the Srun class
+                 verbose=False, tasks=None, HT=True, **kwargs):
+        """ Initializes the Run class
 
         Args:
-            - binary_name: The name of the binary relative to where
-                           the sbatch script will be
-            - tasks:       Amount of MPI tasks needed for the job
+            parent_dir:     Directory the run lives in
+            name:           Name of the run. Will also be the folder name
+            binaryrelpath:  Path of the binary relative to the run dir
         Kwargs:
-            - chdir:  Dir to change to before running the command
-            - stdout: Standard target of redirect of STDOUT
-            - stderr: Standard target of redirect of STDERR
+            qualikiz_plan:  The QuaLiKizPlan instance used to generate input
+            tasks:          Amount of MPI tasks needed for the job. Number of
+                            virtual cores by default.
+            HT:             Use hyperthreading. [Default: True]
+            stdout:         Standard target of redirect of STDOUT [default: terminal]
+            stderr:         Standard target of redirect of STDERR [default: terminal]
+            verbose:        Verbose output while creating the Run [default: False]
+            **kwargs:       kwargs past to superclass
         """
         if stdout is None:
             stdout = 'STDOUT'
@@ -36,16 +41,22 @@ class Run(System.Run):
         super().__init__(parent_dir, name, binaryrelpath,
                          qualikiz_plan=qualikiz_plan,
                          stdout=stdout, stderr=stderr,
-                         verbose=verbose)
+                         verbose=verbose, **kwargs)
         if tasks is None:
             ncpu = mp.cpu_count()
-            HT = True
             self.tasks = self.calculate_tasks(ncpu, HT=HT)
         else:
             self.tasks = tasks
 
     def to_batch_string(self, batch_parent_dir):
-        """ Create the run string """
+        """ Create string to include in batch job
+
+        This string will be used in the batch script file that runs the jobs.
+
+        Args:
+            batch_parent_dir: Directory the batch script lives in. Needed to
+                              generate the relative paths.
+        """
         paths = []
         for path in [self.stdout, self.stderr]:
             if os.path.isabs(path):
@@ -66,7 +77,16 @@ class Run(System.Run):
 
     @classmethod
     def from_batch_string(cls, string):
-        """ Reconstruct the Run from a string """
+        """ Reconstruct the Run from a batch string
+
+        Reverse of to_batch_string. Used to reconstruct the run from a batch script.
+
+        Args:
+            string:     The string to parse
+
+        Returns:
+            The reconstructed Run instance
+        """
         split = string.split(' ')
         dict_ = {}
 
@@ -104,6 +124,9 @@ class Run(System.Run):
 
     def launch(self):
         """ Launch QuaLiKizRun using mpirun
+
+        Special variables self.stdout == 'STDOUT' and self.stderr == 'STDERR'
+        will output to terminal.
         """
         self.inputbinaries_exist()
         # Check if batch script is generated
@@ -122,40 +145,45 @@ class Run(System.Run):
         subprocess.check_call(cmd, shell=True, stdout=stdout, stderr=stderr)
 
 
-class Batch(System.Batch):
+class Batch(Batch):
     """ Defines a batch job
 
-    This class uses the OpenMP/MPI parameters as defined by Edison,
-    but could in principle be extented to support more machines.
-
     Class Variables:
-        - shell:            The shell to use for sbatch scripts. Usually bash
+        shell:            The shell to use for batch scripts.
+                          Tested only with bash
+        run_class:        class that represents the runs contained in batch
     """
     shell = '/bin/bash'
     run_class = Run
 
     def __init__(self, parent_dir, name, runlist, tasks=None,
                  stdout=None, stderr=None,
-                 HT=True,
-                 vcores_per_task=2,
                  style='sequential',
                  verbose=False):
-        """ Initialize Edison batch job
+        """ Initialize batch job
 
         Args:
-            - srun_instances: List of Srun instances included in the Sbatch job
-            - name:           Name of the Sbatch job
-            - tasks:          Amount of MPI tasks
-            - ncpu:           Amount of cpus to be used
+            parent_dir:     Directory the batch lives in
+            name:           Name of the batch. Will also be the folder name
+            runlist:        List of runs contained in this batch
+
+        Kwargs:
+            tasks:          Amount of MPI tasks needed PER RUN. Number of
+                            virtual cores by default.
+            stdout:         Standard target of redirect of STDOUT [default: terminal]
+            stderr:         Standard target of redirect of STDERR [default: terminal]
+            style:          How to glue the different runs together. Currently
+                            only 'sequential' is used
+            verbose:        Verbose output while creating the Run [default: False]
+            **kwargs:       kwargs past to superclass
 
         Kwargs:
             - stdout:     File to write stdout to. By default 'stdout.batch'
             - stderr:     File to write stderr to. By default 'stderr.batch'
-            - HT:         Hyperthreading on/off. Default=True
-            - style:      How to glue the different runs together. Currently
-                          only 'sequential' is used
         """
 
+        if not all([run.__class__ == self.run_class for run in runlist]):
+            raise Exception('Runs are not of class {!s}'.format(self.run_class))
         if stdout is None:
             stdout = 'STDOUT'
         if stderr is None:
@@ -169,10 +197,10 @@ class Batch(System.Batch):
             raise NotImplementedError('Style {!s} not implemented yet.'.format(style))
 
     def to_batch_file(self, path):
-        """ Writes sbatch script to file
+        """ Writes batch script to file
 
         Args:
-            - path: Path of the sbatch script file.
+            path:       Path of the sbatch script file.
         """
         batch_lines = ['#!' + self.shell + '\n\n']
 
@@ -189,7 +217,7 @@ class Batch(System.Batch):
 
     @classmethod
     def from_batch_file(cls, path, **kwargs):
-        """ Reconstruct sbatch from sbatch file """
+        """ Reconstruct batch from batch file """
         name = os.path.basename(os.path.dirname(path))
         parent_dir = os.path.dirname(os.path.dirname(path))
         run_strings = []
