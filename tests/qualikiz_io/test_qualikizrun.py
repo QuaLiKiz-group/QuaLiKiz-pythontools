@@ -207,6 +207,16 @@ class TestQuaLiKizBatch(TestCase):
             self.qualikizbatch.prepare()
         self.qualikizbatch.generate_input()
 
+    def test_runlist_from_subdirs(self):
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            self.qualikizbatch.prepare()
+
+        batchdir = os.path.join(self.qualikizbatch.parent_dir,
+                                self.qualikizbatch.name)
+        runlist = self.qualikizbatch.runlist_from_subdirs(batchdir)
+        self.assertEqual(runlist, self.qualikizbatch.runlist)
+
     def test_from_subdirs(self):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")

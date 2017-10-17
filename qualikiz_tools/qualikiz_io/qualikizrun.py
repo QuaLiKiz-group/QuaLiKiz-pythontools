@@ -248,6 +248,9 @@ class QuaLiKizRun:
         rundir = os.path.realpath(dir.rstrip('/'))
         parent_dir, name = os.path.split(rundir)
         parent_dir = os.path.abspath(parent_dir)
+
+        planpath = os.path.join(rundir, cls.parameterspath)
+        qualikiz_plan = QuaLiKizPlan.from_json(planpath)
         # We assume the binary is named something with 'QuaLiKiz' in it
         if binaryrelpath is None:
             for file in os.listdir(rundir):
@@ -262,8 +265,6 @@ class QuaLiKizRun:
             warn('Could not find link to QuaLiKiz binary. Please supply \'binaryrelpath\'')
         #binarybasepath = os.path.basename(binaryrelpath)
         #binaryrelpath = os.readlink(os.path.join(rundir, binarybasepath))
-        planpath = os.path.join(rundir, cls.parameterspath)
-        qualikiz_plan = QuaLiKizPlan.from_json(planpath)
         return QuaLiKizRun(parent_dir, name, binaryrelpath=binaryrelpath,
                            qualikiz_plan=qualikiz_plan,
                            stdout=stdout, stderr=stderr)
@@ -490,12 +491,12 @@ class QuaLiKizBatch():
         # Try to find the contained runs, they are usually in one of the children
         try:
             runlist = [cls.run_class.from_dir(batchdir, **kwargs)]
-        except OSError:
+        except FileNotFoundError:
             if verbose:
                 print('Could not reconstruct run from \'{!s}\'. Maybe from its subfolders?'.format(batchdir))
             for subpath in os.listdir(batchdir):
-                if os.path.isdir(subpath):
-                    rundir = os.path.join(batchdir, subpath)
+                rundir = os.path.join(batchdir, subpath)
+                if os.path.isdir(rundir):
                     try:
                         print('Trying {!s}'.format(rundir))
                         run = cls.run_class.from_dir(rundir, **kwargs)
