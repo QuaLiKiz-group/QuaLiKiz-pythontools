@@ -3,18 +3,17 @@ Usage:
   qualikiz_tools launcher [-v | -vv] [--stdout <path>] [--stderr <path>] <command> <machine> <target_path>
   qualikiz_tools launcher [-v | -vv] help
 
-  For example, create input binaries for QuaLiKiz batch or run contained in <target_path>
-      qualikiz_tools input create <target_path>
+  Launch a job using the machine-specific QuaLiKiz tools. In principle the 'bash' machine is machine-agnostic. It needs bash and mpirun at minimum. This command will create input binaries if they are missing.
 
 Options:
   --version <version>               Version of QuaLiKiz to generate input for [default: current]
-  --stdout <path>                   Path to put STDOUT. Defaults to piping to terminal.
-  --stderr <path>                   Path to put STDERR. Defaults to piping to terminal.
+  --stdout <path>                   Path to put STDOUT. Default depends on <machine>.
+  --stderr <path>                   Path to put STDERR. Default depends on <machine>.
   -h --help                         Show this screen.
   [-v | -vv]                        Verbosity
 
-Often used commands:
-  qualikiz_tools output to_netcdf <target_path>
+Example command:
+  qualikiz_tools launcher launch bash .
 
 """
 from docopt import docopt
