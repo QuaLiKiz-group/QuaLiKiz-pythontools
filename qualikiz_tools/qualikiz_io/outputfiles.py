@@ -16,10 +16,10 @@ import numpy as np
 import xarray as xr
 
 output_meth_0_sep_0 = {
-    'pfe'               : None,
-    'pfi'               : None,
     'gam'               : None,
     'ome'               : None,
+    'pfe'               : None,
+    'pfi'               : None,
     'efe'               : None,
     'efi'               : None,
     'vfe'               : None,
@@ -89,6 +89,17 @@ output_meth_2_sep_0 = {
     'veni'              : None,
     'vere'              : None,
     'veri'              : None}
+
+output_meth_2_sep_1 = {
+    'chieiITG'          : None,
+    'chieiTEM'          : None,
+    'veciITG'           : None,
+    'veciTEM'           : None,
+    'veniITG'           : None,
+    'veniTEM'           : None,
+    'veriITG'           : None,
+    'veriTEM'           : None
+}
 
 primi_meth_0 = {
     'Lcirce'            : None,
@@ -215,6 +226,7 @@ output_subsets.update(output_meth_0_sep_1)
 output_subsets.update(output_meth_1_sep_0)
 output_subsets.update(output_meth_1_sep_1)
 output_subsets.update(output_meth_2_sep_0)
+output_subsets.update(output_meth_2_sep_1)
 primi_subsets = OrderedDict()
 primi_subsets.update(primi_meth_0)
 primi_subsets.update(primi_meth_1)
