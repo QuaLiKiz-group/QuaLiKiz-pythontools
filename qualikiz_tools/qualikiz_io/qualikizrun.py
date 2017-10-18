@@ -743,23 +743,28 @@ def run_to_netcdf(path, runmode='dimx', overwrite=None,
 def qlk_from_dir(dir, batch_class=QuaLiKizBatch, run_class=QuaLiKizRun, verbose=False, **kwargs):
     kwargs['verbose'] = verbose
     script_path = os.path.join(dir, QuaLiKizBatch.scriptname)
-    if os.path.exists(script_path):
-        qlk_instance = batch_class.from_batch_file(script_path, **kwargs)
-        dirtype = 'batch'
-    else:
+    #qlk_instance = None
+    #if os.path.exists(script_path):
+    #    try:
+    #        qlk_instance = batch_class.from_batch_file(script_path, **kwargs)
+    #    except AttributeError:
+    #        if verbose:
+    #            print('{!s} does not exist.'.format(QuaLiKizBatch.scriptname))
+    #    dirtype = 'batch'
+    #else:
+    #    if verbose:
+    #        print('{!s} does not exist.'.format(QuaLiKizBatch.scriptname))
+    try:
         if verbose:
-            print('{!s} does not exist.'.format(QuaLiKizBatch.scriptname))
+            print('Trying to reconstruct run')
+        qlk_instance = run_class.from_dir(dir, **kwargs)
+        dirtype = 'run'
+    except OSError:
+        if verbose:
+            print('Not able to reconstruct run, trying to reconstruct batch')
         try:
-            if verbose:
-                print('Trying to reconstruct run')
-            qlk_instance = run_class.from_dir(dir, **kwargs)
-            dirtype = 'run'
-        except OSError:
-            if verbose:
-                print('Not able to reconstruct run, trying to reconstruct batch')
-            try:
-                qlk_instance = batch_class.from_dir(dir, **kwargs)
-                dirtype = 'batch'
-            except:
-                raise Exception('Could not determine folder type')
+            qlk_instance = batch_class.from_dir(dir, **kwargs)
+            dirtype = 'batch'
+        except:
+            raise Exception('Could not determine folder type')
     return dirtype, qlk_instance
