@@ -91,10 +91,19 @@ output_meth_2_sep_0 = {
     'veri'              : None}
 
 output_meth_2_sep_1 = {
+    'chieeETG'          : None,
+    'chieeITG'          : None,
+    'chieeTEM'          : None,
     'chieiITG'          : None,
     'chieiTEM'          : None,
+    'veceETG'           : None,
+    'veceITG'           : None,
+    'veceTEM'           : None,
     'veciITG'           : None,
     'veciTEM'           : None,
+    'veneETG'           : None,
+    'veneITG'           : None,
+    'veneTEM'           : None,
     'veniITG'           : None,
     'veniTEM'           : None,
     'veriITG'           : None,
