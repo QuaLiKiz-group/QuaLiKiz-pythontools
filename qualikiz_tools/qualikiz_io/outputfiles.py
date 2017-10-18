@@ -22,15 +22,12 @@ output_meth_0_sep_0 = {
     'pfi'               : None,
     'efe'               : None,
     'efi'               : None,
-    'vfe'               : None,
     'vfi'               : None,
-    'vre'               : None,
     'vri'               : None,
     'pfe_cm'            : None,
     'pfi_cm'            : None,
     'efe_cm'            : None,
     'efi_cm'            : None,
-    'vfe_cm'            : None,
     'vfi_cm'            : None,
     'ecoefs'            : None, #No suffix
     'npol'              : None, #No suffix
@@ -46,10 +43,11 @@ output_meth_0_sep_1 = {
     'vteTEM'            : None,
     'vtiITG'            : None,
     'vtiTEM'            : None,
-    'vciITG'            : None,
     'vceITG'            : None,
     'vceTEM'            : None,
-    'vciTEM'            : None}
+    'vciITG'            : None,
+    'vciTEM'            : None
+}
 
 output_meth_1_sep_0 = {
     'cke'               : None, #No suffix
@@ -59,7 +57,8 @@ output_meth_1_sep_0 = {
     'vte'               : None,
     'vti'               : None,
     'vce'               : None,
-    'vci'               : None}
+    'vci'               : None
+}
 
 output_meth_1_sep_1 = {
     'efeETG'            : None,
@@ -73,10 +72,9 @@ output_meth_1_sep_1 = {
     'pfiTEM'            : None,
     'vfiITG'            : None,
     'vfiTEM'            : None,
-    'vreITG'            : None,
     'vriITG'            : None,
-    'vreTEM'            : None,
-    'vriTEM'            : None}
+    'vriTEM'            : None
+}
 
 output_meth_2_sep_0 = {
     'ceke'              : None,
@@ -87,8 +85,8 @@ output_meth_2_sep_0 = {
     'veci'              : None,
     'vene'              : None,
     'veni'              : None,
-    'vere'              : None,
-    'veri'              : None}
+    'veri'              : None
+}
 
 output_meth_2_sep_1 = {
     'chieeETG'          : None,
@@ -118,9 +116,7 @@ primi_meth_0 = {
     'Lepiege'           : None,
     'Lpiege'            : None,
     'Lpiegi'            : None,
-    'Lvcirce'           : None,
     'Lvcirci'           : None,
-    'Lvpiege'           : None,
     'Lvpiegi'           : None,
     'fdsol'             : None,
     'jonsolflu'         : None,
@@ -140,7 +136,6 @@ primi_meth_1 = {
     'Lcircgni'          : None,
     'Lcircgte'          : None,
     'Lcircgti'          : None,
-    'Lcircgue'          : None,
     'Lcircgui'          : None,
     'Lcircce'           : None,
     'Lcircci'           : None,
@@ -148,10 +143,10 @@ primi_meth_1 = {
     'Lpiegci'           : None,
     'Lpieggte'          : None,
     'Lpieggti'          : None,
-    'Lpieggue'          : None,
     'Lpieggui'          : None,
     'Lpieggne'          : None,
-    'Lpieggni'          : None}
+    'Lpieggni'          : None
+}
 
 primi_meth_2 = {
     'Lecircce'          : None,
@@ -160,17 +155,16 @@ primi_meth_2 = {
     'Lecircgni'         : None,
     'Lecircgte'         : None,
     'Lecircgti'         : None,
-    'Lecircgue'         : None,
     'Lecircgui'         : None,
     'Lepiegce'          : None,
     'Lepiegci'          : None,
     'Lepieggne'         : None,
     'Lepieggni'         : None,
-    'Lepieggue'         : None,
     'Lepieggui'         : None,
     'Lepiegi'           : None,
     'Lepieggte'         : None,
-    'Lepieggti'         : None}
+    'Lepieggti'         : None
+}
 
 debug_eleclike = {
     'Ane'               : None,
@@ -203,7 +197,8 @@ debug_ionlike = {
     'Zi'                : None,
     'typei'             : None,
     'normni'            : None,
-    'Ti'                : None}
+    'Ti'                : None
+}
 
 debug_single = {
     'dimn'              : None,
@@ -223,7 +218,8 @@ debug_single = {
     'separateflux'      : None,
     'timeout'           : None,
     'phys_meth'         : None,
-    'verbose'           : None}
+    'verbose'           : None
+}
 
 debug_special = {'kthetarhos': None,
                  'phi': None}
