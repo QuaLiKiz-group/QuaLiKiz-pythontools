@@ -64,6 +64,8 @@ class Run(Run):
             else:
                 path = os.path.normpath(os.path.join(os.path.relpath(self.rundir, batch_parent_dir), path))
             paths.append(path)
+        if self.binaryrelpath is None:
+            raise FileNotFoundError('No binary rel path specified, could not find link to QuaLiKiz binary in {!s}'.format(self.rundir))
 
         string = ' '.join([self.runstring ,
                            '-n'     , str(self.tasks) ,
