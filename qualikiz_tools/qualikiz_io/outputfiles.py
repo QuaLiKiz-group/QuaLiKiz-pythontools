@@ -547,11 +547,21 @@ def squeeze_coords(ds, dim):
                 ds.coords[name] = xr.DataArray(float(new))
             elif 'nions' in item.dims and name != 'nions':
                 squeezable = True
+                # Check if we can squeeze ions
                 for i in range(item['nions'].size):
                     squeezable &= (len(np.unique(item.sel(nions=i).values)) == 1)
                 if squeezable:
                     ds.coords[name] = xr.DataArray(item[0,:].values,
-                                                   coords={'nions': item['nions']})
+                                                   coords={'nions': item['nions']},
+                                                   dims=['nions'])
+                # Check if we can squeeze dimx
+                squeezable = True
+                for i in range(item['dimx'].size):
+                    squeezable &= (len(np.unique(item.sel(dimx=i).values)) == 1)
+                if squeezable:
+                    ds.coords[name] = xr.DataArray(item[:,0].values,
+                                                   coords={'dimx': item['dimx']},
+                                                   dims=['dimx'])
     return ds
 
 
