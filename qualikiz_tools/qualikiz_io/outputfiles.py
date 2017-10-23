@@ -974,29 +974,23 @@ def xarray_to_pandas(ds):
     """
     ds = squeeze_dataset(ds)
     ds = to_meta_0d(ds)
+    ds = ds.reset_coords()
     panda_dict = {}
 
-    for name, var in ds.items():
-        tablename = var.dims
-        try:
-            panda_dict[tablename]
-        except KeyError:
-            df = var.to_dataframe()
-            # Drop duplicate columns
-            cols = list(df.columns)
-            for ii, item in enumerate(df.columns):
-                if item in df.columns[:ii]:
-                    cols[ii] = "toDROP"
-            df.columns = cols
-            try:
-                df = df.drop("toDROP", 1)
-            except ValueError:
-                pass
-            panda_dict[tablename] = df
+    #coords = ds.drop([coord for coord in ds.coords.keys() if coord not in ds.dims])
 
-        newcols = var.to_dataframe().columns.difference(
-            panda_dict[tablename].columns)
-        if not newcols.equals(pd.Index([], dtype='object')):
-            panda_dict[tablename][newcols] = var.to_dataframe()[newcols]
+    for name, var in ds.items():
+        #if name in ds.coords:
+        #    continue
+        tablename = var.dims
+        df = var.to_dataframe()
+        # Drop coords
+        df = df.drop([col for col in df.columns if col in ds.coords], axis=1)
+        if df.size > 0:
+            try:
+                panda_dict[tablename] = panda_dict[tablename].join(df)
+            except KeyError:
+                panda_dict[tablename] = df
+
     panda_dict['constants'] = pd.Series(ds.attrs)
     return panda_dict
