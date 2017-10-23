@@ -35,18 +35,17 @@ output_meth_0_sep_0 = {
     }
 
 output_meth_0_sep_1 = {
-    'dfeITG'            : None,
-    'dfeTEM'            : None,
-    'dfiITG'            : None,
-    'dfiTEM'            : None,
-    'vteITG'            : None,
-    'vteTEM'            : None,
-    'vtiITG'            : None,
-    'vtiTEM'            : None,
-    'vceITG'            : None,
-    'vceTEM'            : None,
-    'vciITG'            : None,
-    'vciTEM'            : None
+    'efeETG'            : None,
+    'efeITG'            : None,
+    'efeTEM'            : None,
+    'efiITG'            : None,
+    'efiTEM'            : None,
+    'pfeITG'            : None,
+    'pfeTEM'            : None,
+    'pfiITG'            : None,
+    'pfiTEM'            : None,
+    'vfiITG'            : None,
+    'vfiTEM'            : None,
 }
 
 output_meth_1_sep_0 = {
@@ -61,19 +60,20 @@ output_meth_1_sep_0 = {
 }
 
 output_meth_1_sep_1 = {
-    'efeETG'            : None,
-    'efeITG'            : None,
-    'efeTEM'            : None,
-    'efiITG'            : None,
-    'efiTEM'            : None,
-    'pfeITG'            : None,
-    'pfeTEM'            : None,
-    'pfiITG'            : None,
-    'pfiTEM'            : None,
-    'vfiITG'            : None,
-    'vfiTEM'            : None,
+    'dfeITG'            : None,
+    'dfeTEM'            : None,
+    'dfiITG'            : None,
+    'dfiTEM'            : None,
     'vriITG'            : None,
-    'vriTEM'            : None
+    'vriTEM'            : None,
+    'vteITG'            : None,
+    'vteTEM'            : None,
+    'vtiITG'            : None,
+    'vtiTEM'            : None,
+    'vceITG'            : None,
+    'vceTEM'            : None,
+    'vciITG'            : None,
+    'vciTEM'            : None
 }
 
 output_meth_2_sep_0 = {
