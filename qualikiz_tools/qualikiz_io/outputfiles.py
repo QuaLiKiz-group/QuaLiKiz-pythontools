@@ -770,7 +770,11 @@ def orthogonalize_dataset(ds, verbose=False):
         shape = [len(i) for i in new_dims.values()]
         shape += [len(item[x]) for x in item.dims if x != 'dimx']
         placeholder = np.full(shape, np.nan)
-        for i, datax in enumerate(ds[name].data):
+        if name == 'phi':
+            data = ds[name].data.T
+        else:
+            data = ds[name].data
+        for i, datax in enumerate(data):
             placeholder[ilist[i]] = datax
             newcoords = copy.deepcopy(new_dims)
             for dim in item.dims:
