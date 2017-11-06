@@ -61,7 +61,7 @@ def build_plot(datasets, flux_type, normalization, instability_tag='', sum_hydro
         squeeze = squeeze_dataset(dataset)
         # We need an unsqueezed Zi for hydrogen detection
         if 'nions' not in squeeze['Zi'].dims:
-            squeeze.coords['Zi'] = xr.DataArray([[squeeze['Zi']]], dims=['set', 'nions'])
+            squeeze.coords['Zi'] = xr.DataArray(np.tile(squeeze['Zi'], (1, len(squeeze['nions']))), dims=['set', 'nions'])
         if 'dimx' not in squeeze['Zi'].dims:
             squeeze.coords['Zi'] = xr.DataArray([np.tile(squeeze['Zi'].data, (len(squeeze['dimx']), 1))], dims=['set', 'dimx', 'nions'])
         squeezed.append(squeeze)
