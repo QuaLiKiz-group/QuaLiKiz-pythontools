@@ -19,10 +19,8 @@ except ModuleNotFoundError:
 
 
 def determine_scandim(ds):
-    scan_dims = [coord for name, coord in ds.coords.items() if name not in ds.dims and 'dimx' in coord.dims and len(np.unique(coord)) > 1]
+    scan_dims = [coord for name, coord in ds.coords.items() if name not in ds.dims and 'dimx' in coord.dims and len(np.unique(coord)) > 1 and name != 'phi']
     #new_dims = OrderedDict([(dim.name, np.unique(dim.values)) for dim in ortho_dims])
-    from IPython import embed
-    embed()
     if len(scan_dims) == 0:
         print('No scan dim found')
         scan_dim = ds['dimx']
