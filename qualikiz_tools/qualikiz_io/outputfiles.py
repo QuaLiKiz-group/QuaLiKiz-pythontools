@@ -986,7 +986,6 @@ def xarray_to_pandas(ds):
     Returns:
         A dictionary with pandas.DataFrame
     """
-    ds = squeeze_dataset(ds)
     ds = to_meta_0d(ds)
     ds = ds.reset_coords()
     panda_dict = {}
