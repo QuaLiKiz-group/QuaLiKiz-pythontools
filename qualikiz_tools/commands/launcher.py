@@ -63,8 +63,7 @@ def run(args):
 
     kwargs = {}
     if args['<command>'] == 'launch':
-        if not qlk_instance.inputbinaries_exist():
-            qlk_instance.generate_input()
+        qlk_instance.generate_input()
         qlk_instance.launch()
     elif args['<target_path>'] in ['help', None] or args['<command>'] in ['help', None]:
         exit(call([sys.executable, os.path.join(ROOT, 'commands', 'output.py'), '--help']))
