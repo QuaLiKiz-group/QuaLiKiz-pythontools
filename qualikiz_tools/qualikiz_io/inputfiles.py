@@ -166,28 +166,26 @@ class QuaLiKizXpoint(dict):
 
     def normalize_density(self):
         """ Set density of 1st ion to maintian quasineutrality """
-        if len(self['ions']) > 1:
-            ions = filter(lambda x: x['type'] < 3, self['ions'][1:])
-            n0 = ((1 - sum(ion['n'] * ion['Z'] for ion in ions)) /
-                  self['ions'][0]['Z'])
-            if 0 > n0 or n0 > 1:
-                raise Exception('Quasineutrality results in unphysical n_0/n_e = ' +
-                                str(n0) +
-                                ' with Z = ' +
-                                str([ion['Z'] for ion in self['ions']]) +
-                                ' and n = ' +
-                                str([ion['n'] for ion in self['ions']]))
-            self['ions'][0]['n'] = n0
+        ions = filter(lambda x: x['type'] < 3, self['ions'][1:])
+        n0 = ((1 - sum(ion['n'] * ion['Z'] for ion in ions)) /
+              self['ions'][0]['Z'])
+        if 0 > n0 or n0 > 1:
+            raise Exception('Quasineutrality results in unphysical n_0/n_e = ' +
+                            str(n0) +
+                            ' with Z = ' +
+                            str([ion['Z'] for ion in self['ions']]) +
+                            ' and n = ' +
+                            str([ion['n'] for ion in self['ions']]))
+        self['ions'][0]['n'] = n0
 
     def normalize_gradient(self):
         """ Set density gradient of 1st ion to maintian quasineutrality """
-        if len(self['ions']) > 1:
-            ions = filter(lambda x: x['type'] < 3, self['ions'][1:])
-            self['ions'][0]['An'] = ((self['elec']['An'] -
-                                      sum(ion['n'] * ion['An'] * ion['Z']
-                                          for ion in ions)) /
-                                     (self['ions'][0]['Z'] *
-                                      self['ions'][0]['n']))
+        ions = filter(lambda x: x['type'] < 3, self['ions'][1:])
+        self['ions'][0]['An'] = ((self['elec']['An'] -
+                                  sum(ion['n'] * ion['An'] * ion['Z']
+                                      for ion in ions)) /
+                                 (self['ions'][0]['Z'] *
+                                  self['ions'][0]['n']))
 
     def check_quasi(self):
         """ Check if quasineutrality is maintained """
