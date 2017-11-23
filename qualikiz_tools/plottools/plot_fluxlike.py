@@ -113,8 +113,7 @@ def build_plot(datasets, flux_type, normalization, instability_tag='', sum_hydro
     #grow_ax.set_ylabel(grow_name)
 
     # Initialize dimx slider
-    dfs[('dimx', )]['dimx'] = dfs[('dimx', )].index
-    dimx = dfs[('dimx', )]['dimx'].values
+    dimx = dfs[('set', 'dimx')].index.get_level_values(level='dimx')
     dimx_slider = DiscreteSlider(axes['dimx_slider'],
                                  'dimx',
                                  dimx[0],
