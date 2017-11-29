@@ -22,7 +22,7 @@ var searchData=
   ['poll_5fstdout',['poll_stdout',['../namespacequalikiz__tools_1_1machine__specific_1_1basicpoll.html#a54a95790abb06135204f171e9dbad9a5',1,'qualikiz_tools::machine_specific::basicpoll']]],
   ['pos_5fscans',['pos_scans',['../namespacequalikiz__tools_1_1qualikiz__io_1_1analyse.html#a2ecc2809bec470c2ac17610205edbe0e',1,'qualikiz_tools::qualikiz_io::analyse']]],
   ['posvals',['posvals',['../namespacequalikiz__tools_1_1qualikiz__io_1_1analyse.html#aee8d99cc58a47a638eb3866bfa88b6fa',1,'qualikiz_tools::qualikiz_io::analyse']]],
-  ['prepare',['prepare',['../classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#a65837d657106ef32eb1c81e15b473fba',1,'qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizBatch.prepare()'],['../classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizRun.html#ae968663245295b5bd00d43236101ce6c',1,'qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizRun.prepare()']]],
+  ['prepare',['prepare',['../classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizRun.html#ae968663245295b5bd00d43236101ce6c',1,'qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizRun.prepare()'],['../classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#a65837d657106ef32eb1c81e15b473fba',1,'qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizBatch.prepare()']]],
   ['pretty_5fnames',['pretty_names',['../namespacepretty__names.html',1,'']]],
   ['pretty_5fnames_2epy',['pretty_names.py',['../pretty__names_8py.html',1,'']]],
   ['prev_5fnice_5fpotxpt',['prev_nice_potxpt',['../namespacequalikiz__tools_1_1examples_1_1performance.html#a4cc139d9b2fb07c541fe07c07fc26413',1,'qualikiz_tools::examples::performance']]],

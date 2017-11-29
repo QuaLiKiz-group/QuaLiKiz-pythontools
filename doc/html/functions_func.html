@@ -9,6 +9,13 @@
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
+<link href="navtree.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="resize.js"></script>
+<script type="text/javascript" src="navtreedata.js"></script>
+<script type="text/javascript" src="navtree.js"></script>
+<script type="text/javascript">
+  $(document).ready(initResizable);
+</script>
 <link href="search/search.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="search/searchdata.js"></script>
 <script type="text/javascript" src="search/search.js"></script>
@@ -43,6 +50,20 @@ $(function() {
 </script>
 <div id="main-nav"></div>
 </div><!-- top -->
+<div id="side-nav" class="ui-resizable side-nav-resizable">
+  <div id="nav-tree">
+    <div id="nav-tree-contents">
+      <div id="nav-sync" class="sync"></div>
+    </div>
+  </div>
+  <div id="splitbar" style="-moz-user-select:none;" 
+       class="ui-resizable-handle">
+  </div>
+</div>
+<script type="text/javascript">
+$(document).ready(function(){initNavTree('functions_func.html','');});
+</script>
+<div id="doc-content">
 <!-- window showing the filter options -->
 <div id="MSearchSelectWindow"
      onmouseover="return searchBox.OnSearchSelectShow()"
@@ -73,8 +94,8 @@ $(function() {
 </li>
 <li>__init__()
 : <a class="el" href="classdiscrete__slider_1_1DiscreteSlider.html#a5d787c97c2147d525a15e37e22bb9e12">discrete_slider.DiscreteSlider</a>
-, <a class="el" href="classqualikiz__tools_1_1machine__specific_1_1bash_1_1Batch.html#adac98134eef8dc2b69a902d06ff709ab">qualikiz_tools.machine_specific.bash.Batch</a>
-, <a class="el" href="classqualikiz__tools_1_1machine__specific_1_1bash_1_1Run.html#abf34e792eaf72e3b97c84269fe79abee">qualikiz_tools.machine_specific.bash.Run</a>
+, <a class="el" href="classqualikiz__tools_1_1machine__specific_1_1bash_1_1Batch.html#af5f6f5ebbb4c226d1a82357be2caa373">qualikiz_tools.machine_specific.bash.Batch</a>
+, <a class="el" href="classqualikiz__tools_1_1machine__specific_1_1bash_1_1Run.html#a25a03e5ab9ab4fdf8c17f2d91fdb4fd9">qualikiz_tools.machine_specific.bash.Run</a>
 , <a class="el" href="classqualikiz__tools_1_1machine__specific_1_1slurm_1_1Batch.html#a624cbc746502dc343cc7ade9ae8c46ab">qualikiz_tools.machine_specific.slurm.Batch</a>
 , <a class="el" href="classqualikiz__tools_1_1machine__specific_1_1slurm_1_1Run.html#a0afd2f2c73bd14c668dd0cae41d970c2">qualikiz_tools.machine_specific.slurm.Run</a>
 , <a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1Electron.html#a5fca57491621f8195c64ec7a2de9eab4">qualikiz_tools.qualikiz_io.inputfiles.Electron</a>
@@ -150,12 +171,12 @@ $(function() {
 
 <h3><a id="index_f"></a>- f -</h3><ul>
 <li>from_batch_file()
-: <a class="el" href="classqualikiz__tools_1_1machine__specific_1_1bash_1_1Batch.html#a2e34c29dc7528a4f996286f36595b171">qualikiz_tools.machine_specific.bash.Batch</a>
-, <a class="el" href="classqualikiz__tools_1_1machine__specific_1_1system_1_1System_1_1Batch.html#a058b6bf3995411b7276bd4d63837cc05">qualikiz_tools.machine_specific.system.System.Batch</a>
+: <a class="el" href="classqualikiz__tools_1_1machine__specific_1_1bash_1_1Batch.html#a916b7e9021b83a613d41124e00480d15">qualikiz_tools.machine_specific.bash.Batch</a>
+, <a class="el" href="classqualikiz__tools_1_1machine__specific_1_1system_1_1Batch.html#acd4e40bd9b605421d9ae846dbea7c178">qualikiz_tools.machine_specific.system.Batch</a>
 </li>
 <li>from_batch_string()
 : <a class="el" href="classqualikiz__tools_1_1machine__specific_1_1bash_1_1Run.html#a662c50eef78c0dcacfe281f525c3566f">qualikiz_tools.machine_specific.bash.Run</a>
-, <a class="el" href="classqualikiz__tools_1_1machine__specific_1_1system_1_1System_1_1Run.html#acf1392cf23e3a58c1b6342b2de9c41dc">qualikiz_tools.machine_specific.system.System.Run</a>
+, <a class="el" href="classqualikiz__tools_1_1machine__specific_1_1system_1_1Run.html#afc28e6266c98ba54f171829688bd6db6">qualikiz_tools.machine_specific.system.Run</a>
 </li>
 <li>from_batchstring()
 : <a class="el" href="classqualikiz__tools_1_1machine__specific_1_1slurm_1_1Run.html#a57176ebbe6ab53003c3b2df29d8e5ac9">qualikiz_tools.machine_specific.slurm.Run</a>
@@ -163,9 +184,9 @@ $(function() {
 <li>from_dir()
 : <a class="el" href="classqualikiz__tools_1_1machine__specific_1_1bash_1_1Run.html#a79e0f8564510a26f20f60f1b0d3c35d0">qualikiz_tools.machine_specific.bash.Run</a>
 , <a class="el" href="classqualikiz__tools_1_1machine__specific_1_1slurm_1_1Run.html#a70f38437ce2ca8ac9608bd5eef78b035">qualikiz_tools.machine_specific.slurm.Run</a>
-, <a class="el" href="classqualikiz__tools_1_1machine__specific_1_1system_1_1System_1_1Batch.html#a7948cf0f2ca9ef8a341f0c0eb28aab68">qualikiz_tools.machine_specific.system.System.Batch</a>
-, <a class="el" href="classqualikiz__tools_1_1machine__specific_1_1system_1_1System_1_1Run.html#aa1a62a0bd97751ad7f8615ff933185f8">qualikiz_tools.machine_specific.system.System.Run</a>
-, <a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizRun.html#a084829fb19a732d2c045d47fc785cafc">qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizRun</a>
+, <a class="el" href="classqualikiz__tools_1_1machine__specific_1_1system_1_1Run.html#acbd4f6e77ad2cca35c2f706f47806501">qualikiz_tools.machine_specific.system.Run</a>
+, <a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#a531fecde81d169f03daf522e91d0f40a">qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizBatch</a>
+, <a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizRun.html#a2307fa351f2c1f16434c333272cd1aae">qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizRun</a>
 </li>
 <li>from_dir_recursive()
 : <a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#aea7a44d964602d417d847fdc16f9d87a">qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizBatch</a>
@@ -177,7 +198,7 @@ $(function() {
 : <a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1QuaLiKizPlan.html#af51ddff3419d09cdc05d7ae29523706b">qualikiz_tools.qualikiz_io.inputfiles.QuaLiKizPlan</a>
 </li>
 <li>from_subdirs()
-: <a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#a740a5ec3c6d39b7fe4ff66c02ee34de3">qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizBatch</a>
+: <a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#ae8e01b99d340b019269941716104e853">qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizBatch</a>
 </li>
 </ul>
 
@@ -192,7 +213,8 @@ $(function() {
 
 <h3><a id="index_i"></a>- i -</h3><ul>
 <li>inputbinaries_exist()
-: <a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizRun.html#ab3f5195f7ce52cb7e4eab729a00906c9">qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizRun</a>
+: <a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#a74ae29894be4893ce53bda100944d3a5">qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizBatch</a>
+, <a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizRun.html#ab3f5195f7ce52cb7e4eab729a00906c9">qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizRun</a>
 </li>
 <li>is_done()
 : <a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#a0d127b0a86a0701f6efcb10c323d0c81">qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizBatch</a>
@@ -205,8 +227,8 @@ $(function() {
 <li>launch()
 : <a class="el" href="classqualikiz__tools_1_1machine__specific_1_1bash_1_1Batch.html#a5c17cd4cf57a79d39437dc84205f7ca1">qualikiz_tools.machine_specific.bash.Batch</a>
 , <a class="el" href="classqualikiz__tools_1_1machine__specific_1_1bash_1_1Run.html#a2b1c0a9c7962aab7afd91fbe5093e81b">qualikiz_tools.machine_specific.bash.Run</a>
-, <a class="el" href="classqualikiz__tools_1_1machine__specific_1_1system_1_1System_1_1Batch.html#a226e2f0063ced69ffa0b2e1079080f32">qualikiz_tools.machine_specific.system.System.Batch</a>
-, <a class="el" href="classqualikiz__tools_1_1machine__specific_1_1system_1_1System_1_1Run.html#a4a152f419c069a45cbcb8bc0a9f9a780">qualikiz_tools.machine_specific.system.System.Run</a>
+, <a class="el" href="classqualikiz__tools_1_1machine__specific_1_1system_1_1Batch.html#acdc10f2d1a95dea01d54261ea1bebb24">qualikiz_tools.machine_specific.system.Batch</a>
+, <a class="el" href="classqualikiz__tools_1_1machine__specific_1_1system_1_1Run.html#a47c70641c26b4ea8efca93cd633a68ac">qualikiz_tools.machine_specific.system.Run</a>
 </li>
 </ul>
 
@@ -245,6 +267,13 @@ $(function() {
 </ul>
 
 
+<h3><a id="index_r"></a>- r -</h3><ul>
+<li>runlist_from_subdirs()
+: <a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#a6f31a0fabbf5b2e6176cf5cb81dfba67">qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizBatch</a>
+</li>
+</ul>
+
+
 <h3><a id="index_s"></a>- s -</h3><ul>
 <li>set_val()
 : <a class="el" href="classdiscrete__slider_1_1DiscreteSlider.html#ade8e3a63023d9e3537b938df5b57cb4e">discrete_slider.DiscreteSlider</a>
@@ -261,11 +290,11 @@ $(function() {
 <h3><a id="index_t"></a>- t -</h3><ul>
 <li>to_batch_file()
 : <a class="el" href="classqualikiz__tools_1_1machine__specific_1_1bash_1_1Batch.html#ae7f867fe59519be7b1222b2e4bf85ba2">qualikiz_tools.machine_specific.bash.Batch</a>
-, <a class="el" href="classqualikiz__tools_1_1machine__specific_1_1system_1_1System_1_1Batch.html#a5768708151a002c6b02754414ad3f01a">qualikiz_tools.machine_specific.system.System.Batch</a>
+, <a class="el" href="classqualikiz__tools_1_1machine__specific_1_1system_1_1Batch.html#a7a448812f3307b5929ee2c9830089c05">qualikiz_tools.machine_specific.system.Batch</a>
 </li>
 <li>to_batch_string()
 : <a class="el" href="classqualikiz__tools_1_1machine__specific_1_1bash_1_1Run.html#a38171834d0ae74b92216a8d4b60703cf">qualikiz_tools.machine_specific.bash.Run</a>
-, <a class="el" href="classqualikiz__tools_1_1machine__specific_1_1system_1_1System_1_1Run.html#a4d5846aebbca9f0a6412629c0efdc916">qualikiz_tools.machine_specific.system.System.Run</a>
+, <a class="el" href="classqualikiz__tools_1_1machine__specific_1_1system_1_1Run.html#a61d58a5f2a3db278ba2813052bb17ea2">qualikiz_tools.machine_specific.system.Run</a>
 </li>
 <li>to_batchstring()
 : <a class="el" href="classqualikiz__tools_1_1machine__specific_1_1slurm_1_1Run.html#a5f7c4a09e80249fc913566d583c2e358">qualikiz_tools.machine_specific.slurm.Run</a>
@@ -277,16 +306,19 @@ $(function() {
 : <a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1QuaLiKizPlan.html#a8861cc689652e773f68ae278c7bd44d2">qualikiz_tools.qualikiz_io.inputfiles.QuaLiKizPlan</a>
 </li>
 <li>to_netcdf()
-: <a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#aaec65131d5627f3377bf27341195ee1a">qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizBatch</a>
+: <a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#a86e6a730943ff208259c7e88d09d1356">qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizBatch</a>
 , <a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizRun.html#a170ac61e6668987518bc12eab304c850">qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizRun</a>
 </li>
 </ul>
 </div><!-- contents -->
+</div><!-- doc-content -->
 <!-- start footer part -->
-<hr class="footer"/><address class="footer"><small>
-Generated on Thu Oct 12 2017 16:23:20 for QuaLiKiz-Pythontools by &#160;<a href="http://www.doxygen.org/index.html">
-<img class="footer" src="doxygen.png" alt="doxygen"/>
-</a> 1.8.13
-</small></address>
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    <li class="footer">Generated on Wed Nov 29 2017 14:22:08 for QuaLiKiz-Pythontools by
+    <a href="http://www.doxygen.org/index.html">
+    <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.13 </li>
+  </ul>
+</div>
 </body>
 </html>

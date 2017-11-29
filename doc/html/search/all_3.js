@@ -12,7 +12,7 @@ var searchData=
   ['change_5fefeline',['change_efeline',['../namespaceplot__fluxlike.html#af2166247f6f6b8435acd01626c1ac323',1,'plot_fluxlike']]],
   ['chdir',['chdir',['../classqualikiz__tools_1_1machine__specific_1_1slurm_1_1Run.html#aeda59fb33696a621bb187dcd84add3ef',1,'qualikiz_tools::machine_specific::slurm::Run']]],
   ['check_5fquasi',['check_quasi',['../classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1QuaLiKizXpoint.html#aa1dcfccb91d8d3ca2125113de26772c5',1,'qualikiz_tools::qualikiz_io::inputfiles::QuaLiKizXpoint']]],
-  ['clean',['clean',['../classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#af0110612953fd108215ee15d55d129bd',1,'qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizBatch.clean()'],['../classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizRun.html#ab28012fc4acc0e1e75ffb58073668ebc',1,'qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizRun.clean()']]],
+  ['clean',['clean',['../classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizRun.html#ab28012fc4acc0e1e75ffb58073668ebc',1,'qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizRun.clean()'],['../classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#af0110612953fd108215ee15d55d129bd',1,'qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizBatch.clean()']]],
   ['cli_2epy',['cli.py',['../cli_8py.html',1,'']]],
   ['color',['color',['../namespacequalikiz__tools_1_1qualikiz__io_1_1analyse.html#ae524bda0890421a71da4403327b8cd99',1,'qualikiz_tools::qualikiz_io::analyse']]],
   ['colors',['colors',['../namespacequalikiz__tools_1_1examples_1_1analyse__performance.html#a84276cf116eef836c541ce6478408b1a',1,'qualikiz_tools::examples::analyse_performance']]],

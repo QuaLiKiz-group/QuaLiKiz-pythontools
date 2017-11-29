@@ -9,6 +9,13 @@
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
+<link href="navtree.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="resize.js"></script>
+<script type="text/javascript" src="navtreedata.js"></script>
+<script type="text/javascript" src="navtree.js"></script>
+<script type="text/javascript">
+  $(document).ready(initResizable);
+</script>
 <link href="search/search.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="search/searchdata.js"></script>
 <script type="text/javascript" src="search/search.js"></script>
@@ -42,6 +49,21 @@ $(function() {
 });
 </script>
 <div id="main-nav"></div>
+</div><!-- top -->
+<div id="side-nav" class="ui-resizable side-nav-resizable">
+  <div id="nav-tree">
+    <div id="nav-tree-contents">
+      <div id="nav-sync" class="sync"></div>
+    </div>
+  </div>
+  <div id="splitbar" style="-moz-user-select:none;" 
+       class="ui-resizable-handle">
+  </div>
+</div>
+<script type="text/javascript">
+$(document).ready(function(){initNavTree('classqualikiz__tools_1_1machine__specific_1_1bash_1_1Batch.html','');});
+</script>
+<div id="doc-content">
 <!-- window showing the filter options -->
 <div id="MSearchSelectWindow"
      onmouseover="return searchBox.OnSearchSelectShow()"
@@ -56,11 +78,6 @@ $(function() {
 </iframe>
 </div>
 
-<div id="nav-path" class="navpath">
-  <ul>
-<li class="navelem"><a class="el" href="namespacequalikiz__tools.html">qualikiz_tools</a></li><li class="navelem"><a class="el" href="namespacequalikiz__tools_1_1machine__specific.html">machine_specific</a></li><li class="navelem"><a class="el" href="namespacequalikiz__tools_1_1machine__specific_1_1bash.html">bash</a></li><li class="navelem"><a class="el" href="classqualikiz__tools_1_1machine__specific_1_1bash_1_1Batch.html">Batch</a></li>  </ul>
-</div>
-</div><!-- top -->
 <div class="header">
   <div class="headertitle">
 <div class="title">qualikiz_tools.machine_specific.bash.Batch Member List</div>  </div>
@@ -69,40 +86,23 @@ $(function() {
 
 <p>This is the complete list of members for <a class="el" href="classqualikiz__tools_1_1machine__specific_1_1bash_1_1Batch.html">qualikiz_tools.machine_specific.bash.Batch</a>, including all inherited members.</p>
 <table class="directory">
-  <tr class="even"><td class="entry"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#a159947d7cbfcaf894efda88032da937d">__eq__</a>(self, other)</td><td class="entry"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html">qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizBatch</a></td><td class="entry"></td></tr>
-  <tr><td class="entry"><a class="el" href="classqualikiz__tools_1_1machine__specific_1_1bash_1_1Batch.html#adac98134eef8dc2b69a902d06ff709ab">__init__</a>(self, parent_dir, name, runlist, tasks=None, stdout=None, stderr=None, HT=True, vcores_per_task=2, style='sequential')</td><td class="entry"><a class="el" href="classqualikiz__tools_1_1machine__specific_1_1bash_1_1Batch.html">qualikiz_tools.machine_specific.bash.Batch</a></td><td class="entry"></td></tr>
-  <tr class="even"><td class="entry"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#a803d9b55b284cb6b7ea93dcbd9a71e30">qualikiz_tools::machine_specific::system::System::Batch.__init__</a>(self, parent_dir, name, runlist, stdout=None, stderr=None)</td><td class="entry"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html">qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizBatch</a></td><td class="entry"></td></tr>
-  <tr><td class="entry"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#a97a051df92e53255e508ae963525db78">__ne__</a>(self, other)</td><td class="entry"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html">qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizBatch</a></td><td class="entry"></td></tr>
-  <tr class="even"><td class="entry"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#a3630a6c762cb25b9c312e20953be4673">batchinfofile</a></td><td class="entry"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html">qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizBatch</a></td><td class="entry"><span class="mlabel">static</span></td></tr>
-  <tr><td class="entry"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#af0110612953fd108215ee15d55d129bd">clean</a>(self)</td><td class="entry"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html">qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizBatch</a></td><td class="entry"></td></tr>
-  <tr class="even"><td class="entry"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#af148a4580ddd3d0cdb46f4124bfef8e7">default_stderr</a></td><td class="entry"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html">qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizBatch</a></td><td class="entry"><span class="mlabel">static</span></td></tr>
-  <tr><td class="entry"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#a59abcc7938cd20bd73e0e7ffd15a4833">default_stdout</a></td><td class="entry"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html">qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizBatch</a></td><td class="entry"><span class="mlabel">static</span></td></tr>
-  <tr class="even"><td class="entry"><a class="el" href="classqualikiz__tools_1_1machine__specific_1_1bash_1_1Batch.html#a2e34c29dc7528a4f996286f36595b171">from_batch_file</a>(cls, path)</td><td class="entry"><a class="el" href="classqualikiz__tools_1_1machine__specific_1_1bash_1_1Batch.html">qualikiz_tools.machine_specific.bash.Batch</a></td><td class="entry"></td></tr>
-  <tr><td class="entry"><a class="el" href="classqualikiz__tools_1_1machine__specific_1_1system_1_1System_1_1Batch.html#a058b6bf3995411b7276bd4d63837cc05">qualikiz_tools::machine_specific::system::System::Batch.from_batch_file</a>(cls, path, args, kwargs)</td><td class="entry"><a class="el" href="classqualikiz__tools_1_1machine__specific_1_1system_1_1System_1_1Batch.html">qualikiz_tools.machine_specific.system.System.Batch</a></td><td class="entry"></td></tr>
-  <tr class="even"><td class="entry"><a class="el" href="classqualikiz__tools_1_1machine__specific_1_1system_1_1System_1_1Batch.html#a7948cf0f2ca9ef8a341f0c0eb28aab68">from_dir</a>(cls, dir, args, kwargs)</td><td class="entry"><a class="el" href="classqualikiz__tools_1_1machine__specific_1_1system_1_1System_1_1Batch.html">qualikiz_tools.machine_specific.system.System.Batch</a></td><td class="entry"></td></tr>
-  <tr><td class="entry"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#aea7a44d964602d417d847fdc16f9d87a">from_dir_recursive</a>(cls, searchdir)</td><td class="entry"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html">qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizBatch</a></td><td class="entry"></td></tr>
-  <tr class="even"><td class="entry"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#a740a5ec3c6d39b7fe4ff66c02ee34de3">from_subdirs</a>(cls, batchdir, scriptname=None)</td><td class="entry"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html">qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizBatch</a></td><td class="entry"></td></tr>
-  <tr><td class="entry"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#a0161eb8f1ebd57bcbeed49ea8e8254d4">generate_input</a>(self, dotprint=False, processes=1, conversion=None)</td><td class="entry"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html">qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizBatch</a></td><td class="entry"></td></tr>
-  <tr class="even"><td class="entry"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#a0d127b0a86a0701f6efcb10c323d0c81">is_done</a>(self)</td><td class="entry"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html">qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizBatch</a></td><td class="entry"></td></tr>
-  <tr><td class="entry"><a class="el" href="classqualikiz__tools_1_1machine__specific_1_1bash_1_1Batch.html#a5c17cd4cf57a79d39437dc84205f7ca1">launch</a>(self)</td><td class="entry"><a class="el" href="classqualikiz__tools_1_1machine__specific_1_1bash_1_1Batch.html">qualikiz_tools.machine_specific.bash.Batch</a></td><td class="entry"></td></tr>
-  <tr class="even"><td class="entry"><a class="el" href="classqualikiz__tools_1_1machine__specific_1_1system_1_1System_1_1Batch.html#a226e2f0063ced69ffa0b2e1079080f32">qualikiz_tools::machine_specific::system::System::Batch.launch</a>(self, args, kwargs)</td><td class="entry"><a class="el" href="classqualikiz__tools_1_1machine__specific_1_1system_1_1System_1_1Batch.html">qualikiz_tools.machine_specific.system.System.Batch</a></td><td class="entry"></td></tr>
-  <tr><td class="entry"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#a4fe956b309e2676d75193f88f5e87eea">name</a></td><td class="entry"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html">qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizBatch</a></td><td class="entry"></td></tr>
-  <tr class="even"><td class="entry"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#a9de0ad6cbcb8c8b97bc1b76163eb35d6">parent_dir</a></td><td class="entry"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html">qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizBatch</a></td><td class="entry"></td></tr>
-  <tr><td class="entry"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#a65837d657106ef32eb1c81e15b473fba">prepare</a>(self, overwrite_batch=None, overwrite_runs=False)</td><td class="entry"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html">qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizBatch</a></td><td class="entry"></td></tr>
-  <tr class="even"><td class="entry"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#acf963d5f122dda705ef3c16548bfb51e">runlist</a></td><td class="entry"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html">qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizBatch</a></td><td class="entry"></td></tr>
-  <tr><td class="entry"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#a13a9d42f5d9fdf1a9ce02d4fa6501f9d">scriptname</a></td><td class="entry"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html">qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizBatch</a></td><td class="entry"><span class="mlabel">static</span></td></tr>
+  <tr class="even"><td class="entry"><a class="el" href="classqualikiz__tools_1_1machine__specific_1_1bash_1_1Batch.html#af5f6f5ebbb4c226d1a82357be2caa373">__init__</a>(self, parent_dir, name, runlist, tasks=None, stdout=None, stderr=None, style='sequential', verbose=False)</td><td class="entry"><a class="el" href="classqualikiz__tools_1_1machine__specific_1_1bash_1_1Batch.html">qualikiz_tools.machine_specific.bash.Batch</a></td><td class="entry"></td></tr>
+  <tr><td class="entry"><a class="el" href="classqualikiz__tools_1_1machine__specific_1_1bash_1_1Batch.html#a916b7e9021b83a613d41124e00480d15">from_batch_file</a>(cls, path, kwargs)</td><td class="entry"><a class="el" href="classqualikiz__tools_1_1machine__specific_1_1bash_1_1Batch.html">qualikiz_tools.machine_specific.bash.Batch</a></td><td class="entry"></td></tr>
+  <tr class="even"><td class="entry"><a class="el" href="classqualikiz__tools_1_1machine__specific_1_1bash_1_1Batch.html#a5c17cd4cf57a79d39437dc84205f7ca1">launch</a>(self)</td><td class="entry"><a class="el" href="classqualikiz__tools_1_1machine__specific_1_1bash_1_1Batch.html">qualikiz_tools.machine_specific.bash.Batch</a></td><td class="entry"></td></tr>
+  <tr><td class="entry"><a class="el" href="classqualikiz__tools_1_1machine__specific_1_1bash_1_1Batch.html#a5bd4dca967c31d73a5785dbd263a8122">run_class</a></td><td class="entry"><a class="el" href="classqualikiz__tools_1_1machine__specific_1_1bash_1_1Batch.html">qualikiz_tools.machine_specific.bash.Batch</a></td><td class="entry"><span class="mlabel">static</span></td></tr>
   <tr class="even"><td class="entry"><a class="el" href="classqualikiz__tools_1_1machine__specific_1_1bash_1_1Batch.html#af233f416a948b20e5b91abe9c0c7c9a4">shell</a></td><td class="entry"><a class="el" href="classqualikiz__tools_1_1machine__specific_1_1bash_1_1Batch.html">qualikiz_tools.machine_specific.bash.Batch</a></td><td class="entry"><span class="mlabel">static</span></td></tr>
-  <tr><td class="entry"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#a220c1f2596d6fa81e11172f71348d632">stderr</a></td><td class="entry"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html">qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizBatch</a></td><td class="entry"></td></tr>
-  <tr class="even"><td class="entry"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#a6df963dbc068fd74e51e151b1dd257fd">stdout</a></td><td class="entry"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html">qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizBatch</a></td><td class="entry"></td></tr>
+  <tr><td class="entry"><a class="el" href="classqualikiz__tools_1_1machine__specific_1_1bash_1_1Batch.html#a49f98ef6710b4bbf2faebb4019147a02">stderr</a></td><td class="entry"><a class="el" href="classqualikiz__tools_1_1machine__specific_1_1bash_1_1Batch.html">qualikiz_tools.machine_specific.bash.Batch</a></td><td class="entry"></td></tr>
+  <tr class="even"><td class="entry"><a class="el" href="classqualikiz__tools_1_1machine__specific_1_1bash_1_1Batch.html#ae2fb86d63f9879997302eb6871d3e8ec">stdout</a></td><td class="entry"><a class="el" href="classqualikiz__tools_1_1machine__specific_1_1bash_1_1Batch.html">qualikiz_tools.machine_specific.bash.Batch</a></td><td class="entry"></td></tr>
   <tr><td class="entry"><a class="el" href="classqualikiz__tools_1_1machine__specific_1_1bash_1_1Batch.html#ae7f867fe59519be7b1222b2e4bf85ba2">to_batch_file</a>(self, path)</td><td class="entry"><a class="el" href="classqualikiz__tools_1_1machine__specific_1_1bash_1_1Batch.html">qualikiz_tools.machine_specific.bash.Batch</a></td><td class="entry"></td></tr>
-  <tr class="even"><td class="entry"><a class="el" href="classqualikiz__tools_1_1machine__specific_1_1system_1_1System_1_1Batch.html#a5768708151a002c6b02754414ad3f01a">qualikiz_tools::machine_specific::system::System::Batch.to_batch_file</a>(self, path, args, kwargs)</td><td class="entry"><a class="el" href="classqualikiz__tools_1_1machine__specific_1_1system_1_1System_1_1Batch.html">qualikiz_tools.machine_specific.system.System.Batch</a></td><td class="entry"></td></tr>
-  <tr><td class="entry"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#aaec65131d5627f3377bf27341195ee1a">to_netcdf</a>(self, runmode='dimx', mode='noglue', genfromtxt=False, encode=None, clean=True, keepfile=True, processes=1)</td><td class="entry"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html">qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizBatch</a></td><td class="entry"></td></tr>
 </table></div><!-- contents -->
+</div><!-- doc-content -->
 <!-- start footer part -->
-<hr class="footer"/><address class="footer"><small>
-Generated on Thu Oct 12 2017 16:23:20 for QuaLiKiz-Pythontools by &#160;<a href="http://www.doxygen.org/index.html">
-<img class="footer" src="doxygen.png" alt="doxygen"/>
-</a> 1.8.13
-</small></address>
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    <li class="footer">Generated on Wed Nov 29 2017 14:22:08 for QuaLiKiz-Pythontools by
+    <a href="http://www.doxygen.org/index.html">
+    <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.13 </li>
+  </ul>
+</div>
 </body>
 </html>

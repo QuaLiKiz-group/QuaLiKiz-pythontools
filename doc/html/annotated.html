@@ -9,6 +9,13 @@
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
+<link href="navtree.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="resize.js"></script>
+<script type="text/javascript" src="navtreedata.js"></script>
+<script type="text/javascript" src="navtree.js"></script>
+<script type="text/javascript">
+  $(document).ready(initResizable);
+</script>
 <link href="search/search.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="search/searchdata.js"></script>
 <script type="text/javascript" src="search/search.js"></script>
@@ -43,6 +50,20 @@ $(function() {
 </script>
 <div id="main-nav"></div>
 </div><!-- top -->
+<div id="side-nav" class="ui-resizable side-nav-resizable">
+  <div id="nav-tree">
+    <div id="nav-tree-contents">
+      <div id="nav-sync" class="sync"></div>
+    </div>
+  </div>
+  <div id="splitbar" style="-moz-user-select:none;" 
+       class="ui-resizable-handle">
+  </div>
+</div>
+<script type="text/javascript">
+$(document).ready(function(){initNavTree('annotated.html','');});
+</script>
+<div id="doc-content">
 <!-- window showing the filter options -->
 <div id="MSearchSelectWindow"
      onmouseover="return searchBox.OnSearchSelectShow()"
@@ -73,37 +94,39 @@ $(function() {
 <tr id="row_1_3_" class="even"><td class="entry"><span style="width:16px;display:inline-block;">&#160;</span><span id="arr_1_3_" class="arrow" onclick="toggleFolder('1_3_')">&#9660;</span><span class="icona"><span class="icon">N</span></span><a class="el" href="namespacequalikiz__tools_1_1machine__specific.html" target="_self">machine_specific</a></td><td class="desc"></td></tr>
 <tr id="row_1_3_0_"><td class="entry"><span style="width:32px;display:inline-block;">&#160;</span><span id="arr_1_3_0_" class="arrow" onclick="toggleFolder('1_3_0_')">&#9660;</span><span class="icona"><span class="icon">N</span></span><a class="el" href="namespacequalikiz__tools_1_1machine__specific_1_1bash.html" target="_self">bash</a></td><td class="desc"></td></tr>
 <tr id="row_1_3_0_0_" class="even"><td class="entry"><span style="width:64px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classqualikiz__tools_1_1machine__specific_1_1bash_1_1Batch.html" target="_self">Batch</a></td><td class="desc">Defines a batch job </td></tr>
-<tr id="row_1_3_0_1_"><td class="entry"><span style="width:64px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classqualikiz__tools_1_1machine__specific_1_1bash_1_1Run.html" target="_self">Run</a></td><td class="desc"></td></tr>
+<tr id="row_1_3_0_1_"><td class="entry"><span style="width:64px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classqualikiz__tools_1_1machine__specific_1_1bash_1_1Run.html" target="_self">Run</a></td><td class="desc">Defines the run command </td></tr>
 <tr id="row_1_3_1_" class="even"><td class="entry"><span style="width:32px;display:inline-block;">&#160;</span><span id="arr_1_3_1_" class="arrow" onclick="toggleFolder('1_3_1_')">&#9660;</span><span class="icona"><span class="icon">N</span></span><a class="el" href="namespacequalikiz__tools_1_1machine__specific_1_1slurm.html" target="_self">slurm</a></td><td class="desc"></td></tr>
 <tr id="row_1_3_1_0_"><td class="entry"><span style="width:64px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classqualikiz__tools_1_1machine__specific_1_1slurm_1_1Batch.html" target="_self">Batch</a></td><td class="desc">Defines a batch job </td></tr>
 <tr id="row_1_3_1_1_" class="even"><td class="entry"><span style="width:64px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classqualikiz__tools_1_1machine__specific_1_1slurm_1_1Run.html" target="_self">Run</a></td><td class="desc">Defines the srun command </td></tr>
 <tr id="row_1_3_2_"><td class="entry"><span style="width:32px;display:inline-block;">&#160;</span><span id="arr_1_3_2_" class="arrow" onclick="toggleFolder('1_3_2_')">&#9660;</span><span class="icona"><span class="icon">N</span></span><a class="el" href="namespacequalikiz__tools_1_1machine__specific_1_1system.html" target="_self">system</a></td><td class="desc"></td></tr>
-<tr id="row_1_3_2_0_" class="even"><td class="entry"><span style="width:48px;display:inline-block;">&#160;</span><span id="arr_1_3_2_0_" class="arrow" onclick="toggleFolder('1_3_2_0_')">&#9660;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classqualikiz__tools_1_1machine__specific_1_1system_1_1System.html" target="_self">System</a></td><td class="desc"></td></tr>
-<tr id="row_1_3_2_0_0_"><td class="entry"><span style="width:80px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classqualikiz__tools_1_1machine__specific_1_1system_1_1System_1_1Batch.html" target="_self">Batch</a></td><td class="desc"></td></tr>
-<tr id="row_1_3_2_0_1_" class="even"><td class="entry"><span style="width:80px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classqualikiz__tools_1_1machine__specific_1_1system_1_1System_1_1Run.html" target="_self">Run</a></td><td class="desc"></td></tr>
-<tr id="row_1_4_"><td class="entry"><span style="width:16px;display:inline-block;">&#160;</span><span id="arr_1_4_" class="arrow" onclick="toggleFolder('1_4_')">&#9660;</span><span class="icona"><span class="icon">N</span></span><a class="el" href="namespacequalikiz__tools_1_1qualikiz__io.html" target="_self">qualikiz_io</a></td><td class="desc"></td></tr>
-<tr id="row_1_4_0_" class="even"><td class="entry"><span style="width:32px;display:inline-block;">&#160;</span><span id="arr_1_4_0_" class="arrow" onclick="toggleFolder('1_4_0_')">&#9660;</span><span class="icona"><span class="icon">N</span></span><a class="el" href="namespacequalikiz__tools_1_1qualikiz__io_1_1inputfiles.html" target="_self">inputfiles</a></td><td class="desc"></td></tr>
-<tr id="row_1_4_0_0_"><td class="entry"><span style="width:64px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1Electron.html" target="_self">Electron</a></td><td class="desc"></td></tr>
-<tr id="row_1_4_0_1_" class="even"><td class="entry"><span style="width:64px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1Ion.html" target="_self">Ion</a></td><td class="desc"></td></tr>
-<tr id="row_1_4_0_2_"><td class="entry"><span style="width:64px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1IonList.html" target="_self">IonList</a></td><td class="desc">Convenient wrapper for a list of Ions </td></tr>
-<tr id="row_1_4_0_3_" class="even"><td class="entry"><span style="width:64px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1Particle.html" target="_self">Particle</a></td><td class="desc"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1Particle.html" title="Particle (ion or electron) ">Particle</a> (ion or electron) </td></tr>
-<tr id="row_1_4_0_4_"><td class="entry"><span style="width:64px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1QuaLiKizPlan.html" target="_self">QuaLiKizPlan</a></td><td class="desc">Defines how to generate QuaLiKiz input files from a <a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1QuaLiKizXpoint.html" title="A single xpoint in a QuaLiKiz run. ">QuaLiKizXpoint</a> base </td></tr>
-<tr id="row_1_4_0_5_" class="even"><td class="entry"><span style="width:48px;display:inline-block;">&#160;</span><span id="arr_1_4_0_5_" class="arrow" onclick="toggleFolder('1_4_0_5_')">&#9660;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1QuaLiKizXpoint.html" target="_self">QuaLiKizXpoint</a></td><td class="desc">A single xpoint in a QuaLiKiz run </td></tr>
-<tr id="row_1_4_0_5_0_"><td class="entry"><span style="width:80px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1QuaLiKizXpoint_1_1Geometry.html" target="_self">Geometry</a></td><td class="desc">Wraps variables that change per scan point </td></tr>
-<tr id="row_1_4_0_5_1_" class="even"><td class="entry"><span style="width:80px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1QuaLiKizXpoint_1_1Meta.html" target="_self">Meta</a></td><td class="desc">Wraps variables that stay constant during the QuaLiKiz run </td></tr>
-<tr id="row_1_4_0_5_2_"><td class="entry"><span style="width:80px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1QuaLiKizXpoint_1_1Special.html" target="_self">Special</a></td><td class="desc">Wraps variables that need special convertion to binary </td></tr>
-<tr id="row_1_4_1_" class="even"><td class="entry"><span style="width:32px;display:inline-block;">&#160;</span><span id="arr_1_4_1_" class="arrow" onclick="toggleFolder('1_4_1_')">&#9660;</span><span class="icona"><span class="icon">N</span></span><a class="el" href="namespacequalikiz__tools_1_1qualikiz__io_1_1qualikizrun.html" target="_self">qualikizrun</a></td><td class="desc"></td></tr>
-<tr id="row_1_4_1_0_"><td class="entry"><span style="width:64px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1PathException.html" target="_self">PathException</a></td><td class="desc">Exception thrown when a path should be absolute, but it is not </td></tr>
-<tr id="row_1_4_1_1_" class="even"><td class="entry"><span style="width:64px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html" target="_self">QuaLiKizBatch</a></td><td class="desc">A collection of QuaLiKiz Runs </td></tr>
-<tr id="row_1_4_1_2_"><td class="entry"><span style="width:64px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizRun.html" target="_self">QuaLiKizRun</a></td><td class="desc">Defines everything needed for a single run of QuaLiKiz </td></tr>
+<tr id="row_1_3_2_0_" class="even"><td class="entry"><span style="width:64px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classqualikiz__tools_1_1machine__specific_1_1system_1_1Batch.html" target="_self">Batch</a></td><td class="desc"></td></tr>
+<tr id="row_1_3_2_1_"><td class="entry"><span style="width:64px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classqualikiz__tools_1_1machine__specific_1_1system_1_1Run.html" target="_self">Run</a></td><td class="desc"></td></tr>
+<tr id="row_1_4_" class="even"><td class="entry"><span style="width:16px;display:inline-block;">&#160;</span><span id="arr_1_4_" class="arrow" onclick="toggleFolder('1_4_')">&#9660;</span><span class="icona"><span class="icon">N</span></span><a class="el" href="namespacequalikiz__tools_1_1qualikiz__io.html" target="_self">qualikiz_io</a></td><td class="desc"></td></tr>
+<tr id="row_1_4_0_"><td class="entry"><span style="width:32px;display:inline-block;">&#160;</span><span id="arr_1_4_0_" class="arrow" onclick="toggleFolder('1_4_0_')">&#9660;</span><span class="icona"><span class="icon">N</span></span><a class="el" href="namespacequalikiz__tools_1_1qualikiz__io_1_1inputfiles.html" target="_self">inputfiles</a></td><td class="desc"></td></tr>
+<tr id="row_1_4_0_0_" class="even"><td class="entry"><span style="width:64px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1Electron.html" target="_self">Electron</a></td><td class="desc"></td></tr>
+<tr id="row_1_4_0_1_"><td class="entry"><span style="width:64px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1Ion.html" target="_self">Ion</a></td><td class="desc"></td></tr>
+<tr id="row_1_4_0_2_" class="even"><td class="entry"><span style="width:64px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1IonList.html" target="_self">IonList</a></td><td class="desc">Convenient wrapper for a list of Ions </td></tr>
+<tr id="row_1_4_0_3_"><td class="entry"><span style="width:64px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1Particle.html" target="_self">Particle</a></td><td class="desc"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1Particle.html" title="Particle (ion or electron) ">Particle</a> (ion or electron) </td></tr>
+<tr id="row_1_4_0_4_" class="even"><td class="entry"><span style="width:64px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1QuaLiKizPlan.html" target="_self">QuaLiKizPlan</a></td><td class="desc">Defines how to generate QuaLiKiz input files from a <a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1QuaLiKizXpoint.html" title="A single xpoint in a QuaLiKiz run. ">QuaLiKizXpoint</a> base </td></tr>
+<tr id="row_1_4_0_5_"><td class="entry"><span style="width:48px;display:inline-block;">&#160;</span><span id="arr_1_4_0_5_" class="arrow" onclick="toggleFolder('1_4_0_5_')">&#9660;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1QuaLiKizXpoint.html" target="_self">QuaLiKizXpoint</a></td><td class="desc">A single xpoint in a QuaLiKiz run </td></tr>
+<tr id="row_1_4_0_5_0_" class="even"><td class="entry"><span style="width:80px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1QuaLiKizXpoint_1_1Geometry.html" target="_self">Geometry</a></td><td class="desc">Wraps variables that change per scan point </td></tr>
+<tr id="row_1_4_0_5_1_"><td class="entry"><span style="width:80px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1QuaLiKizXpoint_1_1Meta.html" target="_self">Meta</a></td><td class="desc">Wraps variables that stay constant during the QuaLiKiz run </td></tr>
+<tr id="row_1_4_0_5_2_" class="even"><td class="entry"><span style="width:80px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1inputfiles_1_1QuaLiKizXpoint_1_1Special.html" target="_self">Special</a></td><td class="desc">Wraps variables that need special convertion to binary </td></tr>
+<tr id="row_1_4_1_"><td class="entry"><span style="width:32px;display:inline-block;">&#160;</span><span id="arr_1_4_1_" class="arrow" onclick="toggleFolder('1_4_1_')">&#9660;</span><span class="icona"><span class="icon">N</span></span><a class="el" href="namespacequalikiz__tools_1_1qualikiz__io_1_1qualikizrun.html" target="_self">qualikizrun</a></td><td class="desc"></td></tr>
+<tr id="row_1_4_1_0_" class="even"><td class="entry"><span style="width:64px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1PathException.html" target="_self">PathException</a></td><td class="desc">Exception thrown when a path should be absolute, but it is not </td></tr>
+<tr id="row_1_4_1_1_"><td class="entry"><span style="width:64px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html" target="_self">QuaLiKizBatch</a></td><td class="desc">A collection of QuaLiKiz Runs </td></tr>
+<tr id="row_1_4_1_2_" class="even"><td class="entry"><span style="width:64px;display:inline-block;">&#160;</span><span class="icona"><span class="icon">C</span></span><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizRun.html" target="_self">QuaLiKizRun</a></td><td class="desc">Defines everything needed for a single run of QuaLiKiz </td></tr>
 </table>
 </div><!-- directory -->
 </div><!-- contents -->
+</div><!-- doc-content -->
 <!-- start footer part -->
-<hr class="footer"/><address class="footer"><small>
-Generated on Thu Oct 12 2017 16:23:20 for QuaLiKiz-Pythontools by &#160;<a href="http://www.doxygen.org/index.html">
-<img class="footer" src="doxygen.png" alt="doxygen"/>
-</a> 1.8.13
-</small></address>
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    <li class="footer">Generated on Wed Nov 29 2017 14:22:08 for QuaLiKiz-Pythontools by
+    <a href="http://www.doxygen.org/index.html">
+    <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.13 </li>
+  </ul>
+</div>
 </body>
 </html>

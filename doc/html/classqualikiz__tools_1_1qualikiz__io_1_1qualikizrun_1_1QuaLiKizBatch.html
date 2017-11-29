@@ -9,6 +9,13 @@
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
+<link href="navtree.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="resize.js"></script>
+<script type="text/javascript" src="navtreedata.js"></script>
+<script type="text/javascript" src="navtree.js"></script>
+<script type="text/javascript">
+  $(document).ready(initResizable);
+</script>
 <link href="search/search.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="search/searchdata.js"></script>
 <script type="text/javascript" src="search/search.js"></script>
@@ -42,6 +49,21 @@ $(function() {
 });
 </script>
 <div id="main-nav"></div>
+</div><!-- top -->
+<div id="side-nav" class="ui-resizable side-nav-resizable">
+  <div id="nav-tree">
+    <div id="nav-tree-contents">
+      <div id="nav-sync" class="sync"></div>
+    </div>
+  </div>
+  <div id="splitbar" style="-moz-user-select:none;" 
+       class="ui-resizable-handle">
+  </div>
+</div>
+<script type="text/javascript">
+$(document).ready(function(){initNavTree('classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html','');});
+</script>
+<div id="doc-content">
 <!-- window showing the filter options -->
 <div id="MSearchSelectWindow"
      onmouseover="return searchBox.OnSearchSelectShow()"
@@ -56,11 +78,6 @@ $(function() {
 </iframe>
 </div>
 
-<div id="nav-path" class="navpath">
-  <ul>
-<li class="navelem"><a class="el" href="namespacequalikiz__tools.html">qualikiz_tools</a></li><li class="navelem"><a class="el" href="namespacequalikiz__tools_1_1qualikiz__io.html">qualikiz_io</a></li><li class="navelem"><a class="el" href="namespacequalikiz__tools_1_1qualikiz__io_1_1qualikizrun.html">qualikizrun</a></li><li class="navelem"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html">QuaLiKizBatch</a></li>  </ul>
-</div>
-</div><!-- top -->
 <div class="header">
   <div class="summary">
 <a href="#pub-methods">Public Member Functions</a> &#124;
@@ -83,7 +100,7 @@ Inheritance diagram for qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizBatch:</d
 <area shape="rect" id="node3" href="classqualikiz__tools_1_1machine__specific_1_1bash_1_1Batch.html" title="Defines a batch job. " alt="" coords="505,5,660,47"/>
 <area shape="rect" id="node4" href="classqualikiz__tools_1_1machine__specific_1_1slurm_1_1Batch.html" title="Defines a batch job. " alt="" coords="505,71,660,112"/>
 </map>
-<center><span class="legend">[<a href="graph_legend.html">legend</a>]</span></center></div>
+<center><span class="legend">[<a target="top" href="graph_legend.html">legend</a>]</span></center></div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
@@ -96,15 +113,21 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a0161eb8f1ebd57bcbeed49ea8e8254d4"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#a0161eb8f1ebd57bcbeed49ea8e8254d4">generate_input</a> (self, dotprint=False, processes=1, conversion=None)</td></tr>
 <tr class="memdesc:a0161eb8f1ebd57bcbeed49ea8e8254d4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generate the input files for all runs.  <a href="#a0161eb8f1ebd57bcbeed49ea8e8254d4">More...</a><br /></td></tr>
 <tr class="separator:a0161eb8f1ebd57bcbeed49ea8e8254d4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a74ae29894be4893ce53bda100944d3a5"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#a74ae29894be4893ce53bda100944d3a5">inputbinaries_exist</a> (self)</td></tr>
+<tr class="separator:a74ae29894be4893ce53bda100944d3a5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aea7a44d964602d417d847fdc16f9d87a"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#aea7a44d964602d417d847fdc16f9d87a">from_dir_recursive</a> (cls, searchdir)</td></tr>
 <tr class="memdesc:aea7a44d964602d417d847fdc16f9d87a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reconstruct batch from directory tree Walks from the given path until it finds a file named <a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#a13a9d42f5d9fdf1a9ce02d4fa6501f9d" title="The default name of the sbatch scipt file. ">QuaLiKizBatch.scriptname</a>, and tries to reconstruct the batch from there.  <a href="#aea7a44d964602d417d847fdc16f9d87a">More...</a><br /></td></tr>
 <tr class="separator:aea7a44d964602d417d847fdc16f9d87a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a740a5ec3c6d39b7fe4ff66c02ee34de3"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#a740a5ec3c6d39b7fe4ff66c02ee34de3">from_subdirs</a> (cls, batchdir, <a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#a13a9d42f5d9fdf1a9ce02d4fa6501f9d">scriptname</a>=None)</td></tr>
-<tr class="memdesc:a740a5ec3c6d39b7fe4ff66c02ee34de3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reconstruct batch from a directory This function assumes that the name of the batch can be determined by the given batchdir.  <a href="#a740a5ec3c6d39b7fe4ff66c02ee34de3">More...</a><br /></td></tr>
-<tr class="separator:a740a5ec3c6d39b7fe4ff66c02ee34de3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aaec65131d5627f3377bf27341195ee1a"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#aaec65131d5627f3377bf27341195ee1a">to_netcdf</a> (self, runmode='dimx', mode='noglue', genfromtxt=False, encode=None, <a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#af0110612953fd108215ee15d55d129bd">clean</a>=True, keepfile=True, processes=1)</td></tr>
-<tr class="memdesc:aaec65131d5627f3377bf27341195ee1a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convert <a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html" title="A collection of QuaLiKiz Runs. ">QuaLiKizBatch</a> output to netcdf iith warnings.catch_warnings(): warnings.simplefilter("ignore")  <a href="#aaec65131d5627f3377bf27341195ee1a">More...</a><br /></td></tr>
-<tr class="separator:aaec65131d5627f3377bf27341195ee1a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a531fecde81d169f03daf522e91d0f40a"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#a531fecde81d169f03daf522e91d0f40a">from_dir</a> (cls, dir, args, kwargs)</td></tr>
+<tr class="separator:a531fecde81d169f03daf522e91d0f40a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae8e01b99d340b019269941716104e853"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#ae8e01b99d340b019269941716104e853">from_subdirs</a> (cls, batchdir, args, <a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#a13a9d42f5d9fdf1a9ce02d4fa6501f9d">scriptname</a>=None, verbose=False, kwargs)</td></tr>
+<tr class="memdesc:ae8e01b99d340b019269941716104e853"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reconstruct batch from a directory This function assumes that the name of the batch can be determined by the given batchdir.  <a href="#ae8e01b99d340b019269941716104e853">More...</a><br /></td></tr>
+<tr class="separator:ae8e01b99d340b019269941716104e853"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6f31a0fabbf5b2e6176cf5cb81dfba67"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#a6f31a0fabbf5b2e6176cf5cb81dfba67">runlist_from_subdirs</a> (cls, batchdir, verbose=False, kwargs)</td></tr>
+<tr class="separator:a6f31a0fabbf5b2e6176cf5cb81dfba67"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a86e6a730943ff208259c7e88d09d1356"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#a86e6a730943ff208259c7e88d09d1356">to_netcdf</a> (self, runmode='dimx', mode='noglue', genfromtxt=False, encode=None, <a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#af0110612953fd108215ee15d55d129bd">clean</a>=True, keepfile=True, processes=1, verbose=False)</td></tr>
+<tr class="memdesc:a86e6a730943ff208259c7e88d09d1356"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convert <a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html" title="A collection of QuaLiKiz Runs. ">QuaLiKizBatch</a> output to netcdf iith warnings.catch_warnings(): warnings.simplefilter("ignore")  <a href="#a86e6a730943ff208259c7e88d09d1356">More...</a><br /></td></tr>
+<tr class="separator:a86e6a730943ff208259c7e88d09d1356"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af0110612953fd108215ee15d55d129bd"><td class="memItemLeft" align="right" valign="top">def&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#af0110612953fd108215ee15d55d129bd">clean</a> (self)</td></tr>
 <tr class="memdesc:af0110612953fd108215ee15d55d129bd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Remove all output.  <a href="#af0110612953fd108215ee15d55d129bd">More...</a><br /></td></tr>
 <tr class="separator:af0110612953fd108215ee15d55d129bd"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -143,6 +166,9 @@ Static Public Attributes</h2></td></tr>
 <tr class="memitem:a59abcc7938cd20bd73e0e7ffd15a4833"><td class="memItemLeft" align="right" valign="top">string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#a59abcc7938cd20bd73e0e7ffd15a4833">default_stdout</a> = 'stdout.batch'</td></tr>
 <tr class="memdesc:a59abcc7938cd20bd73e0e7ffd15a4833"><td class="mdescLeft">&#160;</td><td class="mdescRight">Default name to write STDOUT to.  <a href="#a59abcc7938cd20bd73e0e7ffd15a4833">More...</a><br /></td></tr>
 <tr class="separator:a59abcc7938cd20bd73e0e7ffd15a4833"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a710e289d3bb4a40aa73063a902ada8ff"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html#a710e289d3bb4a40aa73063a902ada8ff">run_class</a> = <a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizRun.html">QuaLiKizRun</a></td></tr>
+<tr class="memdesc:a710e289d3bb4a40aa73063a902ada8ff"><td class="mdescLeft">&#160;</td><td class="mdescRight">The class of the underlying QuaLiKiz run.  <a href="#a710e289d3bb4a40aa73063a902ada8ff">More...</a><br /></td></tr>
+<tr class="separator:a710e289d3bb4a40aa73063a902ada8ff"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>A collection of QuaLiKiz Runs. </p>
@@ -289,6 +315,46 @@ Static Public Attributes</h2></td></tr>
 
 </div>
 </div>
+<a id="a531fecde81d169f03daf522e91d0f40a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a531fecde81d169f03daf522e91d0f40a">&#9670;&nbsp;</a></span>from_dir()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">def qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizBatch.from_dir </td>
+          <td>(</td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname"><em>cls</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname"><em>dir</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname"><em>args</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname"><em>kwargs</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="aea7a44d964602d417d847fdc16f9d87a"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#aea7a44d964602d417d847fdc16f9d87a">&#9670;&nbsp;</a></span>from_dir_recursive()</h2>
 
@@ -328,8 +394,8 @@ batchlist A list of batches found </dd></dl>
 
 </div>
 </div>
-<a id="a740a5ec3c6d39b7fe4ff66c02ee34de3"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a740a5ec3c6d39b7fe4ff66c02ee34de3">&#9670;&nbsp;</a></span>from_subdirs()</h2>
+<a id="ae8e01b99d340b019269941716104e853"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae8e01b99d340b019269941716104e853">&#9670;&nbsp;</a></span>from_subdirs()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -350,7 +416,25 @@ batchlist A list of batches found </dd></dl>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">&#160;</td>
-          <td class="paramname"><em>scriptname</em> = <code>None</code>&#160;</td>
+          <td class="paramname"><em>args</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname"><em>scriptname</em> = <code>None</code>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname"><em>verbose</em> = <code>False</code>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname"><em>kwargs</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -425,6 +509,24 @@ qualikizbatch The reconstructed batch </dd></dl>
 
 </div>
 </div>
+<a id="a74ae29894be4893ce53bda100944d3a5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a74ae29894be4893ce53bda100944d3a5">&#9670;&nbsp;</a></span>inputbinaries_exist()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">def qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizBatch.inputbinaries_exist </td>
+          <td>(</td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname"><em>self</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="a0d127b0a86a0701f6efcb10c323d0c81"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a0d127b0a86a0701f6efcb10c323d0c81">&#9670;&nbsp;</a></span>is_done()</h2>
 
@@ -490,8 +592,48 @@ qualikizbatch The reconstructed batch </dd></dl>
 
 </div>
 </div>
-<a id="aaec65131d5627f3377bf27341195ee1a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aaec65131d5627f3377bf27341195ee1a">&#9670;&nbsp;</a></span>to_netcdf()</h2>
+<a id="a6f31a0fabbf5b2e6176cf5cb81dfba67"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6f31a0fabbf5b2e6176cf5cb81dfba67">&#9670;&nbsp;</a></span>runlist_from_subdirs()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">def qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizBatch.runlist_from_subdirs </td>
+          <td>(</td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname"><em>cls</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname"><em>batchdir</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname"><em>verbose</em> = <code>False</code>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname"><em>kwargs</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a86e6a730943ff208259c7e88d09d1356"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a86e6a730943ff208259c7e88d09d1356">&#9670;&nbsp;</a></span>to_netcdf()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -542,7 +684,13 @@ qualikizbatch The reconstructed batch </dd></dl>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">&#160;</td>
-          <td class="paramname"><em>processes</em> = <code>1</code>&#160;</td>
+          <td class="paramname"><em>processes</em> = <code>1</code>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname"><em>verbose</em> = <code>False</code>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -671,6 +819,30 @@ qualikizbatch The reconstructed batch </dd></dl>
 
 </div>
 </div>
+<a id="a710e289d3bb4a40aa73063a902ada8ff"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a710e289d3bb4a40aa73063a902ada8ff">&#9670;&nbsp;</a></span>run_class</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">qualikiz_tools.qualikiz_io.qualikizrun.QuaLiKizBatch.run_class = <a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizRun.html">QuaLiKizRun</a></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>The class of the underlying QuaLiKiz run. </p>
+
+</div>
+</div>
 <a id="acf963d5f122dda705ef3c16548bfb51e"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#acf963d5f122dda705ef3c16548bfb51e">&#9670;&nbsp;</a></span>runlist</h2>
 
@@ -741,11 +913,15 @@ qualikizbatch The reconstructed batch </dd></dl>
 <li>qualikiz_tools/qualikiz_io/<a class="el" href="qualikizrun_8py.html">qualikizrun.py</a></li>
 </ul>
 </div><!-- contents -->
+</div><!-- doc-content -->
 <!-- start footer part -->
-<hr class="footer"/><address class="footer"><small>
-Generated on Thu Oct 12 2017 16:23:20 for QuaLiKiz-Pythontools by &#160;<a href="http://www.doxygen.org/index.html">
-<img class="footer" src="doxygen.png" alt="doxygen"/>
-</a> 1.8.13
-</small></address>
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    <li class="navelem"><a class="el" href="namespacequalikiz__tools.html">qualikiz_tools</a></li><li class="navelem"><a class="el" href="namespacequalikiz__tools_1_1qualikiz__io.html">qualikiz_io</a></li><li class="navelem"><a class="el" href="namespacequalikiz__tools_1_1qualikiz__io_1_1qualikizrun.html">qualikizrun</a></li><li class="navelem"><a class="el" href="classqualikiz__tools_1_1qualikiz__io_1_1qualikizrun_1_1QuaLiKizBatch.html">QuaLiKizBatch</a></li>
+    <li class="footer">Generated on Wed Nov 29 2017 14:22:08 for QuaLiKiz-Pythontools by
+    <a href="http://www.doxygen.org/index.html">
+    <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.13 </li>
+  </ul>
+</div>
 </body>
 </html>
