@@ -1,0 +1,195 @@
+<html>
+<head><title>Image map created by yEd</title>
+<style type="text/css">
+.tooltip {
+  font-size:10pt;
+  background-color:#FFFFCC;
+  border:1px solid black;
+  padding:2px
+}
+</style>
+<style type="text/css">
+.tooltip {
+  position:absolute;
+  display:none
+}
+</style>
+</head>
+<body>
+
+<script type="text/javascript">
+tooltip = null;
+document.onmousemove = updateTooltip;
+function updateTooltip(e) {
+try {
+if (document.all) {
+if (document.documentElement && document.documentElement.scrollTop) { // Explorer 6 Strict
+x = document.documentElement.scrollLeft + window.event.x;
+y = document.documentElement.scrollTop + window.event.y;
+}
+else { // all other Explorers
+x = document.body.scrollLeft + window.event.x;
+y = document.body.scrollTop + window.event.y;
+}
+}
+else {
+x = e.pageX;
+y = e.pageY;
+}
+if (tooltip != null) {
+o = 20;
+var sx, sy;
+if (self.pageYOffset) { // all except Explorer
+sx = self.pageXOffset;
+sy = self.pageYOffset;
+}
+else if (document.documentElement && document.documentElement.scrollTop) { // Explorer 6 Strict
+sx = document.documentElement.scrollLeft;
+sy = document.documentElement.scrollTop;
+}
+else if (document.body) { // all other Explorers
+sx = document.body.scrollLeft;
+sy = document.body.scrollTop;
+}
+t = y + o + tooltip.offsetHeight;
+w = sy + document.body.clientHeight;
+if (t > w) {
+y = y - o - tooltip.offsetHeight;
+}
+else {
+y = y + o;
+}
+t = x + o + tooltip.offsetWidth;
+w = sx + document.body.clientWidth;
+if (t > w) {
+x = x - o - tooltip.offsetWidth;
+}
+else {
+x = x + o;
+}
+if ((tooltip.style.top == '' || tooltip.style.top == 0) && (tooltip.style.left == '' || tooltip.style.left == 0))
+{
+tooltip.style.width = tooltip.offsetWidth + 'px';
+tooltip.style.height = tooltip.offsetHeight + 'px';
+}
+tooltip.style.left = x + "px";
+tooltip.style.top = y + "px";
+}
+} catch (error) { error = null; }
+}
+function showTooltip(id) {
+try {
+tooltip = document.getElementById(id);
+tooltip.style.display = "block";
+} catch (error) { error = null; }
+}
+function hideTooltip() {
+try {
+tooltip.style.display = "none";
+} catch (error) { error = null; }
+}
+</script>
+
+<div class="tooltip" id="n0">QuaLiKizRun</div>
+<div class="tooltip" id="n1">QuaLiKizBatch</div>
+<div class="tooltip" id="n2">QuaLiKizPlan</div>
+<div class="tooltip" id="n3">scan_dict<br>scan_type</div>
+<div class="tooltip" id="n4">Scan dynamics:<br>scan over hyperrectangle<br>with<br>Ati = [0,2,3,4,12]<br>Ate = [0,4,6,8,15]</div>
+<div class="tooltip" id="n5">Scan constants:<br>Te=10<br>Ti0=12<br>constant during scan</div>
+<div class="tooltip" id="n6">QuaLiKizXpoint</div>
+<div class="tooltip" id="n7">elec</div>
+<div class="tooltip" id="n8">ions</div>
+<div class="tooltip" id="n9">meta</div>
+<div class="tooltip" id="n10">special</div>
+<div class="tooltip" id="n11">geometric</div>
+<div class="tooltip" id="n12">norm</div>
+<div class="tooltip" id="n13">Electron variables:<br>T, n, At, An,<br>type, anis, danisdr</div>
+<div class="tooltip" id="n14">Ion variables:<br>electron ones + A, Z</div>
+<div class="tooltip" id="n15">QuaLiKiz metainput:<br>relacc1, relacc2,<br>maxpts, R0, ...</div>
+<div class="tooltip" id="n16">Variables which require<br>special i/o:<br>kthetarhos</div>
+<div class="tooltip" id="n17">Variables which<br>depend on dimx:<br>x, rho, Ro, q,<br>alpha, ...</div>
+<div class="tooltip" id="n18">Normalization<br>for example:<br>Ani1: Modify Ani1 to<br>maintain quasineutrality</div>
+<div class="tooltip" id="n19">parameters.json</div>
+<div class="tooltip" id="n20">Directory with:<br>- parameters.json<br>- Relative path to<br>QuaLiKiz bin</div>
+<div class="tooltip" id="n21">Directory with:<br>- batch script<br>- QuaLiKizRun data<br>OR<br>- subfolder(s) with<br>QuaLiKizRun data</div>
+<div class="tooltip" id="n22">How to create a<br>valid QuaLiKiz run.<br>You need a binary,<br>input files, subfolders,<br>etc.</div>
+<div class="tooltip" id="n23">How to create a<br>valid QuaLiKiz batchrun.<br>Equivalent to Edisons<br>sbatch, QLKBatchPBS,<br>WriteQLKBatchSGE</div>
+<div class="tooltip" id="n24">Run QuaLiKiz</div>
+<div class="tooltip" id="n26">Generate input</div>
+<div class="tooltip" id="n27">get input from ???</div>
+<div class="tooltip" id="n28">QuaLiKiz output:<br>debug<br>output<br>output/primitives</div>
+<div class="tooltip" id="n29">Convert to xarray</div>
+<div class="tooltip" id="n30"><br>netCDF file:<br>folder_name.nc</div>
+<div class="tooltip" id="n31">ND hypercube style.<br>Normally<br>dimx, dimn, nions, ...<br>Can convert to<br>Ati, Ate, Ti, ...<br></div>
+<div class="tooltip" id="n32">Fold to ND hypercube</div>
+<div class="tooltip" id="n33">Dataslicer</div>
+<div class="tooltip" id="n34">Convert to pandas</div>
+<div class="tooltip" id="n35">Table-like style</div>
+<div class="tooltip" id="n36"><br>HDF5 file:<br>folder_name.h5<br>(Or csv, ascii, ..)</div>
+<div class="tooltip" id="n37">1D flux-plot</div>
+<div class="tooltip" id="n38">NDNN QLKNN train</div>
+<div class="tooltip" id="n39">Batch</div>
+<div class="tooltip" id="n40">Extention of<br>QuaLiKizBatch with<br>machine-specific<br>scripts/settings</div>
+<div class="tooltip" id="n41">Batch script</div>
+<div class="tooltip" id="n42">Run</div>
+<div class="tooltip" id="n43">Extention of<br>QuaLiKizRun with<br>machine-specific<br>scripts/settings</div>
+<div class="tooltip" id="e22">Manually</div>
+<div class="tooltip" id="e25">from PythonTools</div>
+
+<map name="image1_1">
+  <area shape="poly" coords="883,489,883,489,883,387,893,387,893,489,893,489" alt="" onmouseover="showTooltip('e25')" onmouseout="hideTooltip()"/>
+  <area shape="poly" coords="701,348,701,348,806,348,806,358,701,358,701,358" alt="" onmouseover="showTooltip('e22')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="15,662,239,802" alt="" onmouseover="showTooltip('n43')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="481,697,628,737" alt="" onmouseover="showTooltip('n42')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="225,489,362,529" alt="" onmouseover="showTooltip('n41')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="182,314,406,454" alt="" onmouseover="showTooltip('n40')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="481,489,628,529" alt="" onmouseover="showTooltip('n39')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="1649,414,1796,454" alt="" onmouseover="showTooltip('n38')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="1472,414,1619,454" alt="" onmouseover="showTooltip('n37')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="1560,214,1697,303" alt="" onmouseover="showTooltip('n36')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="1415,15,1639,155" alt="" onmouseover="showTooltip('n35')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="1555,333,1702,373" alt="" onmouseover="showTooltip('n34')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="1265,495,1412,535" alt="" onmouseover="showTooltip('n33')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="1265,414,1412,454" alt="" onmouseover="showTooltip('n32')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="1021,15,1245,155" alt="" onmouseover="showTooltip('n31')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="1270,214,1407,303" alt="" onmouseover="showTooltip('n30')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="1265,333,1412,373" alt="" onmouseover="showTooltip('n29')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="1061,309,1198,398" alt="" onmouseover="showTooltip('n28')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="554,333,701,373" alt="" onmouseover="showTooltip('n27')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="814,489,961,529" alt="" onmouseover="showTooltip('n26')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="814,328,961,379" alt="" onmouseover="showTooltip('n24')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="997,571,1221,711" alt="" onmouseover="showTooltip('n23')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="1032,754,1256,894" alt="" onmouseover="showTooltip('n22')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="282,591,419,702" alt="" onmouseover="showTooltip('n21')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="282,717,419,796" alt="" onmouseover="showTooltip('n20')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="282,807,419,858" alt="" onmouseover="showTooltip('n19')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="675,1116,899,1256" alt="" onmouseover="showTooltip('n18')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="831,1268,1055,1408" alt="" onmouseover="showTooltip('n17')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="505,1256,729,1396" alt="" onmouseover="showTooltip('n16')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="359,1109,583,1249" alt="" onmouseover="showTooltip('n15')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="179,1256,403,1396" alt="" onmouseover="showTooltip('n14')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="42,1116,266,1256" alt="" onmouseover="showTooltip('n13')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="803,1013,882,1053" alt="" onmouseover="showTooltip('n12')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="708,1013,787,1053" alt="" onmouseover="showTooltip('n11')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="613,1013,692,1053" alt="" onmouseover="showTooltip('n10')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="518,1013,597,1053" alt="" onmouseover="showTooltip('n9')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="423,1013,502,1053" alt="" onmouseover="showTooltip('n8')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="328,1013,407,1053" alt="" onmouseover="showTooltip('n7')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="527,888,674,928" alt="" onmouseover="showTooltip('n6')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="89,913,313,1053" alt="" onmouseover="showTooltip('n5')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="1039,988,1263,1128" alt="" onmouseover="showTooltip('n4')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="752,888,899,928" alt="" onmouseover="showTooltip('n3')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="640,813,787,853" alt="" onmouseover="showTooltip('n2')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="640,626,787,666" alt="" onmouseover="showTooltip('n1')" onmouseout="hideTooltip()"/>
+  <area shape="rect" coords="640,737,787,777" alt="" onmouseover="showTooltip('n0')" onmouseout="hideTooltip()"/>
+</map>
+
+
+    <table class="yimagetable" cellspacing="0" cellpadding="0" border="0">
+      <tr>
+        <td><img class="yimage" src="qualikiz_pythontools1_1.png" usemap="#image1_1" border="0" alt=""/></td>
+      </tr>
+    </table>
+
+</body>
+</html>
