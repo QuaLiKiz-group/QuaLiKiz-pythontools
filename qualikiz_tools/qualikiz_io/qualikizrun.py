@@ -28,6 +28,12 @@ vcores_per_task = int(threads_per_task / threads_per_vcore)  # == 2
 
 warnings.simplefilter('always', UserWarning)
 
+try:
+    import netCDF4 as nc4
+    HAS_NETCDF4 = True
+except ModuleNotFoundError:
+    HAS_NETCDF4 = False
+
 
 class PathException(Exception):
     """ Exception thrown when a path should be absolute, but it is not """
@@ -540,7 +546,10 @@ class QuaLiKizBatch():
         """
 
         if encode is None:
-            encode = {'zlib': True}
+            if HAS_NETCDF4 is True:
+                encode = {'zlib': True}
+            else:
+                encode = {}
 
         new_netcdf_path = os.path.join(self.parent_dir, self.name, self.name + '.nc')
 
@@ -708,7 +717,10 @@ def run_to_netcdf(path, runmode='dimx', overwrite=None,
                     variables. Compresses (zlib) by default. See overwrite_prompt.
     """
     if encode is None:
-        encode = {'zlib': True}
+        if HAS_NETCDF4 is True:
+            encode = {'zlib': True}
+        else:
+            encode = {}
 
     name = os.path.basename(path)
     netcdf_path = os.path.join(path, name + '.nc')
