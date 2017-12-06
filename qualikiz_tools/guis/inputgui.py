@@ -2,6 +2,7 @@ from qualikiz_tools.qualikiz_io.inputfiles import Particle, Electron, Ion, IonLi
 from qualikiz_tools.qualikiz_io.outputfiles import squeeze_dataset, orthogonalize_dataset, xarray_to_pandas
 import sys
 from IPython import embed
+import sip
 
 from PyQt4 import QtCore, QtGui
 import pyqtgraph as pg
@@ -45,7 +46,6 @@ class ElectronWidget(InputFileWidget):
             setattr(self, name + 'Entry', QtGui.QLineEdit("1"))
             gbox.addWidget(getattr(self, name + 'Entry'), ii, 1)
             gbox.addWidget(getattr(self, name + 'Label'), ii, 0)
-        self.show()
 
 #class IonWidget(InputFileWidget):
 #    inputfiles_class = Ion
@@ -73,9 +73,9 @@ class IonListWidget(QtGui.QWidget):
     def initUi(self):
         gbox = QtGui.QGridLayout()
         self.AddIonButton = QtGui.QPushButton("Add Ion")
-        self.AddIonButton.clicked.connect(self.add_ion)
+        self.AddIonButton.clicked.connect(self.add_row)
         self.DelIonButton = QtGui.QPushButton("Del Ion")
-        self.DelIonButton.clicked.connect(self.del_ion)
+        self.DelIonButton.clicked.connect(self.del_row)
         self.setLayout(gbox)
         columns = Ion.keynames + Electron.keynames
         self.DataTable = QtGui.QTableWidget()
@@ -85,15 +85,14 @@ class IonListWidget(QtGui.QWidget):
         gbox.addWidget(self.AddIonButton)
         gbox.addWidget(self.DelIonButton)
 
-        self.show()
 
-    def add_ion(self):
+    def add_row(self):
         idx = self.DataTable.rowCount()
         self.DataTable.insertRow(idx)
         self.DataTable.resizeRowsToContents()
         return idx
 
-    def del_ion(self):
+    def del_row(self):
         idx = self.DataTable.rowCount()
         self.DataTable.removeRow(idx - 1)
         self.DataTable.resizeRowsToContents()
@@ -145,7 +144,6 @@ class MetaWidget(InputFileWidget):
                 setattr(self, name + 'Entry', QtGui.QLineEdit("1"))
             gbox.addWidget(getattr(self, name + 'Entry'), ii, 1)
             gbox.addWidget(getattr(self, name + 'Label'), ii, 0)
-        self.show()
 
 from itertools import chain
 class GeometryWidget(InputFileWidget):
@@ -163,7 +161,6 @@ class GeometryWidget(InputFileWidget):
             setattr(self, name + 'Entry', QtGui.QLineEdit("1"))
             gbox.addWidget(getattr(self, name + 'Entry'), ii, 1)
             gbox.addWidget(getattr(self, name + 'Label'), ii, 0)
-        self.show()
 
 class SpecialWidget(InputFileWidget):
     inputfiles_class = QuaLiKizXpoint.Special
@@ -180,7 +177,6 @@ class SpecialWidget(InputFileWidget):
             setattr(self, name + 'Entry', QtGui.QLineEdit("1"))
             gbox.addWidget(getattr(self, name + 'Entry'), ii, 1)
             gbox.addWidget(getattr(self, name + 'Label'), ii, 0)
-        self.show()
 
     def fillGui(self, kthetarhos):
         getattr(self, 'kthetarhosEntry').setText(str(kthetarhos))
@@ -208,7 +204,6 @@ class NormWidget(InputFileWidget):
             setattr(self, name + 'Entry', QtGui.QCheckBox())
             gbox.addWidget(getattr(self, name + 'Entry'), ii, 1)
             gbox.addWidget(getattr(self, name + 'Label'), ii, 0)
-        self.show()
 
     def readGui(self):
         dict_ = {}
@@ -232,7 +227,6 @@ class SaveLoadWidget(QtGui.QWidget):
         gbox.addWidget(self.LoadFileButton, 0, 0)
         gbox.addWidget(self.SaveFileButton, 0, 1)
 
-        self.show()
 
     def openfile(self):
         fname = QtGui.QFileDialog.getOpenFileName(self, 'Open file',
@@ -279,7 +273,6 @@ class QuaLiKizXpointWidget(InputFileWidget):
         gbox.addWidget(self.IonListWidget, 3, 0)
         gbox.addWidget(self.SaveLoadWidget, 3, 1)
         gbox.addWidget(self.NormWidget, 1, 1)
-        self.show()
 
     def fillGui(self, xpoint_base):
         self.MetaWidget.fillGui(xpoint_base['meta'])
@@ -303,14 +296,95 @@ class QuaLiKizXpointWidget(InputFileWidget):
     def readGui(self):
         raise NotImplementedError
 
+class ScanDictPairLayout(QtGui.QHBoxLayout):
+    options = (['<...>'] +
+               [name + 'i' for name in Ion.keynames] +
+               [name + 'i' for name in Electron.keynames] +
+               [name + 'e' for name in Electron.keynames] +
+               Electron.keynames +
+               QuaLiKizXpoint.Geometry.keynames +
+               QuaLiKizXpoint.Meta.keynames)
 
+    def __init__(self):
+        super().__init__()
+        self.initUi()
+
+    def initUi(self):
+        self.combo = QtGui.QComboBox()
+        self.combo.addItems(self.__class__.options)
+        self.combo.currentIndexChanged.connect(self.selectionchange)
+        self.combo.oldval = self.combo.currentText()
+        self.values = QtGui.QLineEdit("[1]")
+        self.addWidget(self.combo)
+        self.addWidget(self.values)
+
+    def selectionchange(self, ii):
+        if self.combo.oldval == '<...>':
+            self.parentWidget().addpair()
+        else:
+            pass
+        if self.combo.currentText() == '<...>':
+            self.combo.setParent(None)
+            self.values.setParent(None)
+            self.setParent(None)
+        else:
+            self.combo.oldval = self.combo.currentText()
+
+class ScanDictWidget(QtGui.QWidget):
+    def __init__(self):
+        super().__init__()
+        self.initUi()
+
+    def initUi(self):
+        self.box = QtGui.QVBoxLayout()
+        self.setLayout(self.box)
+        self.addpair()
+        self.box.addStretch()
+
+    @property
+    def pairs(self):
+        return [child for child in self.children() if isinstance(child, ScanDictPairWidget) is True]
+
+    def addpair(self):
+        self.box.insertLayout(self.box.count() - 1, ScanDictPairLayout())
+
+class ScanTypeWidget(QtGui.QWidget):
+    def __init__(self):
+        super().__init__()
+        self.initUi()
+
+    def initUi(self):
+        self.box = QtGui.QHBoxLayout()
+        self.setLayout(self.box)
+        self.combo = QtGui.QComboBox()
+        self.combo.addItems(['hyperedge', 'hyperrect', 'parallel'])
+        self.box.addWidget(self.combo)
+
+class QuaLiKizPlanWidget(QtGui.QWidget):
+    def __init__(self):
+        super().__init__()
+        self.initUi()
+
+    def initUi(self):
+        self.box = QtGui.QVBoxLayout()
+        self.setLayout(self.box)
+
+        self.scanDict = ScanDictWidget()
+        self.scanType = ScanTypeWidget()
+        self.box.addWidget(self.scanType)
+        self.box.addWidget(self.scanDict)
 
 def main():
     app = QtGui.QApplication(sys.argv)
+    tabs = QtGui.QTabWidget()
     app.setApplicationName('in')
-    ex = QuaLiKizXpointWidget()
+    base = QuaLiKizXpointWidget()
     qualikiz_plan = QuaLiKizPlan.from_json('../qualikiz_io/parameters_template.json')
-    ex.fillGui(qualikiz_plan['xpoint_base'])
+    base.fillGui(qualikiz_plan['xpoint_base'])
+    tabs.addTab(base ,"QuaLiKizXpoint")
+    plan = QuaLiKizPlanWidget()
+    tabs.addTab(plan, "QuaLiKizPlan")
+    tabs.show()
 
     sys.exit(app.exec_())
 
