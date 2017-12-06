@@ -343,6 +343,7 @@ class QuaLiKizXpoint(dict):
         in_args =    ['x', 'rho', 'Ro', 'Rmin', 'Bo', 'q', 'smag',
                       'alpha', 'Machtor', 'Autor']
         extra_args = ['Machpar', 'Aupar', 'gammaE']
+        keynames = in_args + extra_args
 
         def __init__(self, **kwargs):
             """ Initialize Geometry class
