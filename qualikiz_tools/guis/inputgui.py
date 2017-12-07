@@ -3,6 +3,8 @@ from qualikiz_tools.qualikiz_io.outputfiles import squeeze_dataset, orthogonaliz
 import sys
 from IPython import embed
 import sip
+import json
+from collections import OrderedDict
 
 from PyQt4 import QtCore, QtGui
 import pyqtgraph as pg
@@ -26,7 +28,7 @@ class InputFileWidget(QtGui.QWidget):
 
         return dict_
 
-    def to_QLK(self):
+    def toQLK(self):
         dict_ = self.readGui()
         return self.inputfiles_class(**dict_)
 
@@ -120,7 +122,7 @@ class IonListWidget(QtGui.QWidget):
             ionlist.append(dict_)
         return ionlist
 
-    def to_QLK(self):
+    def toQLK(self):
         ionlist = []
         for ion in self.readGui():
             ionlist.append(Ion(**ion))
@@ -162,6 +164,10 @@ class GeometryWidget(InputFileWidget):
             gbox.addWidget(getattr(self, name + 'Entry'), ii, 1)
             gbox.addWidget(getattr(self, name + 'Label'), ii, 0)
 
+def strToList(str):
+    split = str[1:-1].split(',')
+    return [float(el) for el in split]
+
 class SpecialWidget(InputFileWidget):
     inputfiles_class = QuaLiKizXpoint.Special
     def __init__(self):
@@ -182,10 +188,9 @@ class SpecialWidget(InputFileWidget):
         getattr(self, 'kthetarhosEntry').setText(str(kthetarhos))
 
     def readGui(self):
-        kr = getattr(self, 'kthetarhosEntry').text()[1:-1].split(',')
-        kr = [float(el) for el in kr]
+        kr = strToList(getattr(self, 'kthetarhosEntry').text())
 
-    def to_QLK(self):
+    def toQLK(self):
         kr = self.readGui()
         return self.inputfiles_class(kr)
 
@@ -237,17 +242,19 @@ class SaveLoadWidget(QtGui.QWidget):
             self.parentWidget().fillGui(qualikiz_plan['xpoint_base'])
 
     def savefile(self):
-        xpoint_base = self.parentWidget().to_QLK()
+        base = self.topLevelWidget().base
+        plan = self.topLevelWidget().plan
+        xpoint_base = base.toQLK()
+        scan_plan = plan.readGui()
+        qlk_plan = QuaLiKizPlan(scan_plan['scan_dict'], scan_plan['scan_type'], xpoint_base)
         dialog = QtGui.QFileDialog()
         dialog.setAcceptMode(QtGui.QFileDialog.AcceptSave)
         dialog.setNameFilter('JSON files (*.json)')
         dialog.setDefaultSuffix('json')
         if dialog.exec_() == QtGui.QFileDialog.Accepted:
             fname = dialog.selectedFiles()[0]
-        import json
-        if fname != '':
             with open(fname, 'w') as file_:
-                json.dump(xpoint_base, file_, indent=4)
+                json.dump(qlk_plan, file_, indent=4)
 
 class QuaLiKizXpointWidget(InputFileWidget):
     inputfiles_class = QuaLiKizXpoint
@@ -280,13 +287,13 @@ class QuaLiKizXpointWidget(InputFileWidget):
         self.IonListWidget.fillGui(xpoint_base['ions'])
         self.NormWidget.fillGui(xpoint_base['norm'])
 
-    def to_QLK(self):
-        kthetarhos = self.SpecialWidget.to_QLK()
-        elec = self.ElectronWidget.to_QLK()
-        ions = self.IonListWidget.to_QLK()
-        meta = self.MetaWidget.to_QLK()
-        norm = self.NormWidget.to_QLK()
-        geom = self.GeometryWidget.to_QLK()
+    def toQLK(self):
+        kthetarhos = self.SpecialWidget.toQLK()
+        elec = self.ElectronWidget.toQLK()
+        ions = self.IonListWidget.toQLK()
+        meta = self.MetaWidget.toQLK()
+        norm = self.NormWidget.toQLK()
+        geom = self.GeometryWidget.toQLK()
 
         xpoint_base = QuaLiKizXpoint(kthetarhos, elec, ions, **geom, **norm, **meta)
         return xpoint_base
@@ -341,7 +348,8 @@ class ScanDictWidget(QtGui.QWidget):
 
     @property
     def pairs(self):
-        return [child for child in self.children() if isinstance(child, ScanDictPairWidget) is True]
+        res = [child for child in self.layout().children() if isinstance(child, ScanDictPairLayout) is True]
+        return res
 
     def addpair(self):
         self.box.insertLayout(self.box.count() - 1, ScanDictPairLayout())
@@ -367,24 +375,44 @@ class QuaLiKizPlanWidget(QtGui.QWidget):
         self.box = QtGui.QVBoxLayout()
         self.setLayout(self.box)
 
-        self.scanDict = ScanDictWidget()
-        self.scanType = ScanTypeWidget()
+        self.scanDictWidget = ScanDictWidget()
+        self.scanTypeWidget = ScanTypeWidget()
         self.SaveLoadWidget = SaveLoadWidget()
-        self.box.addWidget(self.scanType)
-        self.box.addWidget(self.scanDict)
+        self.box.addWidget(self.scanTypeWidget)
+        self.box.addWidget(self.scanDictWidget)
         self.box.addWidget(self.SaveLoadWidget)
+
+    def readGui(self):
+        dict_ = {'scan_type': self.scanTypeWidget.combo.currentText(),
+                 'scan_dict': OrderedDict()
+                 }
+        for pair in self.scanDictWidget.pairs:
+            name = pair.combo.currentText()
+            if name != '<...>':
+                lst = strToList(pair.values.text())
+                dict_['scan_dict'][name] = lst
+
+        return dict_
+
+
+class QuaLiKizTabWidget(QtGui.QTabWidget):
+    def __init__(self):
+        super().__init__()
+        self.initUi()
+
+    def initUi(self):
+        self.base = QuaLiKizXpointWidget()
+        qualikiz_plan = QuaLiKizPlan.from_json('../qualikiz_io/parameters_template.json')
+        self.base.fillGui(qualikiz_plan['xpoint_base'])
+        self.addTab(self.base ,"QuaLiKizXpoint")
+        self.plan = QuaLiKizPlanWidget()
+        self.addTab(self.plan, "QuaLiKizPlan")
+        self.show()
 
 def main():
     app = QtGui.QApplication(sys.argv)
-    tabs = QtGui.QTabWidget()
+    tabs = QuaLiKizTabWidget()
     app.setApplicationName('in')
-    base = QuaLiKizXpointWidget()
-    qualikiz_plan = QuaLiKizPlan.from_json('../qualikiz_io/parameters_template.json')
-    base.fillGui(qualikiz_plan['xpoint_base'])
-    tabs.addTab(base ,"QuaLiKizXpoint")
-    plan = QuaLiKizPlanWidget()
-    tabs.addTab(plan, "QuaLiKizPlan")
-    tabs.show()
 
     sys.exit(app.exec_())
 
