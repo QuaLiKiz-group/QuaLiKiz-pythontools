@@ -232,9 +232,9 @@ class SaveLoadWidget(QtGui.QWidget):
         fname = QtGui.QFileDialog.getOpenFileName(self, 'Open file',
                                                   '.',"JSON files (*.json);;All files (*)")
 
-        qualikiz_plan = QuaLiKizPlan.from_json(fname)
-        self.parentWidget().fillGui(qualikiz_plan['xpoint_base'])
-
+        if fname != '':
+            qualikiz_plan = QuaLiKizPlan.from_json(fname)
+            self.parentWidget().fillGui(qualikiz_plan['xpoint_base'])
 
     def savefile(self):
         xpoint_base = self.parentWidget().to_QLK()
@@ -265,13 +265,11 @@ class QuaLiKizXpointWidget(InputFileWidget):
         self.GeometryWidget = GeometryWidget()
         self.IonListWidget = IonListWidget()
         self.NormWidget = NormWidget()
-        self.SaveLoadWidget = SaveLoadWidget()
         gbox.addWidget(self.ElectronWidget, 0, 0)
         gbox.addWidget(self.MetaWidget, 0, 1)
         gbox.addWidget(self.SpecialWidget, 2, 0)
         gbox.addWidget(self.GeometryWidget, 1, 0)
         gbox.addWidget(self.IonListWidget, 3, 0)
-        gbox.addWidget(self.SaveLoadWidget, 3, 1)
         gbox.addWidget(self.NormWidget, 1, 1)
 
     def fillGui(self, xpoint_base):
@@ -371,8 +369,10 @@ class QuaLiKizPlanWidget(QtGui.QWidget):
 
         self.scanDict = ScanDictWidget()
         self.scanType = ScanTypeWidget()
+        self.SaveLoadWidget = SaveLoadWidget()
         self.box.addWidget(self.scanType)
         self.box.addWidget(self.scanDict)
+        self.box.addWidget(self.SaveLoadWidget)
 
 def main():
     app = QtGui.QApplication(sys.argv)
