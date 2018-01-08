@@ -5,6 +5,7 @@ from IPython import embed
 import sip
 import json
 from collections import OrderedDict
+from warnings import warn
 
 from PyQt4 import QtCore, QtGui
 import pyqtgraph as pg
@@ -100,6 +101,7 @@ class IonListWidget(QtGui.QWidget):
         self.DataTable.resizeRowsToContents()
 
     def fillGui(self, ion_list):
+        self.clearGui()
         for ion in ion_list:
             idx = self.DataTable.rowCount()
             self.DataTable.insertRow(idx)
@@ -109,6 +111,10 @@ class IonListWidget(QtGui.QWidget):
                 self.DataTable.setItem(idx, ii, QtGui.QTableWidgetItem(str(ion[name])))
 
         self.DataTable.resizeRowsToContents()
+
+    def clearGui(self):
+        for __ in range(self.DataTable.rowCount()):
+            self.del_row()
 
     def readGui(self):
         ionlist = []
@@ -189,10 +195,11 @@ class SpecialWidget(InputFileWidget):
 
     def readGui(self):
         kr = strToList(getattr(self, 'kthetarhosEntry').text())
+        return kr
 
     def toQLK(self):
-        kr = self.readGui()
-        return self.inputfiles_class(kr)
+        special_dict = self.readGui()
+        return self.inputfiles_class(special_dict)
 
 class NormWidget(InputFileWidget):
     inputfiles_class = dict
@@ -239,7 +246,10 @@ class SaveLoadWidget(QtGui.QWidget):
 
         if fname != '':
             qualikiz_plan = QuaLiKizPlan.from_json(fname)
-            self.parentWidget().fillGui(qualikiz_plan['xpoint_base'])
+            base = self.topLevelWidget().base
+            plan = self.topLevelWidget().plan
+            base.fillGui(qualikiz_plan['xpoint_base'])
+            plan.fillGui(qualikiz_plan['scan_type'], qualikiz_plan['scan_dict'])
 
     def savefile(self):
         base = self.topLevelWidget().base
@@ -288,7 +298,8 @@ class QuaLiKizXpointWidget(InputFileWidget):
         self.NormWidget.fillGui(xpoint_base['norm'])
 
     def toQLK(self):
-        kthetarhos = self.SpecialWidget.toQLK()
+        special_dict = self.SpecialWidget.toQLK()
+        kthetarhos = special_dict['kthetarhos']
         elec = self.ElectronWidget.toQLK()
         ions = self.IonListWidget.toQLK()
         meta = self.MetaWidget.toQLK()
@@ -329,11 +340,15 @@ class ScanDictPairLayout(QtGui.QHBoxLayout):
         else:
             pass
         if self.combo.currentText() == '<...>':
-            self.combo.setParent(None)
-            self.values.setParent(None)
-            self.setParent(None)
+            self.delete()
         else:
             self.combo.oldval = self.combo.currentText()
+
+    def delete(self):
+        self.combo.setParent(None)
+        self.values.setParent(None)
+        self.setParent(None)
+
 
 class ScanDictWidget(QtGui.QWidget):
     def __init__(self):
@@ -351,8 +366,29 @@ class ScanDictWidget(QtGui.QWidget):
         res = [child for child in self.layout().children() if isinstance(child, ScanDictPairLayout) is True]
         return res
 
-    def addpair(self):
-        self.box.insertLayout(self.box.count() - 1, ScanDictPairLayout())
+    def addpair(self, scan_dict_pair_layout=None):
+        if scan_dict_pair_layout is None:
+            scan_dict_pair_layout = ScanDictPairLayout()
+        insert_idx = self.box.count() - 1
+        self.box.insertLayout(insert_idx, scan_dict_pair_layout)
+        return insert_idx
+
+    def fillGui(self, scan_dict):
+        self.clearGui()
+        for key, val in scan_dict.items():
+            scan_dict_pair = self.box.children()[-1]
+            combo = scan_dict_pair.combo
+            combo_idx = combo.findText(key)
+            if combo_idx >= 0:
+                combo.setCurrentIndex(combo_idx)
+            else:
+                warn('Scan variable {!s} is not known!'.format(scan_type))
+            scan_dict_pair.values.setText(str(val))
+
+    def clearGui(self):
+        for scan_dict_pair in self.box.children():
+            scan_dict_pair.delete()
+        self.addpair()
 
 class ScanTypeWidget(QtGui.QWidget):
     def __init__(self):
@@ -365,6 +401,13 @@ class ScanTypeWidget(QtGui.QWidget):
         self.combo = QtGui.QComboBox()
         self.combo.addItems(['hyperedge', 'hyperrect', 'parallel'])
         self.box.addWidget(self.combo)
+
+    def fillGui(self, scan_type):
+        combo_idx = self.combo.findText(scan_type)
+        if combo_idx >= 0:
+            self.combo.setCurrentIndex(combo_idx)
+        else:
+            warn('Scan type {!s} is not known!'.format(scan_type))
 
 class QuaLiKizPlanWidget(QtGui.QWidget):
     def __init__(self):
@@ -394,6 +437,10 @@ class QuaLiKizPlanWidget(QtGui.QWidget):
 
         return dict_
 
+    def fillGui(self, scan_type, scan_dict):
+        self.scanTypeWidget.fillGui(scan_type)
+        self.scanDictWidget.fillGui(scan_dict)
+
 
 class QuaLiKizTabWidget(QtGui.QTabWidget):
     def __init__(self):
@@ -406,6 +453,7 @@ class QuaLiKizTabWidget(QtGui.QTabWidget):
         self.base.fillGui(qualikiz_plan['xpoint_base'])
         self.addTab(self.base ,"QuaLiKizXpoint")
         self.plan = QuaLiKizPlanWidget()
+        self.plan.fillGui(qualikiz_plan['scan_type'], qualikiz_plan['scan_dict'])
         self.addTab(self.plan, "QuaLiKizPlan")
         self.show()
 
