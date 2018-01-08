@@ -10,6 +10,9 @@ from warnings import warn
 from PyQt4 import QtCore, QtGui
 import pyqtgraph as pg
 
+from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
+
 class InputFileWidget(QtGui.QWidget):
     def fillGui(self, dict_):
         for key, val in dict_.items():
@@ -252,11 +255,7 @@ class SaveLoadWidget(QtGui.QWidget):
             plan.fillGui(qualikiz_plan['scan_type'], qualikiz_plan['scan_dict'])
 
     def savefile(self):
-        base = self.topLevelWidget().base
-        plan = self.topLevelWidget().plan
-        xpoint_base = base.toQLK()
-        scan_plan = plan.readGui()
-        qlk_plan = QuaLiKizPlan(scan_plan['scan_dict'], scan_plan['scan_type'], xpoint_base)
+        qlk_plan = self.topLevelWidget().generateQLKPlan()
         dialog = QtGui.QFileDialog()
         dialog.setAcceptMode(QtGui.QFileDialog.AcceptSave)
         dialog.setNameFilter('JSON files (*.json)')
@@ -441,6 +440,94 @@ class QuaLiKizPlanWidget(QtGui.QWidget):
         self.scanTypeWidget.fillGui(scan_type)
         self.scanDictWidget.fillGui(scan_dict)
 
+class MyMplCanvas(FigureCanvas):
+    """Ultimately, this is a QWidget (as well as a FigureCanvasAgg, etc.)."""
+
+    def __init__(self, parent=None, width=5, height=4, dpi=100):
+        fig = Figure(figsize=(width, height), dpi=dpi)
+        self.axes = fig.add_subplot(111)
+
+        self.compute_initial_figure()
+
+        FigureCanvas.__init__(self, fig)
+        self.setParent(parent)
+
+        FigureCanvas.setSizePolicy(self,
+                                   QtGui.QSizePolicy.Expanding,
+                                   QtGui.QSizePolicy.Expanding)
+        FigureCanvas.updateGeometry(self)
+
+    def compute_initial_figure(self):
+        pass
+
+
+class MyStaticMplCanvas(MyMplCanvas):
+    """Simple canvas with a sine plot."""
+
+    def compute_initial_figure(self):
+        t = arange(0.0, 3.0, 0.01)
+        s = sin(2*pi*t)
+        self.axes.plot(t, s)
+
+
+class MyDynamicMplCanvas(MyMplCanvas):
+    """A canvas that updates itself every second with a new plot."""
+
+    def __init__(self, *args, **kwargs):
+        MyMplCanvas.__init__(self, *args, **kwargs)
+        timer = QtCore.QTimer(self)
+        timer.timeout.connect(self.update_figure)
+        timer.start(1000)
+
+    def compute_initial_figure(self):
+        self.axes.plot([0, 1, 2, 3], [1, 2, 0, 4], 'r')
+
+    def update_figure(self):
+        # Build a list of 4 random integers between 0 and 10 (both inclusive)
+        l = [random.randint(0, 10) for i in range(4)]
+        self.axes.cla()
+        self.axes.plot([0, 1, 2, 3], l, 'r')
+        self.draw()
+
+class QuaLiKizInputPlotWidget(QtGui.QWidget):
+    def __init__(self):
+        super().__init__()
+        self.initUi()
+
+    def initUi(self):
+        self.box = QtGui.QVBoxLayout()
+        self.gbox = QtGui.QGridLayout()
+        self.setLayout(self.box)
+        self.gradlike = MyMplCanvas()
+        self.box.addWidget(self.gradlike)
+
+    def plotGradlike(self):
+        embed()
+
+class QuaLiKizInputWidget(QtGui.QWidget):
+    def __init__(self):
+        super().__init__()
+        self.initUi()
+
+    def initUi(self):
+        self.box = QtGui.QVBoxLayout()
+        self.setLayout(self.box)
+
+        self.qualikizInputPlot = QuaLiKizInputPlotWidget()
+        self.box.addWidget(self.qualikizInputPlot)
+        self.plotInputButton = QtGui.QPushButton("Plot Input")
+        self.plotInputButton.clicked.connect(self.plot_input)
+        self.box.addWidget(self.plotInputButton)
+
+    def plot_input(self):
+        top = self.topLevelWidget()
+        panda_dict = top.generateInput()
+        panda_dict['dimx']
+        self.qualikizInputPlot.gradlike.axes.cla()
+
+        panda_dict['dimx'].reset_index().plot(x='dimx', y=['Ate', 'Te'], linestyle='--', ax=self.qualikizInputPlot.gradlike.axes)
+        panda_dict['nions'].unstack('nion').reset_index('dimx').plot(x='dimx', y=['Ati', 'Ti'], ax=self.qualikizInputPlot.gradlike.axes)
+        self.qualikizInputPlot.gradlike.draw()
 
 class QuaLiKizTabWidget(QtGui.QTabWidget):
     def __init__(self):
@@ -455,7 +542,20 @@ class QuaLiKizTabWidget(QtGui.QTabWidget):
         self.plan = QuaLiKizPlanWidget()
         self.plan.fillGui(qualikiz_plan['scan_type'], qualikiz_plan['scan_dict'])
         self.addTab(self.plan, "QuaLiKizPlan")
+        self.input = QuaLiKizInputWidget()
+        self.addTab(self.input, 'QuaLiKiz Input')
         self.show()
+
+    def generateInput(self):
+        qlk_plan = self.generateQLKPlan()
+        panda_dict = qlk_plan.to_pandas()
+        return panda_dict
+
+    def generateQLKPlan(self):
+        xpoint_base = self.base.toQLK()
+        scan_plan = self.plan.readGui()
+        qlk_plan = QuaLiKizPlan(scan_plan['scan_dict'], scan_plan['scan_type'], xpoint_base)
+        return qlk_plan
 
 def main():
     app = QtGui.QApplication(sys.argv)
