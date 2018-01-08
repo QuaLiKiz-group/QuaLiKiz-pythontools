@@ -13,6 +13,7 @@ from warnings import warn
 import numpy as np
 import scipy as sc
 import scipy.optimize
+import pandas as pd
 
 
 def allequal(lst):
@@ -706,3 +707,35 @@ class QuaLiKizPlan(dict):
 
             xpoint_base = QuaLiKizXpoint(kthetarhos, elec, ions, **dict_)
             return QuaLiKizPlan(scan_dict, scan_type, xpoint_base)
+
+    def to_pandas(self):
+        input_binaries = self.setup()
+        dimx = int(input_binaries.pop('dimx')[0])
+        dimn = int(input_binaries.pop('dimn')[0])
+        nions = int(input_binaries.pop('nions')[0])
+        kthetarhos = input_binaries.pop('kthetarhos')
+        panda_dict = {
+            'dimx': pd.DataFrame(),
+            'nions': pd.DataFrame(),
+            'const': pd.DataFrame()
+        }
+        for key, val in input_binaries.items():
+            var = None
+            if (key in QuaLiKizXpoint.Meta.keynames) or (key == 'typee'):
+                var = 'const'
+            elif key in QuaLiKizXpoint.Geometry.keynames:
+                var = 'dimx'
+            elif key.endswith('e'):
+                var = 'dimx'
+            elif key.endswith('i'):
+                var = 'nions'
+            else:
+                print(key, 'no type')
+                raise Exception
+            panda_dict[var][key] = val
+
+        panda_dict['nions'].index = pd.MultiIndex.from_product([range(nions), range(dimx)], names=['nion', 'dimx'])
+        panda_dict['nions']
+        #panda_dict['dimx'].index = pd.MultiIndex.from_product([[-1], range(dimx)], names=['nion', 'dimx'])
+        panda_dict['dimx'].index.name = 'dimx'
+        return panda_dict
