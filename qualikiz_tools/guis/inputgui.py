@@ -10,6 +10,7 @@ from warnings import warn
 from PyQt4 import QtCore, QtGui
 import pyqtgraph as pg
 
+import numpy as np
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
@@ -444,8 +445,10 @@ class MyMplCanvas(FigureCanvas):
     """Ultimately, this is a QWidget (as well as a FigureCanvasAgg, etc.)."""
 
     def __init__(self, parent=None, width=5, height=4, dpi=100):
-        fig = Figure(figsize=(width, height), dpi=dpi)
-        self.axes = fig.add_subplot(111)
+        self.fig = fig = Figure(figsize=(width, height), dpi=dpi)
+        for ii in range(1, 5):
+            fig.add_subplot(2, 2, ii)
+        #fig, self.axes = plt.subplots(2, 2, figsize=(width, height), dpi=dpi)
 
         self.compute_initial_figure()
 
@@ -523,10 +526,27 @@ class QuaLiKizInputWidget(QtGui.QWidget):
         top = self.topLevelWidget()
         panda_dict = top.generateInput()
         panda_dict['dimx']
-        self.qualikizInputPlot.gradlike.axes.cla()
+        for ax in self.qualikizInputPlot.gradlike.fig.axes:
+            ax.cla()
 
-        panda_dict['dimx'].reset_index().plot(x='dimx', y=['Ate', 'Te'], linestyle='--', ax=self.qualikizInputPlot.gradlike.axes)
-        panda_dict['nions'].unstack('nion').reset_index('dimx').plot(x='dimx', y=['Ati', 'Ti'], ax=self.qualikizInputPlot.gradlike.axes)
+        efelike = panda_dict['dimx']
+        efilike = panda_dict['nions']
+        efilike['Ti_Te'] = efilike['Ti'] / efelike['Te']
+        efelike['epsilon'] = efelike['Rmin'] * efelike['x'] / efelike['Ro']
+        efelike['ft'] = 2 * (2 * efelike['epsilon']) ** .5 / np.pi #Trapped particle fraction
+        efilike = efilike.unstack('nion').reset_index('dimx')
+        efelike = efelike.reset_index('dimx')
+        efelike.plot(x='dimx', y=['Ate', 'Te'], linestyle='--', ax=self.qualikizInputPlot.gradlike.fig.axes[0])
+        efilike.plot(x='dimx', y=['Ati', 'Ti'], ax=self.qualikizInputPlot.gradlike.fig.axes[0])
+
+        efelike.plot(x='dimx', y=['Ane', 'ne'], linestyle='--', ax=self.qualikizInputPlot.gradlike.fig.axes[1])
+        efilike.plot(x='dimx', y=['Ani', 'normni'], ax=self.qualikizInputPlot.gradlike.fig.axes[1])
+
+        efelike.plot(x='dimx', y=['ft'], linestyle='--', ax=self.qualikizInputPlot.gradlike.fig.axes[2])
+        efilike.plot(x='dimx', y=['Ti_Te'], ax=self.qualikizInputPlot.gradlike.fig.axes[2])
+
+        efelike.plot(x='dimx', y=['smag', 'q', 'alpha'], linestyle='--', ax=self.qualikizInputPlot.gradlike.fig.axes[3])
+        #efilike.plot(x='dimx', y=['Ati', 'Ti'], ax=self.qualikizInputPlot.gradlike.fig.axes[3])
         self.qualikizInputPlot.gradlike.draw()
 
 class QuaLiKizTabWidget(QtGui.QTabWidget):
