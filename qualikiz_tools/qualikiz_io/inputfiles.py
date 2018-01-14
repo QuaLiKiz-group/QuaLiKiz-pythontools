@@ -717,12 +717,13 @@ class QuaLiKizPlan(dict):
         panda_dict = {
             'dimx': pd.DataFrame(),
             'nions': pd.DataFrame(),
-            'const': pd.DataFrame()
+            'const': pd.Series()
         }
         for key, val in input_binaries.items():
             var = None
             if (key in QuaLiKizXpoint.Meta.keynames) or (key == 'typee'):
                 var = 'const'
+                val = val[0]
             elif key in QuaLiKizXpoint.Geometry.keynames:
                 var = 'dimx'
             elif key.endswith('e'):
