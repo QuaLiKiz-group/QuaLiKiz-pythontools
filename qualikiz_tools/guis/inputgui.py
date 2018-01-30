@@ -1,6 +1,8 @@
 from qualikiz_tools.qualikiz_io.inputfiles import Particle, Electron, Ion, IonList, QuaLiKizXpoint, QuaLiKizPlan
 from qualikiz_tools.qualikiz_io.outputfiles import squeeze_dataset, orthogonalize_dataset, xarray_to_pandas
+from qualikiz_tools.qualikiz_io.qualikizrun import QuaLiKizRun, QuaLiKizBatch, qlk_from_dir
 import sys
+import os
 from IPython import embed
 import sip
 import json
@@ -549,6 +551,45 @@ class QuaLiKizInputWidget(QtGui.QWidget):
         #efilike.plot(x='dimx', y=['Ati', 'Ti'], ax=self.qualikizInputPlot.gradlike.fig.axes[3])
         self.qualikizInputPlot.gradlike.draw()
 
+class QuaLiKizOutputWidget(QtGui.QWidget):
+    def __init__(self):
+        super().__init__()
+        self.initUi()
+
+    def initUi(self):
+        self.box = QtGui.QVBoxLayout()
+        self.setLayout(self.box)
+        self.runQLKButton = QtGui.QPushButton("Run QuaLiKiz")
+        self.runQLKButton.clicked.connect(self.runQLK)
+        self.box.addWidget(self.runQLKButton)
+
+    def runQLK(self):
+        # For now, just use bash
+        machine = 'bash'
+        try:
+            _temp = __import__('qualikiz_tools.machine_specific.' + machine,
+                               fromlist=['Run', 'Batch'])
+        except ModuleNotFoundError:
+            raise NotImplementedError('Machine {!s} not implemented yet'.format(machine))
+        Run, Batch = _temp.Run, _temp.Batch
+
+
+        cwd = os.curdir
+        try:
+            __, qlk_instance = qlk_from_dir(cwd, batch_class=Batch, run_class=Run)
+        except Exception:
+            print('Directory is not a QuaLiKiz dir, creating temp..')
+            import uuid
+            top = self.topLevelWidget()
+            plan = top.generateQLKPlan()
+            name = 'QLK' + str(uuid.uuid4())
+            os.mkdir(name)
+            run = Run(cwd, name, '../../../QuaLiKiz' , plan)
+            batch = Batch(cwd, name, [run])
+            embed()
+
+        exit()
+
 class QuaLiKizTabWidget(QtGui.QTabWidget):
     def __init__(self):
         super().__init__()
@@ -564,6 +605,9 @@ class QuaLiKizTabWidget(QtGui.QTabWidget):
         self.addTab(self.plan, "QuaLiKizPlan")
         self.input = QuaLiKizInputWidget()
         self.addTab(self.input, 'QuaLiKiz Input')
+        self.output = QuaLiKizOutputWidget()
+        self.addTab(self.output, 'QuaLiKiz Output')
+        self.output.runQLKButton.click()
         self.show()
 
     def generateInput(self):
