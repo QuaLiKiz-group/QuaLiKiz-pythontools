@@ -16,6 +16,9 @@ import numpy as np
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
+from qualikiz_tools import __path__ as ROOT
+ROOT = ROOT[0]
+
 class InputFileWidget(QtGui.QWidget):
     def fillGui(self, dict_):
         for key, val in dict_.items():
@@ -551,10 +554,45 @@ class QuaLiKizInputWidget(QtGui.QWidget):
         #efilike.plot(x='dimx', y=['Ati', 'Ti'], ax=self.qualikizInputPlot.gradlike.fig.axes[3])
         self.qualikizInputPlot.gradlike.draw()
 
+class EmittingStream(QtCore.QObject):
+    textWritten = QtCore.pyqtSignal(str)
+
+    def write(self, text):
+        self.textWritten.emit(str(text))
+
 class QuaLiKizOutputWidget(QtGui.QWidget):
+    # For now, just use bash
+    machine = 'bash'
     def __init__(self):
         super().__init__()
+
+        #self.run = self.init_run()
         self.initUi()
+
+    def init_run(self):
+        try:
+            _temp = __import__('qualikiz_tools.machine_specific.' + self.machine,
+                               fromlist=['Run', 'Batch'])
+        except ModuleNotFoundError:
+            raise NotImplementedError('Machine {!s} not implemented yet'.format(self.machine))
+        Run, Batch = _temp.Run, _temp.Batch
+
+        cwd = os.curdir
+        try:
+            run = Run.from_dir(cwd)
+        except Exception:
+            print('Directory is not a QuaLiKiz dir, creating temp..')
+            import uuid
+            top = self.topLevelWidget()
+            plan = top.generateQLKPlan()
+            name = 'QLK_' + str(uuid.uuid4())
+            run = Run(cwd, name, os.path.join(ROOT, '../../QuaLiKiz') , plan, HT=False)
+
+        stream = EmittingStream(textWritten=self.normalOutputWritten)
+        sys.stdout = stream
+        sys.stderr = stream
+        self.run = run
+        sys.stdout = sys.__stdout__
 
     def initUi(self):
         self.box = QtGui.QVBoxLayout()
@@ -564,31 +602,14 @@ class QuaLiKizOutputWidget(QtGui.QWidget):
         self.box.addWidget(self.runQLKButton)
 
     def runQLK(self):
-        # For now, just use bash
-        machine = 'bash'
-        try:
-            _temp = __import__('qualikiz_tools.machine_specific.' + machine,
-                               fromlist=['Run', 'Batch'])
-        except ModuleNotFoundError:
-            raise NotImplementedError('Machine {!s} not implemented yet'.format(machine))
-        Run, Batch = _temp.Run, _temp.Batch
-
-
-        cwd = os.curdir
-        try:
-            __, qlk_instance = qlk_from_dir(cwd, batch_class=Batch, run_class=Run)
-        except Exception:
-            print('Directory is not a QuaLiKiz dir, creating temp..')
-            import uuid
-            top = self.topLevelWidget()
-            plan = top.generateQLKPlan()
-            name = 'QLK' + str(uuid.uuid4())
-            os.mkdir(name)
-            run = Run(cwd, name, '../../../QuaLiKiz' , plan)
-            batch = Batch(cwd, name, [run])
-            embed()
-
+        self.run.prepare()
+        self.run.generate_input()
+        self.run.launch()
         exit()
+
+    def normalOutputWritten(self, text):
+        print(text)
+        print('hey!')
 
 class QuaLiKizTabWidget(QtGui.QTabWidget):
     def __init__(self):
@@ -607,6 +628,8 @@ class QuaLiKizTabWidget(QtGui.QTabWidget):
         self.addTab(self.input, 'QuaLiKiz Input')
         self.output = QuaLiKizOutputWidget()
         self.addTab(self.output, 'QuaLiKiz Output')
+        self.output.connect(self, self.currentChanged, self.output.init_run)
+        self.setCurrentIndex(3)
         self.output.runQLKButton.click()
         self.show()
 
