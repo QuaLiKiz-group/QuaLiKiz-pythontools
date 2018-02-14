@@ -282,6 +282,16 @@ class QuaLiKizXpoint(dict):
         """ Calculate epsilon """
         return self['geometry']['x'] * self['geometry']['Rmin'] / self['geometry']['Ro']
 
+    def calc_Machpar(self):
+        return self['Machtor'] / np.sqrt(1+(self.calc_epsilon(), self['q'])**2)
+
+    def calc_Aupar(self):
+        return self['Autor'] / np.sqrt(1+(self.calc_epsilon()/self['q'])**2)
+
+    def calc_gammaE(self):
+        return -self.calc_epsilon/self['q']*self['Autor']
+
+
     class Meta(dict):
         """ Wraps variables that stay constant during the QuaLiKiz run """
         keynames = ['phys_meth', 'coll_flag',
@@ -366,13 +376,6 @@ class QuaLiKizXpoint(dict):
             super().__init__()
             for arg in self.in_args:
                 self[arg] = kwargs[arg]
-            Machtor = self['Machtor']
-            Autor = self['Autor']
-            q = self['q']
-            epsilon = self['x']/self['Ro']
-            self['Machpar'] = Machtor / np.sqrt(1+(epsilon/q)**2)
-            self['Aupar'] = Autor / np.sqrt(1+(epsilon/q)**2)
-            self['gammaE'] = -epsilon/q*Autor
 
     def __getitem__(self, key):
         """ Get value from nested dict
@@ -391,8 +394,14 @@ class QuaLiKizXpoint(dict):
             return self.calc_tite()
         elif key == 'epsilon':
             return self.calc_epsilon()
-        elif key in self.Geometry.in_args + self.Geometry.extra_args:
+        elif key in self.Geometry.in_args:
             return self['geometry'].__getitem__(key)
+        elif key == 'Machpar':
+            return self.calc_Machpar()
+        elif key == 'Aupar':
+            return self.calc_Aupar()
+        elif key == 'gammaE':
+            return self.calc_gammaE()
         elif key in ['kthetarhos']:
             return self['special'].__getitem__(key)
         elif key in self.Meta.keynames:
@@ -440,7 +449,7 @@ class QuaLiKizXpoint(dict):
             self.match_tite(value)
         elif key == 'epsilon':
             self.match_epsilon(value)
-        elif key in self.Geometry.in_args + self.Geometry.extra_args:
+        elif key in self.Geometry.in_args:
             self['geometry'].__setitem__(key, value)
         elif key in ['kthetarhos']:
             self['special'].__setitem__(key, value)
