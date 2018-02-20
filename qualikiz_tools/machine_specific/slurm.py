@@ -250,12 +250,15 @@ class Batch(Batch):
 
         return nodes
 
-    def to_batch_file(self, path, **kwargs):
+    def to_batch_file(self, filename=None, **kwargs):
         """ Writes sbatch script to file
 
         Args:
             - path: Path of the sbatch script file.
         """
+        if filename is None:
+            filename = self.scriptname
+
         sbatch_lines = ['#!' + self.shell + ' -l\n']
         for attr, sbatch in zip(self.attr, self.sbatch):
             value = getattr(self, attr)
@@ -271,7 +274,8 @@ class Batch(Batch):
             sbatch_lines.append('\n' + run_instance.to_batch_string())
         sbatch_lines.append('\n')
 
-        with open(path, 'w') as file:
+        batchdir = os.path.join(self.parent_dir, self.name)
+        with open(os.path.join(batchdir, filename), 'w') as file:
             file.writelines(sbatch_lines)
 
     @classmethod
