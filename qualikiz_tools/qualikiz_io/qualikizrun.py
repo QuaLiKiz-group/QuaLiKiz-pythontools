@@ -452,7 +452,7 @@ class QuaLiKizBatch():
         return cls.from_subdirs(dir, *args, **kwargs)
 
     @classmethod
-    def from_subdirs(cls, batchdir, *args, scriptname=None, verbose=False, **kwargs):
+    def from_subdirs(cls, batchdir, *args, scriptname=None, verbose=False, run_kwargs=None, batch_kwargs=None):
         """ Reconstruct batch from a directory
         This function assumes that the name of the batch can be
         determined by the given batchdir. If the batch was created
@@ -468,25 +468,32 @@ class QuaLiKizBatch():
         Returns:
             qualikizbatch: The reconstructed batch
         """
+        if batch_kwargs is None:
+            batch_kwargs = {}
+        if run_kwargs is None:
+            run_kwargs = {}
         batchdir = os.path.realpath(batchdir.rstrip('/'))
         # The name should be the same as the directory name given
         parent_dir, name = os.path.split(batchdir)
         #qualikizbatch = QuaLiKizBatch.__new__(cls)
         #qualikizbatch.parent_dir = os.path.abspath(parent_dir)
         #qualikizbatch.name = name
-        kwargs['verbose'] = verbose
+        batch_kwargs['verbose'] = verbose
+        run_kwargs['verbose'] = verbose
         if scriptname is None:
             scriptname = cls.scriptname
         batchscript_path = os.path.join(batchdir, scriptname)
         try:
-            batch = cls.from_batch_file(batchscript_path, **kwargs)
-        except (AttributeError, FileNotFoundError) as ee:
+            batch = cls.from_batch_file(batchscript_path, **batch_kwargs)
+        except (AttributeError, FileNotFoundError, NotImplementedError) as ee:
             if ee.__class__ == AttributeError:
                 warn_msg = 'No from_file function defined for {!s}'
             elif ee.__class__ == FileNotFoundError:
                 warn_msg = 'No batch file found for {!s}'
+            elif ee.__class__ == NotImplementedError:
+                warn_msg = 'from_batch_file not implemented for {!s}'
             warn(warn_msg + ', falling back to subdirs'.format(cls))
-            runlist = cls.runlist_from_subdirs(batchdir, **kwargs)
+            runlist = cls.runlist_from_subdirs(batchdir, **run_kwargs)
             batch = cls(parent_dir, name, runlist)
 
         return batch
