@@ -253,15 +253,20 @@ class QuaLiKizXpoint(dict):
         # Sanity check
         # print(np.isclose(nustar_calc, nustar))
 
+    @staticmethod
+    def calc_nustar_from_parts(zeff, ne, Te, q, Ro, Rmin, x):
+        c1 = (6.9224e-5 * zeff * ne *q * Ro * (Rmin * x / Ro) ** -1.5)
+        c2 = 15.2 - 0.5 * np.log(0.1 * ne)
+        nustar = c1 / Te ** 2 * (c2 + np.log(Te))
+        return nustar
+
     def calc_nustar(self):
         """ Calculate Nustar """
         zeff = self.calc_zeff()
-        c1 = (6.9224e-5 * zeff * self['elec']['n'] * self['geometry']['q'] *
-              self['geometry']['Ro'] *
-              (self['geometry']['Rmin'] * self['geometry']['x'] /
-               self['geometry']['Ro']) ** -1.5)
-        c2 = 15.2 - 0.5 * np.log(0.1 * self['elec']['n'])
-        return c1 / self['elec']['T'] ** 2 * (c2 + np.log(self['elec']['T']))
+        nustar = self.calc_nustar_from_parts(
+            zeff, self['elec']['n'], self['elec']['T'], self['geometry']['q'],
+            self['geometry']['Ro'], self['geometry']['Rmin'], self['geometry']['x'])
+        return nustar
 
     def match_tite(self, tite):
         """ Set all Ions temperature to match the given Ti/Te """
