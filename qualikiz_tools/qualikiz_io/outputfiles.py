@@ -783,7 +783,7 @@ def orthogonalize_dataset(ds, verbose=False):
 
         # To save memory, we delete the old ds entry
         del ds[name]
-        newds[name] = xr.DataArray(placeholder, coords=newcoords)
+        newds[name] = xr.DataArray(placeholder, coords=newcoords, dims=newcoords.keys())
 
     # Copy temporarly converted coordinates back to coordinates
     newds.set_coords(duo_coords.keys(), inplace=True)
