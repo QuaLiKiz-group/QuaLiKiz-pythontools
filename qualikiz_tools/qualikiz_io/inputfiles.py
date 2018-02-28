@@ -604,6 +604,10 @@ class QuaLiKizPlan(dict):
         """
         self._sanity_check_setup(scan_names)
         dimxpoint = copy.deepcopy(self['xpoint_base'])
+        if any(name in scan_names for name in ['Nustar', 'Te', 'T']) and dimxpoint['norm']['recalc_Nustar']:
+            warn('Warning! Nustar, Te or T in scan and Nustar is being recalculated from base!')
+        if (('T' in scan_names) or any(name.startswith('Ti') for name in scan_names)) and dimxpoint['norm']['recalc_Ti_Te_rel']:
+            warn('Warning! Ti*, T or Ti_Te_rel in scan and Ti_Te_rel is being recalculated from base!')
 
         # Initialize all the arrays that will eventually be written to file
         dimx = self.calculate_dimx()
