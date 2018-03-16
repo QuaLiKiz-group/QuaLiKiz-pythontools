@@ -137,6 +137,8 @@ class QuaLiKizXpoint(dict):
                               values. Needed when setting Nustar and either
                               Zeff, ne, q, Ro, Rmin, x, rho, ni, ni0 or ni1
             recalc_Ti_Te_rel: Flag to recalculate Ti after setting Te
+            assume_tor_rot:   Assume pure toroidal rotation. Auto-calculate
+                              Autor, Machpar, and Aupar from gammaE and Machtor
 
 
         """
@@ -163,6 +165,7 @@ class QuaLiKizXpoint(dict):
         self['norm']['x_rho'] = kwargs.get('x_rho', True)
         self['norm']['recalc_Nustar'] =  kwargs.get('recalc_Nustar', False)
         self['norm']['recalc_Ti_Te_rel'] =  kwargs.get('recalc_Ti_Te_rel', False)
+        self['norm']['assume_tor_rot'] =  kwargs.get('assume_tor_rot', True)
 
     def normalize_density(self):
         """ Set density of 1st ion to maintian quasineutrality """
@@ -287,15 +290,36 @@ class QuaLiKizXpoint(dict):
         """ Calculate epsilon """
         return self['geometry']['x'] * self['geometry']['Rmin'] / self['geometry']['Ro']
 
+    @staticmethod
+    def calc_Machpar_from_parts(Machtor, epsilon, q):
+        return Machtor / np.sqrt(1 + (epsilon / q)**2)
+
     def calc_Machpar(self):
-        return self['Machtor'] / np.sqrt(1+(self.calc_epsilon(), self['q'])**2)
+        return self.calc_Machpar_from_parts(self['Machtor'], self.calc_epsilon(), self['q'])
+
+    @staticmethod
+    def calc_Autor_from_parts(gammaE, epsilon, q):
+        return -gammaE * q / epsilon
+
+    def calc_Autor(self):
+        return self.calc_Autor_from_parts(self['gammaE'], self.calc_epsilon(), self['q'])
+
+    @staticmethod
+    def calc_Aupar_from_parts(Autor, epsilop, q):
+        return Autor / np.sqrt(1 + (epsilon / q)**2)
 
     def calc_Aupar(self):
-        return self['Autor'] / np.sqrt(1+(self.calc_epsilon()/self['q'])**2)
+        return self.calc_Aupar_from_parts(self['Autor'], self.calc_epsilon(), self['q'])
 
-    def calc_gammaE(self):
-        return -self.calc_epsilon/self['q']*self['Autor']
-
+    def calc(self, name):
+        if name == 'Aupar':
+            val = self.calc_Aupar()
+        elif name == 'Autor':
+            val = self.calc_Autor()
+        elif name == 'Machpar':
+            val = self.calc_Machpar()
+        else:
+            raise Exception('Cannot calculate {!s}'.format(name))
 
     class Meta(dict):
         """ Wraps variables that stay constant during the QuaLiKiz run """
@@ -356,8 +380,8 @@ class QuaLiKizXpoint(dict):
     class Geometry(dict):
         """ Wraps variables that change per scan point """
         in_args =    ['x', 'rho', 'Ro', 'Rmin', 'Bo', 'q', 'smag',
-                      'alpha', 'Machtor', 'Autor']
-        extra_args = ['Machpar', 'Aupar', 'gammaE']
+                      'alpha', 'Machtor', 'Autor', 'Machpar', 'Aupar',
+                      'gammaE']
 
         def __init__(self, **kwargs):
             """ Initialize Geometry class
@@ -371,16 +395,14 @@ class QuaLiKizXpoint(dict):
                 smag:    Local magnetic shear s def rq'/q
                 alpha:   Local MHD alpha
                 Machtor: Normalized toroidal velocity
-                Autor:   Toroidal velocity gradient
+                gammaE:  Normalized perpendicular ExB flow shear
 
-            internally calculated:
+            Overwritten if assume_tor_rot is True:
                 Machpar: Normalized parallel velocity
                 Aupar:   Parallel velocity gradient
-                gammaE:  Normalized perpendicular ExB flow shear
+                Autor:   Toroidal velocity gradient
             """
-            super().__init__()
-            for arg in self.in_args:
-                self[arg] = kwargs[arg]
+            super().__init__([(key, kwargs.pop(key)) for key in self.in_args])
 
     def __getitem__(self, key):
         """ Get value from nested dict
@@ -399,19 +421,21 @@ class QuaLiKizXpoint(dict):
             return self.calc_tite()
         elif key == 'epsilon':
             return self.calc_epsilon()
+        elif key in ['Machpar', 'Aupar', 'Autor']:
+            val = self['geometry'].__getitem__(key)
+            if val != 0 and self['assume_tor_rot']:
+                warn('Warning! {!s} will be overwritten!'.format(key))
+            if self['assume_tor_rot']:
+                return self.calc(key)
+            else:
+                return val
         elif key in self.Geometry.in_args:
             return self['geometry'].__getitem__(key)
-        elif key == 'Machpar':
-            return self.calc_Machpar()
-        elif key == 'Aupar':
-            return self.calc_Aupar()
-        elif key == 'gammaE':
-            return self.calc_gammaE()
         elif key in ['kthetarhos']:
             return self['special'].__getitem__(key)
         elif key in self.Meta.keynames:
             return self['meta'].__getitem__(key)
-        elif key in ['ninorm1', 'Ani1', 'QN_grad', 'x_rho']:
+        elif key in ['ninorm1', 'Ani1', 'QN_grad', 'x_rho', 'recalc_Nustar', 'recalc_Ti_Te_rel', 'assume_tor_rot']:
             return self['norm'].__getitem__(key)
         elif key in ['geometry', 'special', 'meta', 'norm', 'ions', 'elec']:
             return super().__getitem__(key)
@@ -614,8 +638,7 @@ class QuaLiKizPlan(dict):
         dimn = len(dimxpoint['special']['kthetarhos'])
         nions = len(dimxpoint['ions'])
 
-        bytes = dict(zip(QuaLiKizXpoint.Geometry.in_args +
-                         QuaLiKizXpoint.Geometry.extra_args,
+        bytes = dict(zip(QuaLiKizXpoint.Geometry.in_args,
                          [array.array('d', [0] * dimx) for i in range(13)]))
         bytes.update(dict(zip([x + 'e' for x in Electron.keynames],
                               [array.array('d', [0] * dimx)

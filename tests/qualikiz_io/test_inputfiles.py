@@ -78,8 +78,12 @@ class TestGeometric(TestCase):
                  'q':3.,
                  'smag':2.,
                  'alpha':0.,
+                 'gammaE': 0.,
+                 'Machpar': 0.,
                  'Machtor': 0.,
-                 'Autor':0.}
+                 'Aupar': 0.,
+                 'Autor':0.,
+                 }
     def SetUp(TestCase):
         Geometric(**geometric)
     def test_initialization(self):
@@ -94,23 +98,17 @@ class TestQuaLiKizXpoint(TestCase):
         norm = {'ninorm1': False,
                 'Ani1':    False,
                 'QN_grad': False,
-                'x_rho':   False}
+                'x_rho':   False,
+                'recalc_Nustar': False,
+                'recalc_Ti_Te_rel': False,
+                'assume_tor_rot': False
+                }
         defaults.update(norm)
         self.baseXpoint = QuaLiKizXpoint(TestSpecial.kthetarhos,
                                          self.elec, self.ions, **defaults)
 
     def test_initialize(self):
-        TestParticles.setUp(self)
-        defaults = {}
-        defaults.update(TestMeta.meta)
-        defaults.update(TestGeometric.geometric)
-        norm = {'ninorm1': True,
-                'Ani1':    True,
-                'QN_grad': True,
-                'x_rho':   True}
-        defaults.update(norm)
-        self.baseXpoint = QuaLiKizXpoint(TestSpecial.kthetarhos,
-                                         self.elec, self.ions, **defaults)
+        pass
 
     def test_normalize_density(self):
         self.baseXpoint['ninorm'] = True
@@ -122,7 +120,7 @@ class TestQuaLiKizXpoint(TestCase):
             self.baseXpoint['ions'][1]['n'] = n1
             self.baseXpoint.normalize_density()
             self.assertAlmostEqual(self.baseXpoint['ions'][0]['n'], n0)
-            
+
         self.baseXpoint['ions'][2]['type'] = 1
         for n0, n1 in zip(n0s, n1s):
             self.baseXpoint['ions'][0]['n'] = 0.

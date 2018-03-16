@@ -103,7 +103,10 @@
             "Ani1": true,
             "ninorm1": true,
             "QN_grad": true,
-            "x_rho": true
+            "x_rho": true,
+            "recalc_Nustar": false,
+            "recalc_Ti_Te_rel": false,
+            "assume_tor_rot": true
         }
     }
 }

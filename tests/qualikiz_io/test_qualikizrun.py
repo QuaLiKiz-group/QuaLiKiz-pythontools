@@ -66,7 +66,10 @@ class TestQuaLiKizRun(TestCase):
                  'q':2.,
                  'smag':1.,
                  'alpha':0.,
+                 'gammaE': 0.,
+                 'Machpar': 0.,
                  'Machtor': 0.,
+                 'Aupar': 0.,
                  'Autor':0.}
 
     defaults = {}
@@ -75,7 +78,10 @@ class TestQuaLiKizRun(TestCase):
     norm = {'ninorm1': False,
             'Ani1':    False,
             'QN_grad': False,
-            'x_rho':   False}
+            'x_rho':   False,
+            'recalc_Nustar': False,
+            'recalc_Ti_Te_rel': False,
+            'assume_tor_rot': False}
     defaults.update(norm)
     baseXpoint = QuaLiKizXpoint(kthetarhos,
                             elec, ions, **defaults)
