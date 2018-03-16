@@ -5,6 +5,7 @@ License: CeCILL v2.1
 """
 from warnings import warn
 import os
+import subprocess
 
 import numpy as np
 
@@ -30,6 +31,8 @@ class Run(Run):
             - stdout: Standard target of redirect of STDOUT
             - stderr: Standard taget of redirect of STDERR
         """
+        if self.cores_per_node is None:
+            raise Exception("Cannot determine cores_per_node myself! Please specify using 'Run.cores_per_node = xx'")
         super().__init__(parent_dir, name, binaryrelpath,
                          qualikiz_plan=qualikiz_plan,
                          stdout=stdout, stderr=stderr,
@@ -39,6 +42,7 @@ class Run(Run):
             #Just use a single node
             ncpu = self.cores_per_node
             self.tasks = self.calculate_tasks(ncpu, HT=HT)
+            warn('Tasks not specified! Using in total {:d} tasks on {:d} physical cores.'.format(self.tasks, ncpu))
         else:
             self.tasks = tasks
 
@@ -152,7 +156,8 @@ class Batch(Batch):
               'qos']
     shell = '/bin/bash'
     run_class = Run
-    defaults = {}
+    defaults = {'stdout': 'stdout.batch',
+                'stderr': 'stderr.batch'}
 
     def __init__(self, parent_dir, name, runlist, tasks=None, maxtime=None,
                  stdout=None, stderr=None,
@@ -249,6 +254,18 @@ class Batch(Batch):
                  str(nodes) + ' nodes.')
 
         return nodes
+
+    def launch(self):
+        self.inputbinaries_exist()
+        self.clean()
+        paths = []
+        batch_dir = os.path.join(self.parent_dir, self.name)
+
+        cmd = ' '.join(['sbatch'    ,
+                           '--chdir'  , batch_dir     ,
+                                        self.scriptname])
+        out = subprocess.check_output(cmd, shell=True)
+        print(str(out.strip()))
 
     def to_batch_file(self, filename=None, **kwargs):
         """ Writes sbatch script to file
