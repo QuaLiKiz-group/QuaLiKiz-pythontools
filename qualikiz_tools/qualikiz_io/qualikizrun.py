@@ -285,8 +285,10 @@ class QuaLiKizRun:
                                suffix)
             self._clean_suffix(os.path.join(self.rundir, self.debugdir),
                                suffix)
-            os.remove(os.path.join(self.rundir, self.stdout))
-            os.remove(os.path.join(self.rundir, self.stderr))
+            if isinstance(self.stdout, str):
+                os.remove(os.path.join(self.rundir, self.stdout))
+            if isinstance(self.stderr, str):
+                os.remove(os.path.join(self.rundir, self.stderr))
         except FileNotFoundError:
             pass
 
