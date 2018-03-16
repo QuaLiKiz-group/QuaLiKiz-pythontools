@@ -238,6 +238,9 @@ class Batch(Batch):
     def launch(self):
         """ Launch QuaLiKizBatch using a batch script with mpirun
         """
+        dirname = os.path.basename(os.path.abspath(os.curdir))
+        if self.name != dirname:
+            warn("Warning! Dirname '{!s}' != name of batch '{!s}'. Might lead to unexpected behaviour".format(dirname, self.name))
         self.inputbinaries_exist()
         # Check if batch script is generated
         batchdir = os.path.join(self.parent_dir, self.name)
