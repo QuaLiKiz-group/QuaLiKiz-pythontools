@@ -8,6 +8,7 @@ import os
 import subprocess
 
 import numpy as np
+from IPython import embed
 
 from qualikiz_tools.machine_specific.system import Run, Batch
 from qualikiz_tools.qualikiz_io.qualikizrun import QuaLiKizRun, QuaLiKizBatch
@@ -23,9 +24,9 @@ class Run(Run):
         """ Initializes the Srun class
 
         Args:
-            - binary_name: The name of the binary relative to where
-                           the sbatch script will be
-            - tasks:       Amount of MPI tasks needed for the job
+            - binaryrelpath: The name of the binary relative to
+                             the run folder
+            - tasks:         Amount of MPI tasks needed for the job
         Kwargs:
             - chdir:  Dir to change to before running the command
             - stdout: Standard target of redirect of STDOUT
@@ -60,7 +61,7 @@ class Run(Run):
             else:
                 paths.append(os.path.relpath(path, batch_parent_dir))
 
-        string = ' '.join(['srun'     ,
+        string = ' '.join(['mpirun'   ,
                            '-n'       , str(self.tasks)  ,
                            '--chdir'  , paths[0]      ,
                            '--output' , paths[1]      ,
@@ -69,26 +70,25 @@ class Run(Run):
         return string
 
     @classmethod
-    def from_batch_string(cls, string, **kwargs):
+    def from_batch_string(cls, batch_dir, string, **kwargs):
         """ Reconstruct the Run from a string """
         split = string.split(' ')
         tasks = int(split[2])
-        chdir = os.path.realpath(split[4])
+        chdir = split[4]
         stdout = split[6]
         stderr = split[8]
         binary_name = split[9].strip()
         paths = []
+        rundir = os.path.normpath(os.path.join(batch_dir, chdir))
         for path in [binary_name, stdout, stderr]:
             if os.path.isabs(path):
                 paths.append(path)
             else:
-                paths.append(os.path.normpath(os.path.relpath(path, chdir)))
+                paths.append(path)
 
-        rundir = chdir
         name = os.path.basename(rundir)
-        parent_dir = os.path.abspath(os.path.dirname(rundir))
         qualikiz_plan = QuaLiKizPlan.from_json(os.path.join(rundir, Run.parameterspath))
-        return Run(parent_dir, name,
+        return Run(batch_dir, name,
                    paths[0], stdout=paths[1], stderr=paths[2], tasks=tasks, HT=None,
                    chdir=chdir, qualikiz_plan=qualikiz_plan)
 
@@ -265,7 +265,7 @@ class Batch(Batch):
                            '--chdir'  , batch_dir     ,
                                         self.scriptname])
         out = subprocess.check_output(cmd, shell=True)
-        print(str(out.strip()))
+        print(out.strip().decode('ascii'))
 
     def to_batch_file(self, filename=None, **kwargs):
         """ Writes sbatch script to file
@@ -318,19 +318,21 @@ class Batch(Batch):
         #    setattr(new, 'repo', None)
 
         #new.vcores_per_node = new.tasks_per_node * new.vcores_per_task
-
-        runlist = []
-        for srun_string in srun_strings:
-            runlist.append(cls.run_class.from_batch_string(srun_string))
+        batch_dir = os.path.dirname(os.path.abspath(path))
+        batch_name = os.path.basename(batch_dir)
+        batch_parent = os.path.dirname(batch_dir)
+        try:
+            runlist = []
+            for srun_string in srun_strings:
+                runlist.append(cls.run_class.from_batch_string(batch_dir, srun_string))
+        except FileNotFoundError:
+            raise Exception('Could not reconstruct run from string: {!s}'.format(srun_string))
 
         check_vars = {}
         for var in ['nodes', 'tasks_per_node', 'name']:
             if var in batch_dict:
                 check_vars[var] = batch_dict.pop(var)
 
-        batch_dir = os.path.dirname(os.path.abspath(path))
-        batch_name = os.path.basename(batch_dir)
-        batch_parent = os.path.dirname(batch_dir)
         batch = Batch(batch_parent, batch_name, runlist, **batch_dict)
         return batch
 
