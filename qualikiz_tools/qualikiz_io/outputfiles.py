@@ -653,10 +653,7 @@ def squeeze_dataset(ds, Te_var='Te'):
     ds = squeeze_coords(ds, 'dimx')
 
     # Move metadata to attrs
-    for name, item in ds.coords.items():
-        if name in debug_single and name not in ds.dims:
-            ds.attrs[name] = float(item)
-            ds = ds.drop(name)
+    ds = to_meta_0d(ds)
     return ds
 
 def to_meta_0d(ds):
