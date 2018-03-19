@@ -565,7 +565,7 @@ def squeeze_coords(ds, dim):
     return ds
 
 
-def remove_dependent_axes(ds):
+def remove_dependent_axes(ds, Te_var='Te'):
     """ Remove Coordinates that depend on eachother
 
     Normally, a dataset loaded from a QuaLiKizRun contains some coordinates
@@ -590,8 +590,15 @@ def remove_dependent_axes(ds):
         ds = ds.reset_coords('Ti')
 
     # Tex is already captured in Nustar
-    if 'Te' in ds.coords:
-        ds = ds.reset_coords('Te')
+    if 'Te' in ds.coords and 'Nustar' in ds.coords:
+        if Te_var == 'Nustar':
+            ds = ds.reset_coords('Te')
+        elif Te_var == 'Te':
+            ds = ds.reset_coords('Nustar')
+
+    # rho and x are the same thing
+    if 'rho' in ds.coords and 'x' in ds.coords:
+        ds = ds.reset_coords('rho')
 
     # Remove placeholder for kthetarhos
     if 'dimn' in ds.dims and 'kthetarhos' in ds.coords:
@@ -603,7 +610,7 @@ def remove_dependent_axes(ds):
     return ds
 
 
-def squeeze_dataset(ds):
+def squeeze_dataset(ds, Te_var='Te'):
     """ Remove Coordinates that depend on eachother and squeeze duplicates
 
     Normally, a dataset loaded from a QuaLiKizRun contains some coordinates
@@ -624,7 +631,7 @@ def squeeze_dataset(ds):
     ds.load()
 
     # Move some axes we know depend on eachother to data.
-    ds = remove_dependent_axes(ds)
+    ds = remove_dependent_axes(ds, Te_var=Te_var)
 
     ds = squeeze_coords(ds, 'dimx')
 
