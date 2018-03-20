@@ -380,7 +380,7 @@ class QuaLiKizBatch():
         else:
             self.stderr = stderr
 
-    def prepare(self, overwrite_batch=None, overwrite_runs=False):
+    def prepare(self, overwrite_batch=None, overwrite_runs=False, overwrite_batch_script=True):
         """ Prepare the batch and runs to be submitted
         This function writes necessary files and folders for the batch
         to run correctly. Note that this does not generate the input files,
@@ -396,6 +396,11 @@ class QuaLiKizBatch():
         batchdir = os.path.join(self.parent_dir, self.name)
         batchpath = os.path.join(batchdir, self.scriptname)
         create_folder_prompt(batchdir, overwrite=overwrite_batch)
+        if overwrite_batch_script:
+            try:
+                os.remove(batchpath)
+            except OSError:
+                pass
         try:
             self.to_batch_file(batchpath)
         except AttributeError:
