@@ -11,6 +11,23 @@ from ..qualikiz_io.qualikizrun import QuaLiKizRun, QuaLiKizBatch
 import subprocess
 import multiprocessing as mp
 
+def get_num_threads():
+    """Returns amount of threads/virtual cores on current system"""
+    return mp.cpu_count()
+
+def get_vcores():
+    with open('/proc/cpuinfo', 'r') as file_:
+        vcores = []
+        for line in file_:
+            if line.startswith('physical id'):
+                phys_id = int(line.split(':')[1])
+            if line.startswith('core id'):
+                core_id = int(line.split(':')[1])
+                vcores.append((phys_id, core_id))
+    if len(vcores) != get_num_threads():
+        raise Exception('Amount of threads != amount of virtual cores. Probably error in reading /proc/cpuinfo')
+    return vcores
+
 class Run(Run):
     """ Defines the run command """
     runstring = 'mpirun'
