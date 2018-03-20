@@ -22,9 +22,7 @@ from .. import netcdf4_engine
 from . import __path__ as ROOT
 ROOT = ROOT[0]
 
-threads_per_task = 2  # Stuck as per QuaLiKiz code
-threads_per_vcore = 1  # Never give one (virtual) CPU more than one task
-vcores_per_task = int(threads_per_task / threads_per_vcore)  # == 2
+threads_per_task = 1  # QuaLiKiz uses a single thread per MPI task, EXCEPT on the master task (rank=0)
 
 warnings.simplefilter('always', UserWarning)
 
@@ -187,6 +185,9 @@ class QuaLiKizRun:
         This directely depends on the CPU time needed and cores needed to run.
         Currently uses worst-case estimate.
 
+        Args:
+            cores: The amount of physical cores to use
+
         Returns:
             Estimated walltime in seconds
         """
@@ -199,6 +200,9 @@ class QuaLiKizRun:
         should depend on the dimxn per core. It also depends on the amount of
         stable points in the run, which is not known a-priori.
 
+        Args:
+            cores: The amount of physical cores to use
+
         Returns:
             Estimated cputime in seconds
         """
@@ -206,30 +210,30 @@ class QuaLiKizRun:
         cpus_per_dimxn = 0.8
         return dimxn * cpus_per_dimxn
 
-    def calculate_tasks(self, cores, HT=True):
+    def calculate_tasks(self, cores, HT=False, threads_per_core=2):
         """ Calulate the amount of MPI tasks needed based on the cores used
 
         Args:
-            cores: The amount of cores to use
+            cores: The amount of physical cores to use
 
         Kwargs:
-            HT: Flag to use HyperThreading. By default True.
+            HT: Flag to use HyperThreading. By default False.
+            threads_per_core: Amount of threads per core when hyperthreading.
+                              Usually 2, but can be 3 or 4 for KNL nodes
 
         Returns:
             Tasks to use to run this QuaLiKizRun
         """
-        if HT:
-            vcores_per_core = 2  # Per definition
-        else:
-            vcores_per_core = 1
+        if not HT:
+            threads_per_core = 1
 
-        cores_per_task = int(vcores_per_task / vcores_per_core)  # HT 1, !HT 2
-        tasks, remainder = divmod(cores, cores_per_task)
+        threads = cores * threads_per_core
+        tasks, remainder = divmod(threads, threads_per_task)
         tasks = int(tasks)
         if remainder != 0:
-            warn(str(cores) + ' cores not evenly divisible over ' +
-                 str(cores_per_task) + ' cores per task. Using ' +
-                 str(tasks) + ' tasks.')
+            warn('{:d} cores using {:d} threads per core not evenly divisible' +
+                 'over {:d} threads per tasks. Using {:d} tasks'.format(
+                     cores, threads_per_core, threads_per_task, tasks))
         return tasks
 
     @classmethod
