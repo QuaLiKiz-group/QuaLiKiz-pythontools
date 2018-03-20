@@ -236,8 +236,11 @@ class Batch(Batch):
         batch_lines = ['#!' + self.shell + '\n\n']
 
         # Write sruns to file
+        batch_lines.append('export OMP_NUM_THREADS=2\n\n')
+        batch_lines.append('echo "Starting job {:d}/{:d}"\n'.format(1, len(self.runlist)))
         batch_lines.append(self.runlist[0].to_batch_string(os.path.dirname(path)))
-        for run in self.runlist[1:]:
+        for ii, run in enumerate(self.runlist[1:]):
+            batch_lines.append(' &&\necho "Starting job {:d}/{:d}"'.format(ii + 2, len(self.runlist)))
             batch_lines.append(' &&\n' + run.to_batch_string(os.path.dirname(path)))
 
         with open(path, 'w') as file:
