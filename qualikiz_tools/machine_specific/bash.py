@@ -11,13 +11,39 @@ from ..qualikiz_io.qualikizrun import QuaLiKizRun, QuaLiKizBatch
 import subprocess
 import multiprocessing as mp
 
+def get_num_threads():
+    """Returns amount of threads/virtual cores on current system"""
+    return mp.cpu_count()
+
+def get_vcores():
+    """Get a list of virtual cores from /proc/cpuinfo"""
+    with open('/proc/cpuinfo', 'r') as file_:
+        vcores = []
+        for line in file_:
+            if line.startswith('physical id'):
+                phys_id = int(line.split(':')[1])
+            if line.startswith('core id'):
+                core_id = int(line.split(':')[1])
+                vcores.append((phys_id, core_id))
+    if len(vcores) != get_num_threads():
+        raise Exception('Amount of threads != amount of virtual cores. Probably error in reading /proc/cpuinfo')
+    return vcores
+
+def get_num_cores():
+    """Get the amount of physical cores of the current machine"""
+    return len(set(get_vcores()))
+
 class Run(Run):
     """ Defines the run command """
     runstring = 'mpirun'
+    defaults = {'cores_per_node': get_num_cores(),
+                'threads_per_core': 2,
+               }
 
     def __init__(self, parent_dir, name, binaryrelpath,
                  qualikiz_plan=None, stdout=None, stderr=None,
-                 verbose=False, tasks=None, HT=True, **kwargs):
+                 verbose=False, nodes=1, HT=False, tasks=None,
+                 **kwargs):
         """ Initializes the Run class
 
         Args:
@@ -42,9 +68,12 @@ class Run(Run):
                          qualikiz_plan=qualikiz_plan,
                          stdout=stdout, stderr=stderr,
                          verbose=verbose, **kwargs)
+        self.nodes = nodes
+        ncores = self.defaults['cores_per_node'] * self.nodes
+
         if tasks is None:
-            ncpu = mp.cpu_count()
-            self.tasks = self.calculate_tasks(ncpu, HT=HT)
+            self.tasks = self.calculate_tasks(ncores, HT=HT,
+                                              threads_per_core=self.defaults['threads_per_core'])
         else:
             self.tasks = tasks
 
