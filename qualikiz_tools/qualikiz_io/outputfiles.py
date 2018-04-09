@@ -831,15 +831,25 @@ def add_dims(ds, newdims):
         newcoords = OrderedDict()
         newitemdims = item.dims + tuple(newdims)
         olddims = item.dims
-        for dimname in newdims:
-            item = np.expand_dims(item, -1)
-            newcoords[dimname] = newds[dimname]
+        for dim in newdims:
+            if dim in olddims:
+                raise Exception('Cannot add dimension {!s}. Already a dimension of {!s}'.format(dim, name))
+
         for dimname in olddims:
             newcoords[dimname] = ds[dimname]
 
-        newds[name] = xr.DataArray(item, dims=newitemdims, coords=newcoords,
-                                   name=ds[name].name, attrs=ds[name].attrs,
-                                   encoding=ds[name].encoding)
+        for dimname in newdims:
+            item = np.expand_dims(item, -1)
+            newcoords[dimname] = newds[dimname]
+
+        try:
+            newds[name] = xr.DataArray(item, dims=newitemdims, coords=newcoords,
+                                       name=ds[name].name, attrs=ds[name].attrs,
+                                       encoding=ds[name].encoding)
+        except:
+            print('Something wrong with creating new-dimmed DataArray. Debugging..')
+            from IPython import embed
+            embed()
 
     # Copy the attributes
     for name, item in ds.attrs.items():
