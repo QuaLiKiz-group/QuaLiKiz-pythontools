@@ -38,11 +38,12 @@ class Run(Run):
     runstring = 'mpirun'
     defaults = {'cores_per_node': get_num_cores(),
                 'threads_per_core': 2,
+                'HT': False
                }
 
     def __init__(self, parent_dir, name, binaryrelpath,
                  qualikiz_plan=None, stdout=None, stderr=None,
-                 verbose=False, nodes=1, HT=False, tasks=None,
+                 verbose=False, nodes=1, HT=False,
                  **kwargs):
         """ Initializes the Run class
 
@@ -68,30 +69,34 @@ class Run(Run):
                          qualikiz_plan=qualikiz_plan,
                          stdout=stdout, stderr=stderr,
                          verbose=verbose, **kwargs)
+
         self.nodes = nodes
+        for name in ['HT', 'threads_per_core']:
+            if name in self.defaults:
+                setattr(self, name, self.defaults[name])
+            else:
+                setattr(self, name, None)
+
+    @property
+    def tasks(self):
         ncores = self.defaults['cores_per_node'] * self.nodes
+        return self.calculate_tasks(ncores, HT=self.HT, threads_per_core=self.threads_per_core)
 
-        if tasks is None:
-            self.tasks = self.calculate_tasks(ncores, HT=HT,
-                                              threads_per_core=self.defaults['threads_per_core'])
-        else:
-            self.tasks = tasks
-
-    def to_batch_string(self, batch_parent_dir):
+    def to_batch_string(self, batch_dir):
         """ Create string to include in batch job
 
         This string will be used in the batch script file that runs the jobs.
 
         Args:
-            batch_parent_dir: Directory the batch script lives in. Needed to
-                              generate the relative paths.
+            batch_dir: Directory the batch script lives in. Needed to
+                       generate the relative paths.
         """
         paths = []
         for path in [self.stdout, self.stderr]:
             if os.path.isabs(path):
                 pass
             else:
-                path = os.path.normpath(os.path.join(os.path.relpath(self.rundir, batch_parent_dir), path))
+                path = os.path.normpath(os.path.join(os.path.relpath(self.rundir, batch_dir), path))
             paths.append(path)
         if self.binaryrelpath is None:
             raise FileNotFoundError('No binary rel path specified, could not find link to QuaLiKiz binary in {!s}'.format(self.rundir))
