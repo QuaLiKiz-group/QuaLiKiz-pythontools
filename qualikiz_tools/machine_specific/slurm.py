@@ -146,9 +146,8 @@ class Batch(Batch):
         paths = []
         batch_dir = os.path.join(self.parent_dir, self.name)
 
-        cmd = ' '.join(['sbatch' ,
-                        '--chdir', batch_dir,
-                        self.scriptname])
+        cmd = ' '.join(['cd', batch_dir, '&&',
+                        'sbatch', self.scriptname])
         out = subprocess.check_output(cmd, shell=True)
         print(out.strip().decode('ascii'))
 
