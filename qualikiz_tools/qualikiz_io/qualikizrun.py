@@ -281,27 +281,25 @@ class QuaLiKizRun:
 
     def clean(self):
         """ Cleans run folder to state before it was run """
-        try:
-            suffix = '.dat'
-            self._clean_suffix(os.path.join(self.rundir, self.outputdir),
-                               suffix)
-            self._clean_suffix(os.path.join(self.rundir, self.primitivedir),
-                               suffix)
-            self._clean_suffix(os.path.join(self.rundir, self.debugdir),
-                               suffix)
-            if isinstance(self.stdout, str):
-                os.remove(os.path.join(self.rundir, self.stdout))
-            if isinstance(self.stderr, str):
-                os.remove(os.path.join(self.rundir, self.stderr))
-        except FileNotFoundError:
-            pass
+        suffix = '.dat'
+        for dir in [self.outputdir, self.primitivedir, self.debugdir]:
+            self._clean_suffix(os.path.join(self.rundir, dir), suffix)
+
+        for path in [self.stdout, self.stderr]:
+            try:
+                os.remove(os.path.join(self.rundir, path))
+            except FileNotFoundError:
+                pass
 
     @classmethod
     def _clean_suffix(cls, dir, suffix):
         """ Removes all files with suffix in dir """
         for file in os.listdir(dir):
             if file.endswith(suffix):
-                os.remove(os.path.join(dir, file))
+                try:
+                    os.remove(os.path.join(dir, file))
+                except FileNotFoundError:
+                    pass
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
@@ -401,9 +399,9 @@ class QuaLiKizBatch():
                 os.remove(batchpath)
             except OSError:
                 pass
-        try:
+        if hasattr(self, 'to_batch_file'):
             self.to_batch_file(batchpath)
-        except AttributeError:
+        else:
             warn('No to_batch_file function defined for {!s}, creating empty script.'.format(self))
             with open(os.path.join(batchdir, self.scriptname), 'w') as file_:
                 file_.write('')
@@ -643,12 +641,13 @@ class QuaLiKizBatch():
         for run in self.runlist:
             run.clean()
         batchdir = os.path.join(self.parent_dir, self.name)
-        try:
-            os.remove(os.path.join(batchdir, self.batchinfofile))
-            os.remove(os.path.join(batchdir, self.default_stdout))
-            os.remove(os.path.join(batchdir, self.default_stderr))
-        except FileNotFoundError:
-            pass
+        for path in [os.path.join(batchdir, self.batchinfofile),
+                     os.path.join(batchdir, self.stdout),
+                     os.path.join(batchdir, self.stderr)]:
+            try:
+                os.remove(path)
+            except FileNotFoundError:
+                pass
 
     def is_done(self):
         """ Check if job is done running
