@@ -182,6 +182,7 @@ class TestQuaLiKizRun(TestCase):
 
 class TestQuaLiKizBatch(TestCase):
     def setUp(self):
+        shutil.rmtree('testbatchsdir', ignore_errors=True)
         TestQuaLiKizRun.setUp(self)
         with open('./testQuaLiKiz', 'w+') as __:
             pass
@@ -221,7 +222,7 @@ class TestQuaLiKizBatch(TestCase):
         batchdir = os.path.join(self.qualikizbatch.parent_dir,
                                 self.qualikizbatch.name)
         runlist = self.qualikizbatch.runlist_from_subdirs(batchdir)
-        self.assertEqual(runlist, self.qualikizbatch.runlist)
+        self.assert_equal_ignore_order(runlist, self.qualikizbatch.runlist)
 
     def test_from_subdirs(self):
         with warnings.catch_warnings():
@@ -271,3 +272,12 @@ class TestQuaLiKizBatch(TestCase):
             pass
         os.remove('./testQuaLiKiz')
 
+    def assert_equal_ignore_order(self, a, b):
+        """ Use only when elements are neither hashable nor sortable! """
+        unmatched = list(b)
+        for element in a:
+            try:
+                unmatched.remove(element)
+            except ValueError:
+                return False
+        self.assertTrue(not unmatched)

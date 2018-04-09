@@ -667,7 +667,9 @@ class QuaLiKizBatch():
             for name in ['stderr', 'stdout']:
                 self_path = os.path.normpath(os.path.join(self.parent_dir, self.name, str(attrs.pop(name))))
                 other_path = os.path.normpath(os.path.join(self.parent_dir, self.name, str(other_attrs.pop(name))))
-                equal = equal and self_path == other_path
+                equal &= (self_path == other_path)
+            equal &= equal_ignore_order(attrs.pop('runlist'),
+                                        other_attrs.pop('runlist'))
             return attrs == other_attrs and equal
         return NotImplemented
 
@@ -676,6 +678,15 @@ class QuaLiKizBatch():
             return not self == other
         return NotImplemented
 
+def equal_ignore_order(a, b):
+    """ Use only when elements are neither hashable nor sortable! """
+    unmatched = list(b)
+    for element in a:
+        try:
+            unmatched.remove(element)
+        except ValueError:
+            return False
+    return not unmatched
 
 def overwrite_prompt(path, overwrite=None):
     """ Prompt user if file/path can be overwritten

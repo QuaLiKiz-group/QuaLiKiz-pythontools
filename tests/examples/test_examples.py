@@ -9,6 +9,9 @@ from qualikiz_tools import __path__ as PATH
 PATH = PATH[0]
 
 class TestMini(TestCase):
+    def setUp(self):
+        shutil.rmtree('testmini', ignore_errors=True)
+
     def test_mini(self):
         if not os.path.exists('../QuaLiKiz'):
             with open('../QuaLiKiz', 'w+') as __:
@@ -24,11 +27,7 @@ class TestMini(TestCase):
             raise Exception('Error while running process')
 
     def tearDown(self):
-        pass
-        try:
-            shutil.rmtree('testmini')
-        except FileNotFoundError:
-            pass
+        shutil.rmtree('testmini', ignore_errors=True)
 
 @skip('Not yet re-written to new machine-specific config')
 class TestPerformance(TestCase):
