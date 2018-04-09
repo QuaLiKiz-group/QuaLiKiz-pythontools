@@ -152,15 +152,12 @@ class Batch(Batch):
         out = subprocess.check_output(cmd, shell=True)
         print(out.strip().decode('ascii'))
 
-    def to_batch_file(self, filename=None, **kwargs):
+    def to_batch_file(self, script_path, **kwargs):
         """ Writes sbatch script to file
 
         Args:
             - path: Path of the sbatch script file.
         """
-        if filename is None:
-            filename = self.scriptname
-
         sbatch_lines = ['#!' + self.shell + ' -l\n']
         for attr, sbatch in zip(self.attr, self.sbatch):
             value = getattr(self, attr)
@@ -177,7 +174,7 @@ class Batch(Batch):
             sbatch_lines.append('\n' + run_instance.to_batch_string(batchdir))
         sbatch_lines.append('\necho "All jobs done!"\n')
 
-        with open(os.path.join(batchdir, filename), 'w') as file:
+        with open(script_path, 'w') as file:
             file.writelines(sbatch_lines)
 
     @classmethod
