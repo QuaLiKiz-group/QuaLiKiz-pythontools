@@ -121,7 +121,7 @@ class Batch(Batch):
             cores_per_node = self.run_class.defaults['cores_per_node']
             nodes_array = np.array([run.nodes for run in self.runlist])
             cores_array = cores_per_node * nodes_array
-            if all(cores_array != task_array):
+            if any(cores_array != task_array):
                 warn('Warning! More than 1 task per physical core! Walltime might be inaccurate')
 
             totwallsec = np.sum([run.estimate_walltime(run.nodes * cores_per_node) for run in self.runlist])
@@ -190,7 +190,7 @@ class Batch(Batch):
                     if name in cls.sbatch:
                         batch_dict[cls.attr[cls.sbatch.index(name)]] = value
                         #setattr(new, cls.attr[cls.sbatch.index(name)], value)
-                if line.startswith('srun'):
+                if line.startswith(cls.run_class.runstring):
                     srun_strings.append(line)
 
         #try:
@@ -205,7 +205,7 @@ class Batch(Batch):
         try:
             runlist = []
             for srun_string in srun_strings:
-                runlist.append(cls.run_class.from_batch_string(batch_dir, srun_string))
+                runlist.append(cls.run_class.from_batch_string(srun_string))
         except FileNotFoundError:
             raise Exception('Could not reconstruct run from string: {!s}'.format(srun_string))
 
@@ -218,7 +218,7 @@ class Batch(Batch):
         return batch
 
     @classmethod
-    def from_dir(cls, batchdir, run_kwargs=None, batch_kwargs=None):
+    def from_dir(cls, batchdir, run_kwargs=None, batch_kwargs=None, **kwargs):
         if batch_kwargs is None:
             batch_kwargs = {}
         if run_kwargs is None:

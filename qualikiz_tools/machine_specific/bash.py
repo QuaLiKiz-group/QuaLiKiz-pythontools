@@ -7,6 +7,7 @@ from warnings import warn
 import os
 import stat
 from .system import Run, Batch
+from qualikiz_tools.qualikiz_io.inputfiles import QuaLiKizPlan
 from ..qualikiz_io.qualikizrun import QuaLiKizRun, QuaLiKizBatch
 import subprocess
 import multiprocessing as mp
@@ -53,8 +54,6 @@ class Run(Run):
             binaryrelpath:  Path of the binary relative to the run dir
         Kwargs:
             qualikiz_plan:  The QuaLiKizPlan instance used to generate input
-            tasks:          Amount of MPI tasks needed for the job. Number of
-                            virtual cores by default.
             HT:             Use hyperthreading. [Default: True]
             stdout:         Standard target of redirect of STDOUT [default: terminal]
             stderr:         Standard target of redirect of STDERR [default: terminal]
@@ -140,13 +139,14 @@ class Run(Run):
                 if not os.path.isabs(path):
                     path = os.path.relpath(path, rundir)
             paths.append(path)
-        return Run(os.path.dirname(rundir), os.path.basename(rundir),
-                   binaryrelpath, stdout=paths[0], stderr=paths[1])
+        return cls.from_dir(rundir,
+                   stdout=paths[0], stderr=paths[1])
 
     @classmethod
-    def from_dir(cls, dir, tasks=None, **kwargs):
+    def from_dir(cls, dir, **kwargs):
         stdout = kwargs.pop('stdout', None)
         stderr = kwargs.pop('stderr', None)
+        parameterspath = os.path.join(dir, cls.parameterspath)
         qualikiz_run = QuaLiKizRun.from_dir(dir, stdout=stdout, stderr=stderr, **kwargs)
         parent_dir = os.path.dirname(qualikiz_run.rundir)
         name = os.path.basename(qualikiz_run.rundir)
@@ -154,8 +154,8 @@ class Run(Run):
             qualikiz_run.stdout = None
         if qualikiz_run.stderr == QuaLiKizRun.default_stderr:
             qualikiz_run.stderr = None
-        return Run(parent_dir, name, qualikiz_run.binaryrelpath, tasks=tasks,
-                   stdout=qualikiz_run.stdout, stderr=qualikiz_run.stderr,
+        return cls(parent_dir, name, qualikiz_run.binaryrelpath,
+                   stdout=qualikiz_run.stdout, stderr=qualikiz_run.stderr, qualikiz_plan=qualikiz_run.qualikiz_plan,
                    **kwargs)
 
     def launch(self):
@@ -192,7 +192,7 @@ class Batch(Batch):
     shell = '/bin/bash'
     run_class = Run
 
-    def __init__(self, parent_dir, name, runlist, tasks=None,
+    def __init__(self, parent_dir, name, runlist,
                  stdout=None, stderr=None,
                  style='sequential',
                  verbose=False):
@@ -204,8 +204,6 @@ class Batch(Batch):
             runlist:        List of runs contained in this batch
 
         Kwargs:
-            tasks:          Amount of MPI tasks needed PER RUN. Number of
-                            virtual cores by default.
             stdout:         Standard target of redirect of STDOUT [default: terminal]
             stderr:         Standard target of redirect of STDERR [default: terminal]
             style:          How to glue the different runs together. Currently

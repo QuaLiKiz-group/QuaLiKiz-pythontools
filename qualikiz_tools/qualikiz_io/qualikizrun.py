@@ -100,6 +100,7 @@ class QuaLiKizRun:
 
         # Load the default parameters if no plan is defined
         if qualikiz_plan is None:
+            warn('No QuaLiKiz Plan given, using default parameters')
             templatepath = os.path.join(ROOT, 'parameters_template.json')
             qualikiz_plan = QuaLiKizPlan.from_json(templatepath)
         self.qualikiz_plan = qualikiz_plan
@@ -129,8 +130,11 @@ class QuaLiKizRun:
                  'exist! Run will fail!')
         # Create link to binary
         binarybasepath = os.path.basename(self.binaryrelpath)
-        os.symlink(self.binaryrelpath,
-                   os.path.join(rundir, binarybasepath))
+        try:
+            os.symlink(self.binaryrelpath,
+                       os.path.join(rundir, binarybasepath))
+        except FileExistsError:
+            pass
         # Create a parameters file
         self.qualikiz_plan.to_json(os.path.join(rundir, self.parameterspath))
 
@@ -148,7 +152,7 @@ class QuaLiKizRun:
             conversion: Function will be called as conversion(input_dir). Can
                         be used to convert input files to older version.
         """
-        parameterspath = os.path.join(self.rundir, 'parameters.json')
+        parameterspath = os.path.join(self.rundir, self.parameterspath)
 
         plan = QuaLiKizPlan.from_json(parameterspath)
         input_binaries = plan.setup()
@@ -275,7 +279,7 @@ class QuaLiKizRun:
             warn('Could not find link to QuaLiKiz binary. Please supply \'binaryrelpath\'')
         #binarybasepath = os.path.basename(binaryrelpath)
         #binaryrelpath = os.readlink(os.path.join(rundir, binarybasepath))
-        return QuaLiKizRun(parent_dir, name, binaryrelpath=binaryrelpath,
+        return QuaLiKizRun(parent_dir, name, binaryrelpath,
                            qualikiz_plan=qualikiz_plan,
                            stdout=stdout, stderr=stderr)
 
@@ -780,7 +784,7 @@ def run_to_netcdf(path, runmode='dimx', overwrite=None,
                  'netcdf4\'. Falling back to netCDF3')
             ds.to_netcdf(netcdf_path, encoding=encoding)
 
-def qlk_from_dir(dir, batch_class=QuaLiKizBatch, run_class=QuaLiKizRun, verbose=False, **kwargs):
+def qlk_from_dir(dir, batch_class=QuaLiKizBatch, run_class=None, verbose=False, prioritize_batch=True, **kwargs):
     kwargs['verbose'] = verbose
     script_path = os.path.join(dir, QuaLiKizBatch.scriptname)
     #qlk_instance = None
@@ -797,6 +801,8 @@ def qlk_from_dir(dir, batch_class=QuaLiKizBatch, run_class=QuaLiKizRun, verbose=
     try:
         if verbose:
             print('Trying to reconstruct run')
+        if prioritize_batch:
+            raise OSError('Dummy error')
         qlk_instance = run_class.from_dir(dir, **kwargs)
         dirtype = 'run'
     except OSError:
