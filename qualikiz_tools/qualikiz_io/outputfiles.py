@@ -10,6 +10,7 @@ from collections import OrderedDict
 from itertools import chain
 import sys
 import array
+import gc
 
 import pandas as pd
 import numpy as np
@@ -858,6 +859,45 @@ def add_dims(ds, newdims):
 
     return newds
 
+def merge_many_lazy_snakes(path, dss, datavars=None, verbose=False, netcdf_kwargs=None, **kwargs):
+    if os.path.exists(path):
+        raise OSError('{!s} exists! Refusing to overwrite')
+
+    if netcdf_kwargs is None:
+        netcdf_kwargs = {}
+
+    if datavars is None:
+        datavars = list(dss[0].data_vars.keys())
+
+    xr.Dataset().to_netcdf(path, 'w', **netcdf_kwargs)
+
+    for name in datavars:
+        if verbose:
+            print('Merging {!s}'.format(name))
+        vars = [ds[name] for ds in dss]
+        ds = xr.concat(vars, dim='snakedim')
+        ds.to_netcdf(path, 'a', **netcdf_kwargs)
+        del vars
+        gc.collect()
+    return xr.open_dataset(path)
+
+def merge_many_orthogonal(dss, datavars=None, verbose=False, **kwargs):
+    newds = dss[0]
+    newds.load()
+    for ds in dss[1:]:
+        ds.load()
+        newds = merge_orthogonal(newds, ds)
+        ds.close()
+
+    newds = sort_dims(newds)
+    encoding = {}
+    for name, __ in newds.items():
+        encoding[name] = {}
+        for enc_name, enc in encode.items():
+            encoding[name][enc_name] = enc
+
+    return newds
+
 def find_nonmatching_coords(ds1, ds2):
     """ Find non-equal coordinates in datasets """
     nonmatching = []
@@ -867,8 +907,8 @@ def find_nonmatching_coords(ds1, ds2):
 
     return nonmatching
 
-def merge_orthogonal(dss, datavars=None, verbose=False):
-    """ Merge two orthogonal datasets
+def merge_orthogonal(ds1, ds2, datavars=None, verbose=False):
+    """ Left join two orthogonal datasets.
 
     Merge two datasets together. These datasets should only contain
     orthogonal dimensions, so first orthogonalize with orthogonalize_dataset.
@@ -876,19 +916,14 @@ def merge_orthogonal(dss, datavars=None, verbose=False):
     and tries to merge smartly when more dimensions are different. Note that
     the second method is slow and uses a lot of RAM
 
-    Currently can only merge two datasets.
-
     Args:
-        dss: List of datasets to merge
+        ds1: First datasets to merge
+        ds2: Datasets to merge ds1 with
 
     Kwargs:
         datavars: DataVariables to keep in the merged dataset
         verbose:  Print message for each variables to be merged
     """
-    if len(dss) > 2:
-        raise NotImplementedError
-    ds1 = dss[0]
-    ds2 = dss[1]
     nonmatching = find_nonmatching_coords(ds1, ds2)
     if len(nonmatching) == 0:
         raise NotImplementedError

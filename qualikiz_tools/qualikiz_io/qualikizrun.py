@@ -557,7 +557,8 @@ class QuaLiKizBatch():
 
     def to_netcdf(self, runmode='dimx', mode='noglue',
                   genfromtxt=False, encode=None, clean=True,
-                  keepfile=True, processes=1, verbose=False):
+                  keepfile=True, processes=1, verbose=False,
+                  overwrite_runs=None, overwrite_batch=None):
         """ Convert QuaLiKizBatch output to netcdf
         iith warnings.catch_warnings():
             warnings.simplefilter("ignore")
@@ -596,14 +597,11 @@ class QuaLiKizBatch():
         for run in self.runlist:
             name = os.path.basename(run.rundir)
             netcdf_path = os.path.join(run.rundir, name + '.nc')
-            if not overwrite_prompt(netcdf_path):
+            if not overwrite_prompt(netcdf_path, overwrite_runs):
                 warn('User does not want to overwrite ' + netcdf_path)
             else:
                 joblist.append(run.rundir)
         print('Found {:d} jobs'.format(len(joblist)))
-
-        if not overwrite_prompt(new_netcdf_path):
-            raise Exception('User does not want to overwrite ' + new_netcdf_path)
 
 
         # We want to run one job per core max
@@ -619,44 +617,50 @@ class QuaLiKizBatch():
                               genfromtxt=genfromtxt, keepfile=keepfile)
         print('jobs netcdfized')
 
+        overwrite_new_netcdf_path = overwrite_prompt(new_netcdf_path, overwrite_batch)
         # Now we have the hypercubes. Let's find out which dimensions
         # we're missing and glue the datasets together
         newds = None
-        if mode == 'glue':
+        if mode in ['glue_orthogonal', 'glue_snake']:
             if len(self.runlist) > 1:
-                name = os.path.basename(self.runlist[0].rundir)
-                netcdf_path = os.path.join(self.runlist[0].rundir, name + '.nc')
-                newds = xr.open_dataset(netcdf_path, engine=netcdf4_engine)
-                newds.load()
-
-                print('Merging ' + os.path.join(self.parent_dir, self.name))
-                for run in self.runlist[1:]:
+                dss = []
+                for run in self.runlist:
                     name = os.path.basename(run.rundir)
                     netcdf_path = os.path.join(run.rundir, name + '.nc')
                     ds = xr.open_dataset(netcdf_path, engine=netcdf4_engine)
-                    ds.load()
-                    newds = merge_orthogonal([newds, ds])
-                    ds.close()
+                    dss.append(ds)
 
-                newds = sort_dims(newds)
-                encoding = {}
-                for name, __ in newds.items():
-                    encoding[name] = {}
-                    for enc_name, enc in encode.items():
-                        encoding[name][enc_name] = enc
-                newds.to_netcdf(new_netcdf_path,
-                                engine=netcdf4_engine, format='NETCDF4', encoding=encoding)
-                newds.close()
-        elif mode == 'noglue':
-            pass
+                if mode == 'glue_orthogonal':
+                    dsnew = merge_many_orthogonal(dss)
+                elif mode == 'glue_snake':
+                    if not overwrite_new_netcdf_path:
+                        raise Exception('Cannot use mode {!s} without overwriting {!s}'.format(mode, new_netcdf_path))
+                    dsnew = merge_many_lazy_snakes(new_netcdf_path, dss, verbose=verbose)
+
+                if overwrite_new_netcdf_path:
+                    newds.to_netcdf(new_netcdf_path,
+                                    engine=netcdf4_engine, format='NETCDF4', encoding=encoding)
+                else:
+                    warn('User does not want to overwrite {!s}. Not dumping to disk!'.format(new_netcdf_path))
+                if clean and newds is not None:
+                    for run in self.runlist:
+                        name = os.path.basename(run.rundir)
+                        netcdf_path = os.path.join(run.rundir, name + '.nc')
+                        os.remove(netcdf_path)
+        elif len(self.runlist) == 1 or mode == 'noglue':
+            if overwrite_new_netcdf_path:
+                if clean:
+                    os.rename(netcdf_path, new_netcdf_path)
+                else:
+                    shutil.copy(netcdf_path, new_netcdf_path)
+            else:
+                warn('User does not want to overwrite {!s}. Not dumping to disk!'.format(new_netcdf_path))
+            newds = xr.open_dataset(new_netcdf_path, engine=netcdf4_engine)
+
         else:
             raise NotImplementedError('Mode ' + mode)
 
-        if clean and newds is not None:
-            for run in self.runlist:
-                name = os.path.basename(run.rundir)
-                netcdf_path = os.path.join(run.rundir, name + '.nc')
-                os.remove(netcdf_path)
+        return newds
 
     def clean(self):
         """ Remove all output """
