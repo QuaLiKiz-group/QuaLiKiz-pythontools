@@ -460,6 +460,22 @@ class QuaLiKizBatch():
         return batchlist
 
     @classmethod
+    def list_from_dir(cls, dir, scriptname=None, verbose=False, run_kwargs=None, batch_kwargs=None):
+        if batch_kwargs is None:
+            batch_kwargs = {}
+        if run_kwargs is None:
+            run_kwargs = {}
+        if scriptname is None:
+            scriptname = cls.scriptname
+
+        batchlist = []
+        for subpath in os.listdir(dir):
+            if os.path.isdir(subpath):
+                batch = cls.from_dir(subpath, scriptname=scriptname, verbose=verbose, run_kwargs=run_kwargs, batch_kwargs=batch_kwargs)
+                batchlist.append(batch)
+        return batchlist
+
+    @classmethod
     def from_dir(cls, dir, *args, **kwargs):
         warn('Specialized from_dir method not defined')
         return cls.from_subdirs(dir, *args, **kwargs)
@@ -485,27 +501,29 @@ class QuaLiKizBatch():
             batch_kwargs = {}
         if run_kwargs is None:
             run_kwargs = {}
+        if scriptname is None:
+            scriptname = cls.scriptname
+
+        batch_kwargs['verbose'] = verbose
+        run_kwargs['verbose'] = verbose
+
         batchdir = os.path.realpath(batchdir.rstrip('/'))
         # The name should be the same as the directory name given
         parent_dir, name = os.path.split(batchdir)
         #qualikizbatch = QuaLiKizBatch.__new__(cls)
         #qualikizbatch.parent_dir = os.path.abspath(parent_dir)
         #qualikizbatch.name = name
-        batch_kwargs['verbose'] = verbose
-        run_kwargs['verbose'] = verbose
-        if scriptname is None:
-            scriptname = cls.scriptname
         batchscript_path = os.path.join(batchdir, scriptname)
         try:
             batch = cls.from_batch_file(batchscript_path, **batch_kwargs)
         except (AttributeError, FileNotFoundError, NotImplementedError) as ee:
-            if ee.__class__ == AttributeError:
-                warn_msg = 'No from_file function defined for {!s}'
-            elif ee.__class__ == FileNotFoundError:
-                warn_msg = 'No batch file found for {!s}'
-            elif ee.__class__ == NotImplementedError:
-                warn_msg = 'from_batch_file not implemented for {!s}'
-            warn(warn_msg + ', falling back to subdirs'.format(cls))
+            if isinstance(ee, AttributeError):
+                warn_msg = 'No from_file function defined for {!s}'.format(cls)
+            elif isinstanc(ee, FileNotFoundError):
+                warn_msg = 'No batch file found for {!s}'.format(cls)
+            elif isinstance(ee, NotImplementedError):
+                warn_msg = 'from_batch_file not implemented for {!s}'.format(cls)
+            warn(warn_msg + ', falling back to subdirs')
             runlist = cls.runlist_from_subdirs(batchdir, **run_kwargs)
             batch = cls(parent_dir, name, runlist)
 
