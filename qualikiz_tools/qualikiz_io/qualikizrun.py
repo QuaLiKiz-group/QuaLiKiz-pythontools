@@ -18,7 +18,7 @@ from qualikiz_tools.qualikiz_io.outputfiles import (convert_debug, convert_outpu
                                        convert_primitive, squeeze_dataset,
                                        orthogonalize_dataset, determine_sizes)
 from qualikiz_tools.qualikiz_io.outputfiles import (merge_orthogonal, sort_dims)
-from qualikiz_tools import netcdf4_engine, HAS_NETCDF4
+from qualikiz_tools import netcdf4_engine, HAS_NETCDF4, ModuleNotFoundError
 from . import __path__ as ROOT
 ROOT = ROOT[0]
 
@@ -610,7 +610,10 @@ class QuaLiKizBatch():
                               genfromtxt=genfromtxt, keepfile=keepfile)
         print('jobs netcdfized')
 
-        overwrite_new_netcdf_path = overwrite_prompt(new_netcdf_path, overwrite_batch)
+        if os.path.isfile(new_netcdf_path):
+            overwrite_new_netcdf_path = overwrite_dialog(new_netcdf_path, overwrite_batch)
+        else:
+            overwrite_new_netcdf_path = True
         # Now we have the hypercubes. Let's find out which dimensions
         # we're missing and glue the datasets together
         newds = None
@@ -707,6 +710,15 @@ def equal_ignore_order(a, b):
             return False
     return not unmatched
 
+def overwrite_dialog(path, overwrite=None):
+    if overwrite is None:
+        resp = input('path exists, overwrite? [Y/n]')
+        if resp == '' or resp == 'Y' or resp == 'y':
+            overwrite = True
+        else:
+            overwrite = False
+    return overwrite
+
 def overwrite_prompt(path, overwrite=None):
     """ Prompt user if file/path can be overwritten
 
@@ -718,12 +730,7 @@ def overwrite_prompt(path, overwrite=None):
         True if user wants to overwrite
     """
     if os.path.isfile(path) or os.path.isdir(path):
-        if overwrite is None:
-            resp = input('path exists, overwrite? [Y/n]')
-            if resp == '' or resp == 'Y' or resp == 'y':
-                overwrite = True
-            else:
-                overwrite = False
+        overwrite = overwrite_dialog(overwrite)
         if overwrite:
             print('overwriting')
             if os.path.isdir(path):

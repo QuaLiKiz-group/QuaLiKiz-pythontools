@@ -284,6 +284,47 @@ def determine_sizes(rundir, folder='debug', keepfile=True):
     else:
         raise Exception('Could not read sizes from ' + os.path.join(rundir, folder, name + suffix))
 
+def determine_dims_debug(name):
+    if name in debug_eleclike:
+        dims = ['dimx']
+    elif name in debug_ionlike:
+        dims = ['dimx', 'nions']
+    elif name in debug_single:
+        dims = None
+    elif name in ['kthetarhos']:
+        dims = ['dimn']
+    elif name in ['phi']:
+        dims = ['ntheta', 'dimx']
+    else:
+        raise Exception("Could not find dims for " + name + "'")
+    return dims
+
+def load_file(rundir, folder, filename, verbose=False, genfromtxt=False):
+    dir = os.path.join(rundir, folder)
+    basename = filename + suffix
+    path_ = os.path.join(dir, basename)
+    with open(path_, 'rb') as file:
+        if verbose:
+            print('loading ' + basename.ljust(20) + ' from ' + dir)
+        try:
+            if genfromtxt:
+                data = np.genfromtxt(file)
+            else:
+                data = np.loadtxt(file)
+        except Exception as ee:
+            print('Exception loading ' + file.name)
+            raise
+    return data
+
+def add_missing_dims(sizes, data, dims):
+    dimx, dimn, nions, numsols = sizes.values()
+    if dims is not None:
+        for dim, dim_size in sizes.items():
+            if dim_size == 1 and dim in dims:
+                di = dims.index(dim)
+                if len(data.shape) != len(dims):
+                    data = np.expand_dims(data, axis=di)
+    return data
 
 def convert_debug(sizes, rundir, folder='debug', verbose=False,
                   genfromtxt=False, keepfile=True):
@@ -312,51 +353,21 @@ def convert_debug(sizes, rundir, folder='debug', verbose=False,
     ds = xr.Dataset()
     dimx, dimn, nions, numsols = sizes.values()
     for name in debug_subsets:
-        try:
-            dir = os.path.join(rundir, folder)
-            basename = name + suffix
-            path_ = os.path.join(dir, basename)
-            with open(path_, 'rb') as file:
-                if verbose:
-                    print('loading ' + basename.ljust(20) + ' from ' + dir)
-                try:
-                    if genfromtxt:
-                        data = np.genfromtxt(file)
-                    else:
-                        data = np.loadtxt(file)
-                except Exception as ee:
-                    print('Exception loading ' + file.name)
-                    raise
-                # Skip loading these, as they will be saved implicitly
-                if name in ['dimx', 'dimn', 'nions', 'numsols']:
-                    continue
-                elif name in debug_eleclike:
-                    dims = ['dimx']
-                elif name in debug_ionlike:
-                    dims = ['dimx', 'nions']
-                    if nions == 1:
-                        data = np.expand_dims(data, axis=1)
-                elif name in debug_single:
-                    dims = None
-                elif name in ['kthetarhos']:
-                    dims = ['dimn']
-                elif name in ['phi']:
-                    dims = ['ntheta', 'dimx']
-                else:
-                    raise Exception('Could not process \'' + name + '\'')
-                try:
-                    if name == 'modeflag':
-                        ds[name] = xr.DataArray(data, dims=dims)
-                    else:
-                        ds.coords[name] = xr.DataArray(data, dims=dims)
-                except Exception as e:
-                    raise type(e)(str(e) +
-                                  ' happens at %s' % name).with_traceback(sys.exc_info()[2])
-            if not keepfile:
-                os.remove(path_)
+        data = load_file(rundir, folder, name, verbose=verbose, genfromtxt=genfromtxt)
+        # Skip loading these, as they will be saved implicitly
+        if name in ['dimx', 'dimn', 'nions', 'numsols']:
+            continue
+        dims = determine_dims_debug(name)
+        # Add 'missing' dimensions squeezed out by loading from disk
+        data = add_missing_dims(sizes, data, dims)
 
-        except FileNotFoundError:
-            print('not found' + path_)
+        if name == 'modeflag':
+            ds[name] = xr.DataArray(data, dims=dims)
+        else:
+            ds.coords[name] = xr.DataArray(data, dims=dims)
+        if not keepfile:
+            os.remove(path_)
+
     # Nothing in debug depends on numsols, but add it for later use
     ds.coords['numsols'] = xr.DataArray(list(range(0, numsols)), dims='numsols')
     return ds
@@ -396,67 +407,56 @@ def convert_output(ds, sizes, rundir, folder='output', verbose=False,
             names = [name]
         for name in names:
             try:
-                dir = os.path.join(rundir, folder)
-                basename = name + suffix
-                path_ = os.path.join(dir, basename)
-                with open(path_, 'rb') as file:
-                    if verbose:
-                        print('loading ' + basename.ljust(20) + ' from ' + dir)
-                    try:
-                        if genfromtxt:
-                            data = np.genfromtxt(file)
-                        else:
-                            data = np.loadtxt(file)
-                    except Exception as ee:
-                        print('Exception loading ' + file.name)
-                        raise
-                    if name.startswith('gam') or name.startswith('ome'):
-                        data = data.reshape(numsols, dimx, dimn)
-                        ds[name] = xr.DataArray(data, dims=['numsols', 'dimx', 'dimn'],
-                                                name=name).transpose('dimx', 'dimn', 'numsols')
-                    elif name in ['cke', 'ceke']:
-                        ds[name] = xr.DataArray(data, dims=['dimx'], name=name)
-                    elif  name in ['cki', 'ceki', 'ion_type']:
-                        if nions == 1:
-                            data = np.expand_dims(data, axis=1)
-                        ds[name] = xr.DataArray(data, dims=['dimx', 'nions'], name=name)
-                    elif name.endswith('i_cm'):
-                        data = data.reshape(nions, dimx, dimn)
-                        ds[name] = xr.DataArray(data, dims=['nions', 'dimx', 'dimn'],
-                                                name=name).transpose('dimx', 'dimn', 'nions')
-                    elif name.endswith('e_cm'):
-                        data = data.reshape(dimx, dimn)
-                        ds[name] = xr.DataArray(data, dims=['dimx', 'dimn'],
-                                                name=name).transpose('dimx', 'dimn')
-                    elif name == 'ecoefs':
-                        tmp = xr.DataArray(data.reshape(dimx, nions+1, numecoefs),
-                                           dims=['dimx', 'ionelec', 'ecoefs'], name=name)
-                        ds[name + 'e'] = tmp.sel(ionelec=0)
-                        ds[name + 'i'] = tmp.sel(ionelec=slice(1, None)).rename({'ionelec': 'nions'})
-                    elif name == 'npol':
-                        ds[name] = xr.DataArray(data.reshape(dimx, ntheta, nions),
-                                                dims=['dimx', 'ntheta', 'nions'], name=name)
-                    elif name == 'cftrans':
-                        ds[name] = xr.DataArray(data.reshape(dimx, nions, numicoefs),
-                                                dims=['dimx', 'nions', 'numicoefs'], name=name)
-                    else:
-                        subname = name[:-3]
-                        if (subname.endswith('ETG') or
-                            subname.endswith('ITG') or
-                            subname.endswith('TEM')):
-                            subname = subname[:-3]
-                        if subname.endswith('e'):
-                            ds[name] = xr.DataArray(data, dims=['dimx'], name=name)
-                        elif subname.endswith('i'):
-                            if nions == 1:
-                                data = np.expand_dims(data, axis=1)
-                            ds[name] = xr.DataArray(data, dims=['dimx', 'nions'], name=name)
-                        else:
-                            raise Exception('Could not process \'' + name + '\'')
-                if not keepfile:
-                    os.remove(path_)
+                data = load_file(rundir, folder, name, verbose=verbose, genfromtxt=genfromtxt)
             except FileNotFoundError:
-                print('not found' + path_)
+                print('not found' + os.path.join(rundir, folder, name + suffix))
+                continue
+            if name == 'ecoefs':
+                dims = ['dimx', 'ionelec', 'ecoefs']
+                tmp = xr.DataArray(data.reshape(dimx, nions+1, numecoefs),
+                                   dims=dims, name=name)
+                ds[name + 'e'] = tmp.sel(ionelec=0)
+                ds[name + 'i'] = tmp.sel(ionelec=slice(1, None)).rename({'ionelec': 'nions'})
+            else:
+                if name.startswith('gam') or name.startswith('ome'):
+                    #dims_orig = ['numsols', 'dimx', 'dimn']
+                    data = data.reshape(numsols, dimx, dimn)
+                    data =  data.transpose(1, 2, 0)
+                    dims = ['dimx', 'dimn', 'numsols']
+                elif name in ['cke', 'ceke']:
+                    dims = ['dimx']
+                elif  name in ['cki', 'ceki', 'ion_type']:
+                    dims = ['dimx', 'nions']
+                elif name.endswith('i_cm'):
+                    #dims_orig = ['nions', 'dimx', 'dimn']
+                    data = data.reshape(nions, dimx, dimn)
+                    data = data.transpose(1, 2, 0)
+                    dims = ['dimx', 'dimn', 'nions']
+                elif name.endswith('e_cm'):
+                    #dims_orig = ['dimx', 'dimn']
+                    data = data.reshape(dimx, dimn)
+                    dims = ['dimx', 'dimn']
+                elif name == 'npol':
+                    dims = ['dimx', 'ntheta', 'nions']
+                    data = data.reshape(dimx, ntheta, nions)
+                elif name == 'cftrans':
+                    dims = ['dimx', 'nions', 'numicoefs']
+                    data = data.reshape(dimx, nions, numicoefs)
+                else:
+                    basename = name[:-3]
+                    if any([basename.endswith(mode) for mode in ['ETG', 'ITG', 'TEM']]):
+                        basename = basename[:-3]
+                    if basename.endswith('e'):
+                        dims = ['dimx']
+                    elif basename.endswith('i'):
+                        dims = ['dimx', 'nions']
+                    else:
+                        raise Exception('Could not process \'' + name + '\'')
+
+                data = add_missing_dims(sizes, data, dims)
+                ds[name] = xr.DataArray(data, dims=dims, name=name)
+            if not keepfile:
+                os.remove(path_)
     return ds
 
 
@@ -484,7 +484,6 @@ def convert_primitive(ds, sizes, rundir, folder='output/primitive', verbose=Fals
     Returns:
         ds:         The netcdf dataset
     """
-    reshapes = ['rfdsol', 'ifdsol', 'isol', 'rsol']
     dimx, dimn, nions, numsols = sizes.values()
     for name in primi_subsets:
         if name in ['fdsol', 'jonsolflu', 'modeshift', 'modewidth', 'sol', 'solflu']:
@@ -493,36 +492,28 @@ def convert_primitive(ds, sizes, rundir, folder='output/primitive', verbose=Fals
             names = [name]
         for name in names:
             try:
-                dir = os.path.join(rundir, folder)
-                basename = name + suffix
-                path_ = os.path.join(dir, basename)
-                with open(path_, 'rb') as file:
-                    if verbose:
-                        print ('loading ' + basename.ljust(20) + ' from ' + dir)
-                    try:
-                        if genfromtxt:
-                            data = np.genfromtxt(file)
-                        else:
-                            data = np.loadtxt(file)
-                    except Exception as ee:
-                        print('Exception loading ' + file.name)
-                        raise type(ee)(str(ee) + ' happens at %s' % file.name).with_traceback(sys.exc_info()[2])
-                    if name.endswith('i'):
-                        data = data.reshape(numsols,nions,dimx,dimn)
-                        ds[name] = xr.DataArray(data, dims=['numsols', 'nions', 'dimx', 'dimn'],
-                                                name=name).transpose('dimx', 'dimn', 'nions', 'numsols')
-                    elif name.endswith('e') or name in reshapes:
-                        data = data.reshape(numsols, dimx, dimn)
-                        ds[name] = xr.DataArray(data, dims=['numsols', 'dimx', 'dimn'],
-                                                name=name).transpose('dimx', 'dimn', 'numsols')
-                    elif name in ['kymaxETG', 'kymaxITG']:
-                        ds[name] = xr.DataArray(data, dims=['dimx'], name=name)
-                    else:
-                        ds[name] = xr.DataArray(data, dims=['dimx', 'dimn'], name=name)
-                if not keepfile:
-                    os.remove(path_)
+                data = load_file(rundir, folder, name, verbose=verbose, genfromtxt=genfromtxt)
             except FileNotFoundError:
-                print('not found' + path_)
+                print('not found' + os.path.join(rundir, folder, name + suffix))
+                continue
+            if name.endswith('i'):
+                #dims_orig = ['numsols', 'nions', 'dimx', 'dimn']
+                data = data.reshape(numsols,nions,dimx,dimn)
+                data = data.transpose(2, 3, 1, 0)
+                dims = ['dimx', 'dimn', 'nions', 'numsols']
+            elif name.endswith('e') or name in ['rfdsol', 'ifdsol', 'isol', 'rsol']:
+                #dims_orig = ['numsols', 'dimx', 'dimn']
+                data = data.reshape(numsols, dimx, dimn)
+                data = data.transpose(1, 2, 0)
+                dims = ['dimx', 'dimn', 'numsols']
+            elif name in ['kymaxETG', 'kymaxITG']:
+                dims = ['dimx']
+            else:
+                dims = ['dimx', 'dimn']
+            data = add_missing_dims(sizes, data, dims)
+            ds[name] = xr.DataArray(data, dims=dims, name=name)
+            if not keepfile:
+                os.remove(path_)
     return ds
 
 
