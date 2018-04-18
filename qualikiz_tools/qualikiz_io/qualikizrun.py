@@ -512,7 +512,7 @@ class QuaLiKizBatch():
         except (AttributeError, FileNotFoundError, NotImplementedError) as ee:
             if isinstance(ee, AttributeError):
                 warn_msg = 'No from_file function defined for {!s}'.format(cls)
-            elif isinstanc(ee, FileNotFoundError):
+            elif isinstance(ee, FileNotFoundError):
                 warn_msg = 'No batch file found for {!s}'.format(cls)
             elif isinstance(ee, NotImplementedError):
                 warn_msg = 'from_batch_file not implemented for {!s}'.format(cls)
@@ -712,7 +712,7 @@ def equal_ignore_order(a, b):
 
 def overwrite_dialog(path, overwrite=None):
     if overwrite is None:
-        resp = input('path exists, overwrite? [Y/n]')
+        resp = input(os.path.basename(path) + ' exists, overwrite? [Y/n]')
         if resp == '' or resp == 'Y' or resp == 'y':
             overwrite = True
         else:
@@ -730,7 +730,7 @@ def overwrite_prompt(path, overwrite=None):
         True if user wants to overwrite
     """
     if os.path.isfile(path) or os.path.isdir(path):
-        overwrite = overwrite_dialog(overwrite)
+        overwrite = overwrite_dialog(path, overwrite)
         if overwrite:
             print('overwriting')
             if os.path.isdir(path):
