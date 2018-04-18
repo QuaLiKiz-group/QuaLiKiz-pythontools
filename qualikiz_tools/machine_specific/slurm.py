@@ -70,9 +70,8 @@ class Batch(Batch):
 
     def __init__(self, parent_dir, name, runlist, maxtime=None,
                  stdout=None, stderr=None,
-                 filesystem=None, partition=None,
-                 qos=None, repo=None,
-                 safetytime=1.5, style='sequential'):
+                 safetytime=1.5, style='sequential',
+                 **kwargs):
         """ Initialize Edison batch job
 
         Args:
@@ -108,7 +107,9 @@ class Batch(Batch):
         # Fill (needed) attribute with defaults or None
         for attribute in self.attr:
             if attribute  != 'nodes':
-                if attribute  in self.defaults:
+                if attribute in kwargs:
+                    setattr(self, attribute, kwargs[attribute])
+                elif attribute in self.defaults:
                     setattr(self, attribute, self.defaults[attribute])
                 else:
                     setattr(self, attribute, None)
@@ -130,7 +131,7 @@ class Batch(Batch):
             h, m = divmod((m + 1), 60)
 
             # TODO: generalize for non-edison machines
-            if partition == 'debug' and (h >= 1 or m >= 30):
+            if self.partition == 'debug' and (h >= 1 or m >= 30):
                 warn('Walltime requested too high for debug partition')
             self.maxtime = ("%d:%02d:%02d" % (h, m, s))
         else:
@@ -151,12 +152,14 @@ class Batch(Batch):
         out = subprocess.check_output(cmd, shell=True)
         print(out.strip().decode('ascii'))
 
-    def to_batch_file(self, script_path, **kwargs):
+    def to_batch_file(self, script_path, overwrite_batch_script=False, **kwargs):
         """ Writes sbatch script to file
 
         Args:
             - path: Path of the sbatch script file.
         """
+        if os.path.isfile(script_path) and not overwrite_batch_script:
+            raise OSError("Script path '{!s}' already exists".format(script_path))
         sbatch_lines = ['#!' + self.shell + ' -l\n']
         for attr, sbatch in zip(self.attr, self.sbatch):
             value = getattr(self, attr)

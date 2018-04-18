@@ -66,7 +66,7 @@ def run(args):
         if isinstance(qlk_instance, Run):
             qlk_instance.prepare(overwrite=False)
         elif isinstance(qlk_instance, Batch):
-            qlk_instance.prepare(overwrite_batch=False)
+            qlk_instance.prepare(overwrite_batch=False, overwrite_batch_script=True)
         else:
             raise Exception('Unrecognized instance {!s} for machine {!s}'.format(qlk_instance, args['<machine>']))
         qlk_instance.generate_input()
