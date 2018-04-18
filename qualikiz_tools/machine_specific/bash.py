@@ -3,14 +3,15 @@ Copyright Dutch Institute for Fundamental Energy Research (2016-2017)
 Contributors: Karel van de Plassche (karelvandeplassche@gmail.com)
 License: CeCILL v2.1
 """
-from warnings import warn
-import os
-import stat
-from .system import Run, Batch
-from qualikiz_tools.qualikiz_io.inputfiles import QuaLiKizPlan
-from ..qualikiz_io.qualikizrun import QuaLiKizRun, QuaLiKizBatch
 import subprocess
 import multiprocessing as mp
+import os
+import stat
+from warnings import warn
+
+from qualikiz_tools.machine_specific.system import Run, Batch
+from qualikiz_tools.qualikiz_io.inputfiles import QuaLiKizPlan
+from qualikiz_tools.qualikiz_io.qualikizrun import QuaLiKizRun, QuaLiKizBatch
 
 def get_num_threads():
     """Returns amount of threads/virtual cores on current system"""

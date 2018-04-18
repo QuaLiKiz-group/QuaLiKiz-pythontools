@@ -12,8 +12,9 @@ from warnings import warn
 from itertools import islice
 
 import numpy as np
-from .qualikizrun import QuaLiKizRun, QuaLiKizBatch
-from .basicpoll import database_exists
+
+from qualikiz_tools.qualikiz_io.qualikizrun import QuaLiKizRun, QuaLiKizBatch
+from qualikiz_tools.machine_specific.basicpoll import database_exists
 from .tabulate.tabulate import tabulate
 
 def profile_job(job):

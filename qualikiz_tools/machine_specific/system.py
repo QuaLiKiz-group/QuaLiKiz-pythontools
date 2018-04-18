@@ -3,7 +3,7 @@ Copyright Dutch Institute for Fundamental Energy Research (2016-2017)
 Contributors: Karel van de Plassche (karelvandeplassche@gmail.com)
 License: CeCILL v2.1
 """
-from ..qualikiz_io.qualikizrun import QuaLiKizRun, QuaLiKizBatch
+from qualikiz_tools.qualikiz_io.qualikizrun import QuaLiKizRun, QuaLiKizBatch
 from warnings import warn
 
 class Run(QuaLiKizRun):

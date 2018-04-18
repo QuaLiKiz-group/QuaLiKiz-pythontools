@@ -3,16 +3,17 @@ Copyright Dutch Institute for Fundamental Energy Research (2016-2017)
 Contributors: Karel van de Plassche (karelvandeplassche@gmail.com)
 License: CeCILL v2.1
 """
+import warnings
+from collections import OrderedDict
+
+import numpy as np
+import pandas as pd
 import xarray as xr
 import matplotlib.pyplot as plt
 from matplotlib import gridspec, cycler
-from collections import OrderedDict
-import numpy as np
-import pandas as pd
-from qualikiz_tools.qualikiz_io.outputfiles import squeeze_dataset, orthogonalize_dataset, xarray_to_pandas
-import warnings
-from IPython import embed
 from mpl_toolkits.mplot3d import Axes3D
+
+from qualikiz_tools.qualikiz_io.outputfiles import squeeze_dataset, orthogonalize_dataset, xarray_to_pandas
 
 try:
     from .discrete_slider import DiscreteSlider

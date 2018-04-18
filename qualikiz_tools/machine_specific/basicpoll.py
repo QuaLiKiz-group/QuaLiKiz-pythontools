@@ -9,9 +9,8 @@ import json
 import re
 from warnings import warn
 
-from ..qualikiz_io.qualikizrun import QuaLiKizBatch
 from tabulate import tabulate
-from warnings import warn
+from qualikiz_tools.qualikiz_io.qualikizrun import QuaLiKizBatch
 
 
 def database_exists(database_path, table_name, append=None, overwrite=None):

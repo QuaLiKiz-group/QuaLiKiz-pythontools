@@ -13,25 +13,18 @@ from functools import partial
 
 import xarray as xr
 
-from ..qualikiz_io.inputfiles import QuaLiKizPlan
-from ..qualikiz_io.outputfiles import (convert_debug, convert_output,
+from qualikiz_tools.qualikiz_io.inputfiles import QuaLiKizPlan
+from qualikiz_tools.qualikiz_io.outputfiles import (convert_debug, convert_output,
                                        convert_primitive, squeeze_dataset,
                                        orthogonalize_dataset, determine_sizes)
-from ..qualikiz_io.outputfiles import (merge_orthogonal, sort_dims)
-from .. import netcdf4_engine
+from qualikiz_tools.qualikiz_io.outputfiles import (merge_orthogonal, sort_dims)
+from qualikiz_tools import netcdf4_engine, HAS_NETCDF4
 from . import __path__ as ROOT
 ROOT = ROOT[0]
 
 threads_per_task = 1  # QuaLiKiz uses a single thread per MPI task, EXCEPT on the master task (rank=0)
 
 warnings.simplefilter('always', UserWarning)
-
-try:
-    import netCDF4 as nc4
-    HAS_NETCDF4 = True
-except ModuleNotFoundError:
-    HAS_NETCDF4 = False
-
 
 class PathException(Exception):
     """ Exception thrown when a path should be absolute, but it is not """
