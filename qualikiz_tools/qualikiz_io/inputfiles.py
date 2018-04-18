@@ -291,35 +291,34 @@ class QuaLiKizXpoint(dict):
         return self['geometry']['x'] * self['geometry']['Rmin'] / self['geometry']['Ro']
 
     @staticmethod
-    def calc_Machpar_from_parts(Machtor, epsilon, q):
+    def calc_puretor_Machpar_from_parts(Machtor, epsilon, q):
         return Machtor / np.sqrt(1 + (epsilon / q)**2)
 
-    def calc_Machpar(self):
-        return self.calc_Machpar_from_parts(self['Machtor'], self.calc_epsilon(), self['q'])
+    def set_puretor_Machpar(self):
+        Machpar = self.calc_puretor_Machpar_from_parts(self['Machtor'], self.calc_epsilon(), self['q'])
+        self['geometry']['Machpar'] = Machpar
 
     @staticmethod
-    def calc_Autor_from_parts(gammaE, epsilon, q):
+    def calc_puretor_Autor_from_parts(gammaE, epsilon, q):
         return -gammaE * q / epsilon
 
-    def calc_Autor(self):
-        return self.calc_Autor_from_parts(self['gammaE'], self.calc_epsilon(), self['q'])
+    def set_puretor_Autor(self):
+        Autor = self.calc_puretor_Autor_from_parts(self['gammaE'], self.calc_epsilon(), self['q'])
+        self['geometry']['Autor'] = Autor
 
     @staticmethod
-    def calc_Aupar_from_parts(Autor, epsilop, q):
+    def calc_puretor_Aupar_from_parts(Autor, epsilon, q):
         return Autor / np.sqrt(1 + (epsilon / q)**2)
 
-    def calc_Aupar(self):
-        return self.calc_Aupar_from_parts(self['Autor'], self.calc_epsilon(), self['q'])
+    def set_puretor_Aupar(self):
+        Autor = self.calc_puretor_Autor_from_parts(self['gammaE'], self.calc_epsilon(), self['q'])
+        Aupar = self.calc_puretor_Aupar_from_parts(Autor, self.calc_epsilon(), self['q'])
+        self['geometry']['Aupar'] = Aupar
 
-    def calc(self, name):
-        if name == 'Aupar':
-            val = self.calc_Aupar()
-        elif name == 'Autor':
-            val = self.calc_Autor()
-        elif name == 'Machpar':
-            val = self.calc_Machpar()
-        else:
-            raise Exception('Cannot calculate {!s}'.format(name))
+    def set_puretor(self):
+        self.set_puretor_Machpar()
+        self.set_puretor_Autor()
+        self.set_puretor_Aupar()
 
     class Meta(dict):
         """ Wraps variables that stay constant during the QuaLiKiz run """
@@ -423,14 +422,6 @@ class QuaLiKizXpoint(dict):
             return self.calc_tite()
         elif key == 'epsilon':
             return self.calc_epsilon()
-        elif key in ['Machpar', 'Aupar', 'Autor']:
-            val = self['geometry'].__getitem__(key)
-            if val != 0 and self['assume_tor_rot']:
-                warn('Warning! {!s} will be overwritten!'.format(key))
-            if self['assume_tor_rot']:
-                return self.calc(key)
-            else:
-                return val
         elif key in self.Geometry.in_args:
             return self['geometry'].__getitem__(key)
         elif key in ['kthetarhos']:
@@ -673,6 +664,8 @@ class QuaLiKizPlan(dict):
                 Ti_Te_rel = dimxpoint.calc_tite()
             for scan_name, scan_value in zip(scan_names, scan_values):
                 dimxpoint[scan_name] = scan_value
+            if dimxpoint['norm']['assume_tor_rot']:
+                dimxpoint.set_puretor()
             if dimxpoint['norm']['x_rho']:
                 dimxpoint['geometry'].__setitem__('rho', dimxpoint['x'])
             if dimxpoint['norm']['ninorm1']:
