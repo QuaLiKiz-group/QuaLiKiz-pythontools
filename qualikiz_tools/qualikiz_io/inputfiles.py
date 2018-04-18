@@ -324,7 +324,7 @@ class QuaLiKizXpoint(dict):
     class Meta(dict):
         """ Wraps variables that stay constant during the QuaLiKiz run """
         keynames = ['phys_meth', 'coll_flag',
-                    'rot_flag', 'verbose', 'separateflux',
+                    'rot_flag', 'verbose', 'separateflux', 'write_primi',
                     'numsols', 'relacc1', 'relacc2',
                     'maxruns', 'maxpts', 'timeout', 'ETGmult', 'collmult', 'R0']
 
@@ -337,6 +337,7 @@ class QuaLiKizXpoint(dict):
                 verbose:      Flag for level of output verbosity
                 separateflux: Flag for toggling output of separate
                               ITG, TEM, ETG fluxes
+                write_primi:  Flag to write QuaLiKiz primitives to file
                 numsols:      Number of requested solutions
                 relacc1:      Relative accuracy of 1D integrals
                 relacc2:      Relative accuracy of 2D integrals
@@ -355,6 +356,7 @@ class QuaLiKizXpoint(dict):
                 'rot_flag'     : False,
                 'verbose'      : True,
                 'separateflux' : False,
+                'write_primi'  : True,
                 'numsols'      : 3,
                 'relacc1'      : 1e-3,
                 'relacc2'      : 2e-2,
