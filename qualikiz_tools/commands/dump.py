@@ -9,10 +9,6 @@ Options:
   -h --help                         Show this screen.
   [-v | -vv]                        Verbosity 
 
-Often used commands:
-  qualikiz_tools create mini
-  qualikiz_tools create performance
-
 """
 from docopt import docopt
 from subprocess import call
@@ -41,6 +37,6 @@ def run(args):
         print (bin_to_np(args['<target_path>']))
 
     elif args['<target_path>'] in ['help', None]:
-        exit(call([sys.executable, os.path.join(ROOT, 'commands', 'create.py'), '--help']))
+        exit(call([sys.executable, __file__, '--help']))
     else:
         exit("%r is not a valid target. See 'qualikiz_tools dump help'." % args['<target_path>'])

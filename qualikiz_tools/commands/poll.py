@@ -39,6 +39,6 @@ def run(args):
             database_path = 'polldb.sqlite3'
         create_database(args['<poll_path>'], database_path)
     elif args['<target_path>'] in ['help', None] or args['<command>'] in ['help', None]:
-        exit(call([sys.executable, os.path.join(ROOT, 'commands', 'output.py'), '--help']))
+        exit(call([sys.executable, __file__, '--help']))
     else:
-        exit("%r is not a valid target. See 'qualikiz_tools output help'." % args['<target_path>'])
+        exit("%r is not a valid target. See 'qualikiz_tools poll help'." % args['<target_path>'])

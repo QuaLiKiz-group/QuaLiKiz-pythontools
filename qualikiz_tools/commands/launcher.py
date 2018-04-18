@@ -72,6 +72,6 @@ def run(args):
         qlk_instance.generate_input()
         qlk_instance.launch()
     elif args['<target_path>'] in ['help', None] or args['<command>'] in ['help', None]:
-        exit(call([sys.executable, os.path.join(ROOT, 'commands', 'launcher.py'), '--help']))
+        exit(call([sys.executable, __file__, '--help']))
     else:
-        exit("%r is not a valid target. See 'qualikiz_tools launcher output help'." % args['<target_path>'])
+        exit("%r is not a valid target. See 'qualikiz_tools launcher help'." % args['<target_path>'])

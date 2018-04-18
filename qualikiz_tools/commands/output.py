@@ -147,6 +147,6 @@ def run(args):
     #        raise NotImplementedError()
 
     elif args['<target_path>'] in ['help', None] or args['<command>'] in ['help', None]:
-        exit(call([sys.executable, os.path.join(ROOT, 'commands', 'output.py'), '--help']))
+        exit(call([sys.executable, __file__, '--help']))
     else:
         exit("%r is not a valid target. See 'qualikiz_tools output help'." % args['<target_path>'])
