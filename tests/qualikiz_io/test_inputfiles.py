@@ -177,7 +177,7 @@ class TestQuaLiKizXpoint(TestCase):
                        'anise','anisi1',
                        'danisdre', 'danisdri1',
                        'Ai1', 'Zi1']
-        test_params += (QuaLiKizXpoint.Meta.keynames +
+        test_params += (QuaLiKizXpoint.Meta.in_args +
                         QuaLiKizXpoint.Geometry.in_args +
                         #QuaLiKizXpoint.Geometry.extra_args +
                         ['ninorm1', 'Ani1', 'QN_grad', 'x_rho'])

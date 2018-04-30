@@ -4,6 +4,7 @@ from unittest import TestCase, skip
 import copy
 import os
 import shutil
+import warnings
 
 from qualikiz_tools import __path__ as PATH
 PATH = PATH[0]
@@ -18,13 +19,15 @@ class TestMini(TestCase):
                 pass
             self.addCleanup(os.remove, '../QuaLiKiz')
         mini_path = os.path.join(PATH, 'examples', 'mini.py')
-        with open('/dev/null', 'wb') as null:
-            process = popen(['python3', mini_path, 'testmini'],
-                            stdin=PIPE, stdout=null, stderr=PIPE)
-        output = process.communicate(input=b'n\n')
-        if output[1].decode('UTF-8') is not '':
-            print('STDERR = ' + output[1].decode('UTF-8'))
-            raise Exception('Error while running process')
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            with open('/dev/null', 'wb') as null:
+                process = popen(['python3', mini_path, 'testmini'],
+                                stdin=PIPE, stdout=null, stderr=PIPE)
+            output = process.communicate(input=b'n\n')
+            if process.returncode != 0:
+                print('STDERR = ' + output[1].decode('UTF-8'))
+                raise Exception('Error while running process')
 
     def tearDown(self):
         shutil.rmtree('testmini', ignore_errors=True)
@@ -38,13 +41,14 @@ class TestPerformance(TestCase):
                 pass
             self.addCleanup(os.remove, self.binrelname)
         performance_path = os.path.join(PATH, 'examples', 'performance.py')
-        with open('/dev/null', 'wb') as null:
-            process = popen(['python3', performance_path, 'testperformance'],
-                            stdin=PIPE, stdout=null, stderr=PIPE)
-        output = process.communicate(input=b'n\n')
-        if output[1].decode('UTF-8') is not '':
-            print('STDERR = ' + output[1].decode('UTF-8'))
-            raise Exception('Error while running process')
+        with warnings.catch_warnings():
+            with open('/dev/null', 'wb') as null:
+                process = popen(['python3', performance_path, 'testperformance'],
+                                stdin=PIPE, stdout=null, stderr=PIPE)
+            output = process.communicate(input=b'n\n')
+            if output[1].decode('UTF-8') is not '':
+                print('STDERR = ' + output[1].decode('UTF-8'))
+                raise Exception('Error while running process')
 
     def tearDown(self):
         try:
