@@ -156,7 +156,7 @@ class QuaLiKizXpoint(dict):
                            'instead']))
             ion_index = len(self['ions']) - 1
         ions = [ion for ii, ion in enumerate(self['ions'])
-                if ion['type'] < 3 and ii != ion_index]
+                if ion['type'] != 3 and ii != ion_index]
         return ion_index, ions
 
     def set_qn_normni_ion_n(self):
@@ -186,9 +186,9 @@ class QuaLiKizXpoint(dict):
 
     def check_quasi(self):
         """ Check if quasineutrality is maintained """
-        ions = filter(lambda x: x['type'] < 3, self['ions'])
+        ions = filter(lambda x: x['type'] != 3, self['ions'])
         quasicheck = abs(sum(ion['n'] * ion['Z'] for ion in ions) - 1)
-        ions = filter(lambda x: x['type'] < 3, self['ions'])
+        ions = filter(lambda x: x['type'] != 3, self['ions'])
         quasicheck_grad = abs(sum(ion['n'] * ion['An'] * ion['Z']
                                   for ion in ions) - self['elec']['An'])
         quasitol = 1e-5
@@ -200,9 +200,9 @@ class QuaLiKizXpoint(dict):
     def match_zeff(self, zeff):
         """ Adjust ni1 to match the given Zeff """
         if len(self['ions']) > 1:
-            ions = filter(lambda x: x['type'] < 3, self['ions'][2:])
+            ions = filter(lambda x: x['type'] != 3, self['ions'][2:])
             sum1 = sum(ion['n'] * ion['Z'] ** 2 for ion in ions)
-            ions = filter(lambda x: x['type'] < 3, self['ions'][2:])
+            ions = filter(lambda x: x['type'] != 3, self['ions'][2:])
             sum2 = (sum(ion['n'] * ion['Z'] for ion in ions) * 
                     self['ions'][0]['Z'])
             n1 = ((zeff - self['ions'][0]['Z'] - sum1 + sum2) /
@@ -226,7 +226,7 @@ class QuaLiKizXpoint(dict):
 
     def calc_zeff(self):
         """ Calculate Zeff """
-        ions = filter(lambda x: x['type'] < 3, self['ions'])
+        ions = filter(lambda x: x['type'] != 3, self['ions'])
         return sum(ion['n'] * ion['Z'] ** 2 for ion in ions)
 
     def match_nustar(self, nustar):
