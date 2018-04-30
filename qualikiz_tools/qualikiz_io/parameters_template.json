@@ -101,10 +101,12 @@
             }
         ],
         "norm": {
-            "Ani1": true,
-            "ninorm1": true,
-            "QN_grad": true,
-            "x_rho": true,
+            "set_qn_normni": true,
+            "set_qn_normni_ion": 0,
+            "set_qn_An": true,
+            "set_qn_An_ion": 0,
+            "check_qn": true,
+            "x_eq_rho": true,
             "recalc_Nustar": false,
             "recalc_Ti_Te_rel": false,
             "assume_tor_rot": true

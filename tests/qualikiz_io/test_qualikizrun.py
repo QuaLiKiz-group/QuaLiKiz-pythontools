@@ -75,13 +75,20 @@ class TestQuaLiKizRun(TestCase):
     defaults = {}
     defaults.update(meta)
     defaults.update(geometric)
-    norm = {'ninorm1': False,
-            'Ani1':    False,
-            'QN_grad': False,
-            'x_rho':   False,
+    norm = {
+            'set_qn_normni': True,
+            'set_qn_normni_ion': 0,
+            'set_qn_An': True,
+            'set_qn_An_ion': 0,
+            'check_qn': True,
+            'x_eq_rho': True,
             'recalc_Nustar': False,
             'recalc_Ti_Te_rel': False,
-            'assume_tor_rot': False}
+            'assume_tor_rot': True,
+            'recalc_Nustar': False,
+            'recalc_Ti_Te_rel': False,
+            'assume_tor_rot': False
+    }
     defaults.update(norm)
     baseXpoint = QuaLiKizXpoint(kthetarhos,
                             elec, ions, **defaults)
