@@ -9,6 +9,7 @@ import json
 import itertools
 from collections import OrderedDict
 from warnings import warn
+import os
 
 import numpy as np
 import scipy as sc
@@ -290,6 +291,8 @@ class QuaLiKizXpoint(dict):
 
     @staticmethod
     def calc_puretor_Machpar_from_parts(Machtor, epsilon, q):
+        if Machtor == 0:
+            warn('Machtor is zero! Machpar will be zero too')
         return Machtor / np.sqrt(1 + (epsilon / q)**2)
 
     def set_puretor_Machpar(self):
@@ -298,6 +301,8 @@ class QuaLiKizXpoint(dict):
 
     @staticmethod
     def calc_puretor_Autor_from_parts(gammaE, epsilon, q):
+        if gammaE == 0:
+            warn('gammaE is zero! Autor will be zero too')
         return -gammaE * q / epsilon
 
     def set_puretor_Autor(self):
@@ -306,6 +311,8 @@ class QuaLiKizXpoint(dict):
 
     @staticmethod
     def calc_puretor_Aupar_from_parts(Autor, epsilon, q):
+        if Autor == 0:
+            warn('Autor is zero! Aupar will be zero too')
         return Autor / np.sqrt(1 + (epsilon / q)**2)
 
     def set_puretor_Aupar(self):
@@ -619,6 +626,8 @@ class QuaLiKizPlan(dict):
 
     def _sanity_check_setup(self, scan_names):
         """ Check if the order of scan_names is correct """
+        if len(scan_names) == 0:
+            raise Exception('Scan list is empty!')
         try:
             index = scan_names.index('Zeff')
         except ValueError:
@@ -775,3 +784,8 @@ class QuaLiKizPlan(dict):
 
             xpoint_base = QuaLiKizXpoint(kthetarhos, elec, ions, **dict_)
             return QuaLiKizPlan(scan_dict, scan_type, xpoint_base)
+
+    @classmethod
+    def from_defaults(cls):
+        return cls.from_json(os.path.join(os.path.dirname(__file__),
+                                          'parameters_template.json'))
