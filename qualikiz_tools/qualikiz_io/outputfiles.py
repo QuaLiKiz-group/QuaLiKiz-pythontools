@@ -353,7 +353,11 @@ def convert_debug(sizes, rundir, folder='debug', verbose=False,
     ds = xr.Dataset()
     dimx, dimn, nions, numsols = sizes.values()
     for name in debug_subsets:
-        data = load_file(rundir, folder, name, verbose=verbose, genfromtxt=genfromtxt)
+        try:
+            data = load_file(rundir, folder, name, verbose=verbose, genfromtxt=genfromtxt)
+        except FileNotFoundError:
+            print('not found' + os.path.join(rundir, folder, name + suffix))
+            continue
         # Skip loading these, as they will be saved implicitly
         if name in ['dimx', 'dimn', 'nions', 'numsols']:
             continue
