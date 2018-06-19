@@ -18,7 +18,7 @@
     "xpoint_base": {
         "meta": {
             "phys_meth": 1,
-            "coll_flag": false,
+            "coll_flag": true,
             "rot_flag": false,
             "verbose": true,
             "separateflux": true,
@@ -80,7 +80,7 @@
             {
                 "T": 8.0,
                 "n": 1.0,
-                "At": 9.0,
+                "At": 0.0,
                 "An": 3.0,
                 "type": 1,
                 "anis": 1.0,
@@ -89,11 +89,11 @@
                 "Z": 1.0
             }
         ],
-        "norm": {
-            "Ani1": true,
-            "ninorm1": true,
-            "QN_grad": true,
-            "x_rho": true
+        "settings": {
+            "set_qn_An": true,
+            "set_qn_normni": true,
+            "check_qn": true,
+            "x_eq_rho": true
         }
     }
 }
