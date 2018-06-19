@@ -34,7 +34,7 @@ xpoint['rho'] = xpoint['x']
 
 # And some options we might want to mess with
 xpoint['phys_meth'] = 2
-xpoint['rot_flag'] = 1
+xpoint['rot_flag'] = 0
 xpoint['verbose'] = 1
 xpoint['separateflux'] = 1
 
@@ -51,10 +51,21 @@ xpoint.set_puretor()
 runfolder = 'run'
 run = Run('.', runfolder, '../../../../QuaLiKiz', qualikiz_plan=qualikiz_plan_base)
 batch = Batch('.', runfolder, [run])
+batch.prepare(overwrite_batch=True)
+
+# Run without rotation
+batch.generate_input()
+batch.launch()
+batch.to_netcdf(overwrite_runs=True, overwrite_batch=True)
+os.rename(os.path.join(runfolder, runfolder + '.nc'),
+          os.getcwd().split(os.path.sep)[-1] + '_norot.nc')
+
+# Run with rotation
+xpoint['rot_flag'] = 1
 
 batch.prepare(overwrite_batch=True)
 batch.generate_input()
 batch.launch()
-batch.to_netcdf()
+batch.to_netcdf(overwrite_runs=True, overwrite_batch=True)
 os.rename(os.path.join(runfolder, runfolder + '.nc'),
-          os.getcwd().split(os.path.sep)[-1] + '.nc')
+          os.getcwd().split(os.path.sep)[-1] + '_rot.nc')
