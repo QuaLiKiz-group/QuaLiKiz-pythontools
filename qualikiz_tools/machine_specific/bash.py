@@ -103,7 +103,7 @@ class Run(Run):
 
         string = ' '.join([self.runstring ,
                            '-n'     , str(self.tasks) ,
-                           '-wdir'  , self.rundir     ,
+                           '-wdir'  , os.path.normpath(os.path.relpath(self.rundir, batch_dir)),
                                       './' + os.path.basename(self.binaryrelpath)])
         if self.stdout != 'STDOUT':
             string += ' > ' + paths[0]
@@ -231,12 +231,18 @@ class Batch(Batch):
         else:
             raise NotImplementedError('Style {!s} not implemented yet.'.format(style))
 
-    def to_batch_file(self, path):
+    def to_batch_file(self, path, overwrite_batch_script=False):
         """ Writes batch script to file
 
         Args:
             path:       Path of the sbatch script file.
         """
+        if overwrite_batch_script:
+            try:
+                os.remove(path)
+            except FileNotFoundError:
+                pass
+
         batch_lines = ['#!' + self.shell + '\n\n']
 
         # Write sruns to file
@@ -276,7 +282,7 @@ class Batch(Batch):
         """
         dirname = os.path.basename(os.path.abspath(os.curdir))
         if self.name != dirname:
-            warn("Warning! Dirname '{!s}' != name of batch '{!s}'. Might lead to unexpected behaviour".format(dirname, self.name))
+            warn("Warning! Launching from outside the batch folder! Experimental!")
         self.inputbinaries_exist()
         # Check if batch script is generated
         batchdir = os.path.join(self.parent_dir, self.name)
