@@ -229,11 +229,8 @@ class QuaLiKizXpoint(dict):
         ions = filter(lambda x: x['type'] != 3, self['ions'])
         return sum(ion['n'] * ion['Z'] ** 2 for ion in ions)
 
-    def match_nustar(self, nustar):
-        """ Set Te to match the given Nustar """
-        # First set everything needed for nustar: Zeff, Ne, q, R0, Rmin, x
+    def calc_te_from_nustar(self, zeff, nustar):
         # Rewrite formula for nustar to form nustar = c1 / Te^2 (c2 + ln(Te))
-        zeff = self.calc_zeff()
         c1 = (6.9224e-5 * zeff * self['elec']['n'] * self['geometry']['q'] *
               self['geometry']['Ro'] *
               (self['geometry']['Rmin'] * self['geometry']['x'] /
@@ -244,7 +241,14 @@ class QuaLiKizXpoint(dict):
 
         # Initial guess
         Tex0 = np.sqrt(c1 * c2 / nustar)
-        self['elec']['T'] = sc.optimize.newton(Tex, Tex0)
+        Te = sc.optimize.newton(Tex, Tex0)
+        return Te
+
+    def match_nustar(self, nustar):
+        """ Set Te to match the given Nustar """
+        # First set everything needed for nustar: Zeff, Ne, q, R0, Rmin, x
+        zeff = self.calc_zeff()
+        self['elec']['T'] = self.calc_te_from_nustar(zeff, nustar)
 
         # nustar_calc = c1 / Te ** 2 * (c2 + np.log(Te))
         # Sanity check
