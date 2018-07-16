@@ -8,7 +8,7 @@ import copy
 import json
 import itertools
 from collections import OrderedDict
-from warnings import warn
+from warnings import warn, simplefilter, catch_warnings
 import os
 
 import numpy as np
@@ -327,9 +327,12 @@ class QuaLiKizXpoint(dict):
         self['geometry']['Aupar'] = Aupar
 
     def set_puretor(self):
-        self.set_puretor_Machpar()
-        self.set_puretor_Autor()
-        self.set_puretor_Aupar()
+        with catch_warnings():
+            if not self['rot_flag']:
+                simplefilter("ignore")
+            self.set_puretor_Machpar()
+            self.set_puretor_Autor()
+            self.set_puretor_Aupar()
 
     @staticmethod
     def calc_puretor_gammaE_from_parts(Autor, epsilon, q):
