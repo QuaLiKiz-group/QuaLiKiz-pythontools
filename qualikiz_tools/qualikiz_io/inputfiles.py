@@ -178,11 +178,17 @@ class QuaLiKizXpoint(dict):
     def set_qn_An_ion_n(self):
         """ Set density gradient of nth ion to maintian quasineutrality """
         var_ion, ions = self.get_other_non_trace_ions(self['options']['set_qn_An_ion'])
+        Z_var_ion = self['ions'][var_ion]['Z']
+        n_var_ion = self['ions'][var_ion]['n']
+        if Z_var_ion == 0 or n_var_ion == 0:
+            raise Exception('Z = {:.0f} and n = {:.0f} for ion {:d}. Unable to'
+                            ' set Ani to match quasineutrality'.format(Z_var_ion,
+                                                                       n_var_ion,
+                                                                       var_ion))
         var_An = ((self['elec']['An'] -
                                   sum(ion['n'] * ion['An'] * ion['Z']
                                       for ion in ions)) /
-                                 (self['ions'][var_ion]['Z'] *
-                                  self['ions'][var_ion]['n']))
+                                 (Z_var_ion * n_var_ion))
         self['ions'][var_ion]['An'] = var_An
 
     def check_quasi(self):
