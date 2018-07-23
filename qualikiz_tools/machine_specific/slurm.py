@@ -208,7 +208,7 @@ class Batch(Batch):
         try:
             runlist = []
             for srun_string in srun_strings:
-                runlist.append(cls.run_class.from_batch_string(srun_string))
+                runlist.append(cls.run_class.from_batch_string(srun_string, batch_dir))
         except FileNotFoundError:
             raise Exception('Could not reconstruct run from string: {!s}'.format(srun_string))
 

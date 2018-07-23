@@ -112,13 +112,14 @@ class Run(Run):
         return string
 
     @classmethod
-    def from_batch_string(cls, string):
+    def from_batch_string(cls, string, batchdir):
         """ Reconstruct the Run from a batch string
 
         Reverse of to_batch_string. Used to reconstruct the run from a batch script.
 
         Args:
             string:     The string to parse
+            batchdir:   The directory of the containing batch script
 
         Returns:
             The reconstructed Run instance
@@ -127,7 +128,7 @@ class Run(Run):
         dict_ = {}
 
         tasks = int(split[2])
-        rundir = split[4]
+        rundir = os.path.join(batchdir, split[4])
         binary_name = split[5].strip()
         binaryrelpath = os.readlink(os.path.join(rundir, binary_name))
         paths = []
@@ -138,7 +139,7 @@ class Run(Run):
                 path = None
             else:
                 if not os.path.isabs(path):
-                    path = os.path.relpath(path, rundir)
+                    path = os.path.relpath(os.path.join(batchdir, path), rundir)
             paths.append(path)
         return cls.from_dir(rundir,
                    stdout=paths[0], stderr=paths[1])
@@ -272,7 +273,7 @@ class Batch(Batch):
 
         runlist = []
         for run_string in run_strings:
-            runlist.append(Run.from_batch_string(run_string))
+            runlist.append(Run.from_batch_string(run_string, os.path.join(parent_dir, name)))
         batch = Batch(parent_dir, name, runlist, **kwargs)
 
         return batch
