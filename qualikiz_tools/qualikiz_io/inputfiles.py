@@ -331,6 +331,13 @@ class QuaLiKizXpoint(dict):
         self.set_puretor_Autor()
         self.set_puretor_Aupar()
 
+    @staticmethod
+    def calc_puretor_gammaE_from_parts(Autor, epsilon, q):
+        if Autor == 0:
+            warn('Autor is zero! gammaE will be infinte!')
+        gammaE = -epsilon / q * Autor
+        return gammaE
+
     class Options(dict):
         """ Wraps options for normalization, assumptions, etc."""
         in_args = OrderedDict([
