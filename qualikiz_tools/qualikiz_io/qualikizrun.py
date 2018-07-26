@@ -17,7 +17,8 @@ from qualikiz_tools.qualikiz_io.inputfiles import QuaLiKizPlan
 from qualikiz_tools.qualikiz_io.outputfiles import (convert_debug, convert_output,
                                        convert_primitive, squeeze_dataset,
                                        orthogonalize_dataset, determine_sizes,
-                                       merge_many_lazy_snakes, merge_many_orthogonal)
+                                       merge_many_lazy_snakes, merge_many_orthogonal,
+                                       add_dims)
 from qualikiz_tools.qualikiz_io.outputfiles import (merge_orthogonal, sort_dims)
 from qualikiz_tools import netcdf4_engine, HAS_NETCDF4, ModuleNotFoundError
 from . import __path__ as ROOT
@@ -553,7 +554,7 @@ class QuaLiKizBatch():
     def to_netcdf(self, mode='noglue',
                   clean=True, processes=1, verbose=False,
                   overwrite_runs=None, overwrite_batch=None,
-                  run_kwargs=None):
+                  run_kwargs=None, gluedim=None):
         """ Convert QuaLiKizBatch output to netcdf
         iith warnings.catch_warnings():
             warnings.simplefilter("ignore")
@@ -612,6 +613,10 @@ class QuaLiKizBatch():
                     name = os.path.basename(run.rundir)
                     netcdf_path = os.path.join(run.rundir, name + '.nc')
                     ds = xr.open_dataset(netcdf_path, engine=netcdf4_engine)
+                    if gluedim is not None:
+                        if gluedim in ds.attrs:
+                            ds.coords[gluedim] = ds.attrs[gluedim]
+                        ds = add_dims(ds, [gluedim])
                     dss.append(ds)
 
                 if mode == 'glue_orthogonal':
