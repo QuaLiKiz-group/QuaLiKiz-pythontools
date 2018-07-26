@@ -661,7 +661,13 @@ def squeeze_dataset(ds, Te_var='Te', extra_squeeze=None):
     # Move metadata to attrs
     ds = to_meta_0d(ds)
     if extra_squeeze is not None:
-        ds.reset_coords(names=extra_squeeze, inplace=True)
+        for coord in extra_squeeze:
+            if coord in ds.coords:
+                ds.reset_coords(names=coord, inplace=True)
+            else:
+                warn('{!s} not in dataset, cannot be squeezed'.format(coord))
+                from IPython import embed
+                embed()
     return ds
 
 def to_meta_0d(ds):
