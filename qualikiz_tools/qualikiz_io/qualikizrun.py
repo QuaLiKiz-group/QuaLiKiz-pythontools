@@ -605,7 +605,6 @@ class QuaLiKizBatch():
             overwrite_new_netcdf_path = True
         # Now we have the hypercubes. Let's find out which dimensions
         # we're missing and glue the datasets together
-        newds = None
         if mode in ['glue_orthogonal', 'glue_snake']:
             if len(self.runlist) > 1:
                 dss = []
@@ -616,15 +615,17 @@ class QuaLiKizBatch():
                     dss.append(ds)
 
                 if mode == 'glue_orthogonal':
-                    dsnew = merge_many_orthogonal(dss)
+                    newds = merge_many_orthogonal(dss)
                 elif mode == 'glue_snake':
                     if not overwrite_new_netcdf_path:
                         raise Exception('Cannot use mode {!s} without overwriting {!s}'.format(mode, new_netcdf_path))
-                    dsnew = merge_many_lazy_snakes(new_netcdf_path, dss, verbose=verbose)
+                    newds = merge_many_lazy_snakes(new_netcdf_path, dss, verbose=verbose)
 
                 if overwrite_new_netcdf_path:
                     newds.to_netcdf(new_netcdf_path,
-                                    engine=netcdf4_engine, format='NETCDF4', encoding=encoding)
+                                    engine=netcdf4_engine,
+                                    format='NETCDF4'
+                                    )
                 else:
                     warn('User does not want to overwrite {!s}. Not dumping to disk!'.format(new_netcdf_path))
                 if clean and newds is not None:
@@ -742,7 +743,7 @@ def create_folder_prompt(path, overwrite=None):
 
 def run_to_netcdf(path, runmode='dimx', overwrite=None,
                   genfromtxt=False, keepfile=True, encode=None,
-                  squeeze_coords=None):
+                  extra_squeeze=None, Te_var=None):
     """ Convert a QuaLiKizRun to netCDF
 
     Args:
@@ -774,7 +775,7 @@ def run_to_netcdf(path, runmode='dimx', overwrite=None,
         ds = convert_output(ds, sizes, path, genfromtxt=genfromtxt, keepfile=keepfile)
         ds = convert_primitive(ds, sizes, path, genfromtxt=genfromtxt, keepfile=keepfile)
         if runmode == 'orthogonal':
-            ds = squeeze_dataset(ds)
+            ds = squeeze_dataset(ds, extra_squeeze=extra_squeeze, Te_var=Te_var)
             ds = orthogonalize_dataset(ds)
         elif runmode == 'dimx':
             pass

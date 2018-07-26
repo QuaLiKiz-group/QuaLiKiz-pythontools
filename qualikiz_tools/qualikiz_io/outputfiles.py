@@ -572,9 +572,15 @@ def remove_dependent_axes(ds, Te_var='Te'):
     Args:
         ds: Dataset with dependent Coordinates to remove
 
+    Kwargs:
+        Te_var: Which variable to use as Te measure: Nustar or Te [Default: 'Te']
+
     Returns:
         xarray.DataSet with dependent Coordinates removed
     """
+    Te_vars = ['Te', 'Nustar']
+    if Te_var not in Te_vars:
+        raise ValueError('Te_var {!s} should be one of {!s}'.format(Te_var, Te_vars))
     # Ni is captured in Zeff
     if 'normni' in ds.coords:
         ds = ds.reset_coords('normni')
@@ -606,7 +612,7 @@ def remove_dependent_axes(ds, Te_var='Te'):
     return ds
 
 
-def squeeze_dataset(ds, Te_var='Te'):
+def squeeze_dataset(ds, Te_var='Te', extra_squeeze=None):
     """ Remove Coordinates that depend on eachother and squeeze duplicates
 
     Normally, a dataset loaded from a QuaLiKizRun contains some coordinates
@@ -620,6 +626,10 @@ def squeeze_dataset(ds, Te_var='Te'):
 
     Args:
         ds: Dataset with dependent Coordinates to remove
+
+    Kwargs:
+        Te_var: See `remove_dependent_axes`
+        extra_squeeze: List of coordinates to move to data_vars
 
     Returns:
         xarray.DataSet with data_vars squeezed
@@ -650,6 +660,8 @@ def squeeze_dataset(ds, Te_var='Te'):
 
     # Move metadata to attrs
     ds = to_meta_0d(ds)
+    if extra_squeeze is not None:
+        ds.reset_coords(names=extra_squeeze, inplace=True)
     return ds
 
 def to_meta_0d(ds):
@@ -885,11 +897,6 @@ def merge_many_orthogonal(dss, datavars=None, verbose=False, **kwargs):
         ds.close()
 
     newds = sort_dims(newds)
-    encoding = {}
-    for name, __ in newds.items():
-        encoding[name] = {}
-        for enc_name, enc in encode.items():
-            encoding[name][enc_name] = enc
 
     return newds
 
@@ -925,7 +932,7 @@ def merge_orthogonal(ds1, ds2, datavars=None, verbose=False):
     elif len(nonmatching) == 1:
         if datavars:
             raise NotImplementedError
-        newds = xr.concat(dss, dim=nonmatching[0])
+        newds = xr.concat([ds1, ds2], dim=nonmatching[0])
     else:
         if not datavars:
             datavars = list(ds1.data_vars.keys())
