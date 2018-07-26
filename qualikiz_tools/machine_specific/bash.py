@@ -254,6 +254,12 @@ class Batch(Batch):
             batch_lines.append(' &&\necho "Starting job {:d}/{:d}"'.format(ii + 2, len(self.runlist)))
             batch_lines.append(' &&\n' + run.to_batch_string(os.path.dirname(path)))
 
+        if overwrite_batch_script:
+            try:
+                os.path.remove(path)
+            except FileNotFoundError:
+                pass
+
         with open(path, 'w') as file:
             file.writelines(batch_lines)
 
