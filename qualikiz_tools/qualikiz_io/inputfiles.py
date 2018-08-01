@@ -14,6 +14,7 @@ import os
 import numpy as np
 import scipy as sc
 import scipy.optimize
+import scipy.special.lambertw as lambertw
 
 
 def allequal(lst):
@@ -238,17 +239,33 @@ class QuaLiKizXpoint(dict):
 
     def calc_te_from_nustar(self, zeff, nustar):
         # Rewrite formula for nustar to form nustar = c1 / Te^2 (c2 + ln(Te))
-        c1 = (6.9224e-5 * zeff * self['elec']['n'] * self['geometry']['q'] *
-              self['geometry']['Ro'] *
-              (self['geometry']['Rmin'] * self['geometry']['x'] /
-               self['geometry']['Ro']) ** -1.5)
-        c2 = 15.2 - 0.5 * np.log(0.1 * self['elec']['n'])
+        c1 = self.c1(zeff,
+                     self['elec']['n'],
+                     self['geometry']['q'],
+                     self['geometry']['Ro'],
+                     self['geometry']['Rmin'],
+                     self['geometry']['x'])
+        c2 = self.c2(self['elec']['n'])
 
-        def Tex(x): return c1 / x ** 2 * (c2 + np.log(x)) - nustar
+        z = -2 * np.exp(-2 * c2) * nustar / c1
+        real_branches = []
+        if z > - 1/np.e:
+            real_branches.append(0)
+        if -1/np.e < z and z < 0:
+            real_branches.append(-1)
+        if len(real_branches) == 0:
+            raise Exception('No real solution')
 
-        # Initial guess
-        Tex0 = np.sqrt(c1 * c2 / nustar)
-        Te = sc.optimize.newton(Tex, Tex0)
+        for branch in real_branches:
+            sol = (1j * np.sqrt(c1) * np.sqrt(lambertw(z, branch))/
+                   np.sqrt(2 * nustar))
+            if sol <= 0: # -sol and sol are both solutions, but Te is > 0
+                sol = -sol
+            sol = sol.real # Solution only has a real part
+            if np.isclose(self.calc_nustar_from_constants(c1, c2, sol),
+                          nustar):
+                Te = sol
+                break
         return Te
 
     def match_nustar(self, nustar):
@@ -262,9 +279,24 @@ class QuaLiKizXpoint(dict):
         # print(np.isclose(nustar_calc, nustar))
 
     @staticmethod
-    def calc_nustar_from_parts(zeff, ne, Te, q, Ro, Rmin, x):
+    def c1(zeff, ne, q, Ro, Rmin, x):
         c1 = (6.9224e-5 * zeff * ne *q * Ro * (Rmin * x / Ro) ** -1.5)
+        return c1
+
+    @staticmethod
+    def c2(ne):
         c2 = 15.2 - 0.5 * np.log(0.1 * ne)
+        return c2
+
+    @staticmethod
+    def calc_nustar_from_parts(zeff, ne, Te, q, Ro, Rmin, x):
+        c1 = self.c1(zeff, ne, q, Ro, Rmin, x)
+        c2 = self.c2(ne)
+        nustar = self.calc_nustar_from_constants(c1, c2, Te)
+        return nustar
+
+    @staticmethod
+    def calc_nustar_from_constants(c1, c2, Te):
         nustar = c1 / Te ** 2 * (c2 + np.log(Te))
         return nustar
 
