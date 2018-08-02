@@ -12,9 +12,8 @@ from warnings import warn, simplefilter, catch_warnings
 import os
 
 import numpy as np
-import scipy as sc
-import scipy.optimize
-import scipy.special.lambertw as lambertw
+
+from qualikiz_tools.misc.conversion import calc_te_from_nustar, calc_nustar_from_parts, calc_zeff
 
 
 def allequal(lst):
@@ -235,75 +234,31 @@ class QuaLiKizXpoint(dict):
     def calc_zeff(self):
         """ Calculate Zeff """
         ions = filter(lambda x: x['type'] != 3, self['ions'])
-        return sum(ion['n'] * ion['Z'] ** 2 for ion in ions)
-
-    def calc_te_from_nustar(self, zeff, nustar):
-        # Rewrite formula for nustar to form nustar = c1 / Te^2 (c2 + ln(Te))
-        c1 = self.c1(zeff,
-                     self['elec']['n'],
-                     self['geometry']['q'],
-                     self['geometry']['Ro'],
-                     self['geometry']['Rmin'],
-                     self['geometry']['x'])
-        c2 = self.c2(self['elec']['n'])
-
-        z = -2 * np.exp(-2 * c2) * nustar / c1
-        real_branches = []
-        if z > - 1/np.e:
-            real_branches.append(0)
-        if -1/np.e < z and z < 0:
-            real_branches.append(-1)
-        if len(real_branches) == 0:
-            raise Exception('No real solution')
-
-        for branch in real_branches:
-            sol = (1j * np.sqrt(c1) * np.sqrt(lambertw(z, branch))/
-                   np.sqrt(2 * nustar))
-            if sol <= 0: # -sol and sol are both solutions, but Te is > 0
-                sol = -sol
-            sol = sol.real # Solution only has a real part
-            if np.isclose(self.calc_nustar_from_constants(c1, c2, sol),
-                          nustar):
-                Te = sol
-                break
-        return Te
+        return calc_zeff(ions)
 
     def match_nustar(self, nustar):
         """ Set Te to match the given Nustar """
         # First set everything needed for nustar: Zeff, Ne, q, R0, Rmin, x
         zeff = self.calc_zeff()
-        self['elec']['T'] = self.calc_te_from_nustar(zeff, nustar)
+        Te = calc_te_from_nustar(
+            zeff,
+            self['elec']['n'],
+            nustar,
+            self['geometry']['q'],
+            self['geometry']['Ro'],
+            self['geometry']['Rmin'],
+            self['geometry']['x']
+        )
+        self['elec']['T'] = Te
 
         # nustar_calc = c1 / Te ** 2 * (c2 + np.log(Te))
         # Sanity check
         # print(np.isclose(nustar_calc, nustar))
 
-    @staticmethod
-    def c1(zeff, ne, q, Ro, Rmin, x):
-        c1 = (6.9224e-5 * zeff * ne *q * Ro * (Rmin * x / Ro) ** -1.5)
-        return c1
-
-    @staticmethod
-    def c2(ne):
-        c2 = 15.2 - 0.5 * np.log(0.1 * ne)
-        return c2
-
-    @staticmethod
-    def calc_nustar_from_parts(zeff, ne, Te, q, Ro, Rmin, x):
-        c1 = self.c1(zeff, ne, q, Ro, Rmin, x)
-        c2 = self.c2(ne)
-        nustar = self.calc_nustar_from_constants(c1, c2, Te)
-        return nustar
-
-    @staticmethod
-    def calc_nustar_from_constants(c1, c2, Te):
-        nustar = c1 / Te ** 2 * (c2 + np.log(Te))
-        return nustar
-
     def calc_nustar(self):
         """ Calculate Nustar """
         zeff = self.calc_zeff()
-        nustar = self.calc_nustar_from_parts(
+        nustar = calc_nustar_from_parts(
             zeff, self['elec']['n'], self['elec']['T'], self['geometry']['q'],
             self['geometry']['Ro'], self['geometry']['Rmin'], self['geometry']['x'])
         return nustar
