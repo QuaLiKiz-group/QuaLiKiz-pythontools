@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.special.lambertw as lambertw
+from warnings import warn
 
 def calc_c1(zeff, ne, q, Ro, Rmin, x):
     c1 = (6.9224e-5 * zeff * ne *q * Ro * (Rmin * x / Ro) ** -1.5)
@@ -49,3 +50,27 @@ def calc_nustar_from_parts(zeff, ne, Te, q, Ro, Rmin, x):
 def calc_zeff(ionlist):
     zeff = sum(ion['n'] * ion['Z'] ** 2 for ion in ionlist)
     return zeff
+
+def calc_puretor_Machpar_from_Machtor(Machtor, epsilon, q):
+    if Machtor == 0:
+        warn('Machtor is zero! Machpar will be zero too')
+    Machpar = Machtor / np.sqrt(1 + (epsilon / q)**2)
+    return Machpar
+
+def calc_puretor_Autor_from_gammaE(gammaE, epsilon, q):
+    if gammaE == 0:
+        warn('gammaE is zero! Autor will be zero too')
+    Autor = -gammaE * q / epsilon
+    return Autor
+
+def calc_puretor_Aupar_from_Autor(Autor, epsilon, q):
+    if Autor == 0:
+        warn('Autor is zero! Aupar will be zero too')
+    Aupar = Autor / np.sqrt(1 + (epsilon / q)**2)
+    return Aupar
+
+def calc_puretor_gammaE_from_Autor(Autor, epsilon, q):
+    if Autor == 0:
+        warn('Autor is zero! gammaE will be infinte!')
+    gammaE = -epsilon / q * Autor
+    return gammaE

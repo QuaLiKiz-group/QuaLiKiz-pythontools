@@ -115,3 +115,32 @@ class TestNustar(TestCase):
         te_calc = calc_te_from_nustar(zeff, ne, nustar, q, Ro, Rmin, x)
         te   = np.array([0.91676417086826256, 7.4883686])
         assert_almost_equal(te_calc, te)
+
+class TestPuretor(TestCase):
+    def test_calc_puretor_Machpar_from_Machtor(self):
+        eps = .28
+        q = 0.66
+        Machtor = 0.67
+        Machpar = calc_puretor_Machpar_from_Machtor(Machtor, eps, q)
+        self.assertAlmostEqual(Machpar, 0.616789793856422)
+
+    def test_calc_puretor_Autor_from_gammaE(self):
+        eps = .28
+        q = 0.66
+        gammaE = -0.7
+        Autor = calc_puretor_Autor_from_gammaE(gammaE, eps, q)
+        self.assertAlmostEqual(Autor, 1.6499999999999997)
+
+    def test_calc_puretor_Aupar_from_Autor(self):
+        eps = .28
+        q = 0.66
+        Autor = 5
+        Aupar = calc_puretor_Aupar_from_Autor(Autor, eps, q)
+        self.assertAlmostEqual(Aupar, 4.602908909376283)
+
+    def test_calc_puretor_gammaE_from_Autor(self):
+        eps = .28
+        q = 0.66
+        Autor = 5
+        gammaE = calc_puretor_gammaE_from_Autor(Autor, eps, q)
+        self.assertAlmostEqual(gammaE, -2.121212121212121)

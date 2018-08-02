@@ -13,7 +13,7 @@ import os
 
 import numpy as np
 
-from qualikiz_tools.misc.conversion import calc_te_from_nustar, calc_nustar_from_parts, calc_zeff
+from qualikiz_tools.misc.conversion import calc_te_from_nustar, calc_nustar_from_parts, calc_zeff, calc_puretor_Aupar_from_Autor, calc_puretor_gammaE_from_Autor, calc_puretor_Autor_from_gammaE, calc_puretor_Machpar_from_Machtor
 
 
 def allequal(lst):
@@ -282,35 +282,17 @@ class QuaLiKizXpoint(dict):
         """ Calculate epsilon """
         return self['geometry']['x'] * self['geometry']['Rmin'] / self['geometry']['Ro']
 
-    @staticmethod
-    def calc_puretor_Machpar_from_parts(Machtor, epsilon, q):
-        if Machtor == 0:
-            warn('Machtor is zero! Machpar will be zero too')
-        return Machtor / np.sqrt(1 + (epsilon / q)**2)
-
     def set_puretor_Machpar(self):
-        Machpar = self.calc_puretor_Machpar_from_parts(self['Machtor'], self.calc_epsilon(), self['q'])
+        Machpar = calc_puretor_Machpar_from_Machtor(self['Machtor'], self.calc_epsilon(), self['q'])
         self['geometry']['Machpar'] = Machpar
 
-    @staticmethod
-    def calc_puretor_Autor_from_parts(gammaE, epsilon, q):
-        if gammaE == 0:
-            warn('gammaE is zero! Autor will be zero too')
-        return -gammaE * q / epsilon
-
     def set_puretor_Autor(self):
-        Autor = self.calc_puretor_Autor_from_parts(self['gammaE'], self.calc_epsilon(), self['q'])
+        Autor = calc_puretor_Autor_from_gammaE(self['gammaE'], self.calc_epsilon(), self['q'])
         self['geometry']['Autor'] = Autor
 
-    @staticmethod
-    def calc_puretor_Aupar_from_parts(Autor, epsilon, q):
-        if Autor == 0:
-            warn('Autor is zero! Aupar will be zero too')
-        return Autor / np.sqrt(1 + (epsilon / q)**2)
-
     def set_puretor_Aupar(self):
-        Autor = self.calc_puretor_Autor_from_parts(self['gammaE'], self.calc_epsilon(), self['q'])
-        Aupar = self.calc_puretor_Aupar_from_parts(Autor, self.calc_epsilon(), self['q'])
+        Autor = calc_puretor_Autor_from_gammaE(self['gammaE'], self.calc_epsilon(), self['q'])
+        Aupar = calc_puretor_Aupar_from_Autor(Autor, self.calc_epsilon(), self['q'])
         self['geometry']['Aupar'] = Aupar
 
     def set_puretor(self):
@@ -320,13 +302,6 @@ class QuaLiKizXpoint(dict):
             self.set_puretor_Machpar()
             self.set_puretor_Autor()
             self.set_puretor_Aupar()
-
-    @staticmethod
-    def calc_puretor_gammaE_from_parts(Autor, epsilon, q):
-        if Autor == 0:
-            warn('Autor is zero! gammaE will be infinte!')
-        gammaE = -epsilon / q * Autor
-        return gammaE
 
     class Options(dict):
         """ Wraps options for normalization, assumptions, etc."""
