@@ -74,3 +74,24 @@ def calc_puretor_gammaE_from_Autor(Autor, epsilon, q):
         warn('Autor is zero! gammaE will be infinte!')
     gammaE = -epsilon / q * Autor
     return gammaE
+
+def calc_puretor_absolute(epsilon, q, Machtor=np.NaN, Machpar=np.NaN):
+    if np.sum(~np.isnan(np.array([Machpar, Machtor]))) != 1:
+        raise ValueError('Need to supply either Machpar or Machtor. '
+                        'Got Machpar={!s} and Machtor={!s}'.format(Machtor, Machpar))
+    if ~np.isnan(Machtor):
+        Machpar = calc_puretor_Machpar_from_Machtor(Machtor, epsilon, q)
+    else:
+        raise NotImplementedError('Calculation with Machpar={!s} and Machtor={!s}'.format(Machtor, Machpar))
+    return [Machtor, Machpar]
+
+def calc_puretor_gradient(epsilon, q, Aupar=np.NaN, Autor=np.NaN, gammaE=np.NaN):
+    if np.sum(~np.isnan(np.array([Aupar, Autor, gammaE]))) != 1:
+        raise ValueError('Need to supply either Aupar, Autor or gammaE. '
+                        'Got Aupar={!s}, Autor={!s} and gammaE={!s}'.format(Aupar, Autor, gammaE))
+    if ~np.isnan(Autor):
+        Aupar = calc_puretor_Aupar_from_Autor(Autor, epsilon, q)
+        gammaE = calc_puretor_gammaE_from_Autor(Autor, epsilon, q)
+    else:
+        raise NotImplementedError('Calculation with Aupar={!s}, Autor={!s} and gammaE={!s}'.format(Aupar, Autor, gammaE))
+    return [Aupar, Autor, gammaE]
