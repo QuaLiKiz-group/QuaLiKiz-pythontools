@@ -13,7 +13,7 @@ import os
 
 import numpy as np
 
-from qualikiz_tools.misc.conversion import calc_te_from_nustar, calc_nustar_from_parts, calc_zeff, calc_puretor_Aupar_from_Autor, calc_puretor_gammaE_from_Autor, calc_puretor_Autor_from_gammaE, calc_puretor_Machpar_from_Machtor
+from qualikiz_tools.misc.conversion import calc_te_from_nustar, calc_nustar_from_parts, calc_zeff, calc_puretor_absolute, calc_puretor_gradient
 
 
 def allequal(lst):
@@ -282,26 +282,22 @@ class QuaLiKizXpoint(dict):
         """ Calculate epsilon """
         return self['geometry']['x'] * self['geometry']['Rmin'] / self['geometry']['Ro']
 
-    def set_puretor_Machpar(self):
-        Machpar = calc_puretor_Machpar_from_Machtor(self['Machtor'], self.calc_epsilon(), self['q'])
-        self['geometry']['Machpar'] = Machpar
-
-    def set_puretor_Autor(self):
-        Autor = calc_puretor_Autor_from_gammaE(self['gammaE'], self.calc_epsilon(), self['q'])
-        self['geometry']['Autor'] = Autor
-
-    def set_puretor_Aupar(self):
-        Autor = calc_puretor_Autor_from_gammaE(self['gammaE'], self.calc_epsilon(), self['q'])
-        Aupar = calc_puretor_Aupar_from_Autor(Autor, self.calc_epsilon(), self['q'])
-        self['geometry']['Aupar'] = Aupar
-
     def set_puretor(self):
         with catch_warnings():
             if not self['rot_flag']:
                 simplefilter("ignore")
-            self.set_puretor_Machpar()
-            self.set_puretor_Autor()
-            self.set_puretor_Aupar()
+            epsilon = self.calc_epsilon()
+            q = self['q']
+            abs_var = self['puretor_abs_var']
+            grad_var = self['puretor_grad_var']
+            [Machtor, Machpar] = calc_puretor_absolute(epsilon, q, **{abs_var: self[abs_var]})
+            [Aupar, Autor, gammaE] = calc_puretor_gradient(epsilon, q, **{grad_var: self[grad_var]})
+            self['Machtor'] = Machtor
+            self['Machpar'] = Machpar
+            self['Aupar'] = Aupar
+            self['Autor'] = Autor
+            self['gammaE'] = gammaE
+
 
     class Options(dict):
         """ Wraps options for normalization, assumptions, etc."""
@@ -314,7 +310,9 @@ class QuaLiKizXpoint(dict):
             ('x_eq_rho', True),
             ('recalc_Nustar', False),
             ('recalc_Ti_Te_rel', False),
-            ('assume_tor_rot', True)
+            ('assume_tor_rot', True),
+            ('puretor_abs_var', 'Machtor'),
+            ('puretor_grad_var', 'gammaE'),
         ])
 
         def __init__(self, **kwargs):
@@ -333,7 +331,12 @@ class QuaLiKizXpoint(dict):
                                   Zeff, ne, q, Ro, Rmin, x, rho, ni, ni0 or ni1
                 recalc_Ti_Te_rel: Flag to recalculate Ti after setting Te
                 assume_tor_rot:   Assume pure toroidal rotation. Auto-calculate
-                                  Autor, Machpar, and Aupar from gammaE and Machtor
+                                  Autor, Machpar, and Aupar from puretor_abs_var and
+                                  puretor_grad_var
+                puretor_abs_var:  Variable name to use as fixed for pure toroidal
+                                  rotation absolute value
+                puretor_grad_var: Variable name to use as fixed for pure toroidal
+                                  rotation gradient
             """
 
             key_values = [(arg, kwargs.pop(arg, default)) for arg, default in self.in_args.items()]
@@ -412,13 +415,13 @@ class QuaLiKizXpoint(dict):
                 q:       Local q-profile value
                 smag:    Local magnetic shear s def rq'/q
                 alpha:   Local MHD alpha
-                Machtor: Normalized toroidal velocity
-                gammaE:  Normalized perpendicular ExB flow shear
 
-            Overwritten if assume_tor_rot is True:
+            Might be overwritten if assume_tor_rot is True:
+                Machtor: Normalized toroidal velocity
+                Autor:   Toroidal velocity gradient
                 Machpar: Normalized parallel velocity
                 Aupar:   Parallel velocity gradient
-                Autor:   Toroidal velocity gradient
+                gammaE:  Normalized perpendicular ExB flow shear
             """
             key_values = [(key, kwargs.pop(key)) for key in self.in_args]
             super().__init__(key_values)

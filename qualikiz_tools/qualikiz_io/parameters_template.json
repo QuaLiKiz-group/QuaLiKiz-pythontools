@@ -100,7 +100,7 @@
                 "Z": 4.0
             }
         ],
-        "norm": {
+        "options": {
             "set_qn_normni": true,
             "set_qn_normni_ion": 0,
             "set_qn_An": true,
@@ -109,7 +109,9 @@
             "x_eq_rho": true,
             "recalc_Nustar": false,
             "recalc_Ti_Te_rel": false,
-            "assume_tor_rot": true
+            "assume_tor_rot": true,
+            "puretor_abs_var": "Machtor",
+            "puretor_grad_var": "gammaE"
         }
     }
 }
