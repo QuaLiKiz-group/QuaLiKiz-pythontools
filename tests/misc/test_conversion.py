@@ -153,6 +153,14 @@ class TestPuretor(TestCase):
         self.assertAlmostEqual(Machpar_calc, 0.616789793856422)
         self.assertEqual(Machtor_calc, Machtor)
 
+    def test_calc_puretor_absolute_Machpar(self):
+        eps = .28
+        q = 0.66
+        Machpar = 0.616789793856422
+        [Machtor_calc, Machpar_calc] = calc_puretor_absolute(eps, q, Machpar=Machpar)
+        self.assertAlmostEqual(Machtor_calc, 0.67)
+        self.assertEqual(Machpar_calc, Machpar)
+
     def test_calc_puretor_absolute_none(self):
         eps = .28
         q = 0.66
@@ -171,7 +179,26 @@ class TestPuretor(TestCase):
         Autor = 5
         [Aupar_calc, Autor_calc, gammaE_calc] = calc_puretor_gradient(eps, q, Autor=Autor)
         self.assertAlmostEqual(gammaE_calc, -2.121212121212121)
+        self.assertAlmostEqual(Aupar_calc, 4.602908909376283)
         self.assertEqual(Autor_calc, Autor)
+
+    def test_calc_puretor_gradient_Aupar(self):
+        eps = .28
+        q = 0.66
+        Aupar = 4.602908909376283
+        [Aupar_calc, Autor_calc, gammaE_calc] = calc_puretor_gradient(eps, q, Aupar=Aupar)
+        self.assertAlmostEqual(Autor_calc, 5)
+        self.assertAlmostEqual(gammaE_calc, -2.121212121212121)
+        self.assertEqual(Aupar_calc, Aupar)
+
+    def test_calc_puretor_gradient_gammaE(self):
+        eps = .28
+        q = 0.66
+        gammaE = -2.121212121212121
+        [Aupar_calc, Autor_calc, gammaE_calc] = calc_puretor_gradient(eps, q, gammaE=gammaE)
+        self.assertAlmostEqual(Autor_calc, 5)
+        self.assertAlmostEqual(Aupar_calc, 4.602908909376283)
+        self.assertEqual(gammaE_calc, gammaE)
 
     def test_calc_puretor_gradient_none(self):
         eps = .28

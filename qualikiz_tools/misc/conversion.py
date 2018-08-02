@@ -57,11 +57,23 @@ def calc_puretor_Machpar_from_Machtor(Machtor, epsilon, q):
     Machpar = Machtor / np.sqrt(1 + (epsilon / q)**2)
     return Machpar
 
+def calc_puretor_Machtor_from_Machpar(Machpar, epsilon, q):
+    if Machpar == 0:
+        warn('Machtor is zero! Machpar will be zero too')
+    Machtor = Machpar * np.sqrt(1 + (epsilon / q)**2)
+    return Machtor
+
 def calc_puretor_Autor_from_gammaE(gammaE, epsilon, q):
     if gammaE == 0:
         warn('gammaE is zero! Autor will be zero too')
     Autor = -gammaE * q / epsilon
     return Autor
+
+def calc_puretor_Aupar_from_gammaE(gammaE, epsilon, q):
+    if gammaE == 0:
+        warn('gammaE is zero! Autor will be zero too')
+    Aupar = -gammaE * q**2 / ( epsilon * np.sqrt(q**2 + epsilon**2))
+    return Aupar
 
 def calc_puretor_Aupar_from_Autor(Autor, epsilon, q):
     if Autor == 0:
@@ -71,9 +83,21 @@ def calc_puretor_Aupar_from_Autor(Autor, epsilon, q):
 
 def calc_puretor_gammaE_from_Autor(Autor, epsilon, q):
     if Autor == 0:
-        warn('Autor is zero! gammaE will be infinte!')
+        warn('Autor is zero! gammaE will zero too')
     gammaE = -epsilon / q * Autor
     return gammaE
+
+def calc_puretor_Autor_from_Aupar(Aupar, epsilon, q):
+    if Aupar == 0:
+        warn('Aupar is zero! Aupar will be zero too')
+    Autor = Aupar * np.sqrt(1 + (epsilon / q)**2)
+    return Autor
+
+def calc_puretor_gammaE_from_Aupar(Aupar, epsilon, q):
+    if Aupar == 0:
+        warn('Aupar is zero! gammaE will be zero too!')
+    Autor = -Aupar * epsilon * np.sqrt(q**2 + epsilon**2) / q**2
+    return Autor
 
 def calc_puretor_absolute(epsilon, q, Machtor=np.NaN, Machpar=np.NaN):
     if np.sum(~np.isnan(np.array([Machpar, Machtor]))) != 1:
@@ -81,8 +105,8 @@ def calc_puretor_absolute(epsilon, q, Machtor=np.NaN, Machpar=np.NaN):
                         'Got Machpar={!s} and Machtor={!s}'.format(Machtor, Machpar))
     if ~np.isnan(Machtor):
         Machpar = calc_puretor_Machpar_from_Machtor(Machtor, epsilon, q)
-    else:
-        raise NotImplementedError('Calculation with Machpar={!s} and Machtor={!s}'.format(Machtor, Machpar))
+    elif ~np.isnan(Machpar):
+        Machtor = calc_puretor_Machtor_from_Machpar(Machpar, epsilon, q)
     return [Machtor, Machpar]
 
 def calc_puretor_gradient(epsilon, q, Aupar=np.NaN, Autor=np.NaN, gammaE=np.NaN):
@@ -92,6 +116,10 @@ def calc_puretor_gradient(epsilon, q, Aupar=np.NaN, Autor=np.NaN, gammaE=np.NaN)
     if ~np.isnan(Autor):
         Aupar = calc_puretor_Aupar_from_Autor(Autor, epsilon, q)
         gammaE = calc_puretor_gammaE_from_Autor(Autor, epsilon, q)
-    else:
-        raise NotImplementedError('Calculation with Aupar={!s}, Autor={!s} and gammaE={!s}'.format(Aupar, Autor, gammaE))
+    elif ~np.isnan(Aupar):
+        Autor = calc_puretor_Autor_from_Aupar(Aupar, epsilon, q)
+        gammaE = calc_puretor_gammaE_from_Aupar(Aupar, epsilon, q)
+    elif ~np.isnan(gammaE):
+        Aupar = calc_puretor_Aupar_from_gammaE(gammaE, epsilon, q)
+        Autor = calc_puretor_Autor_from_gammaE(gammaE, epsilon, q)
     return [Aupar, Autor, gammaE]
