@@ -123,3 +123,7 @@ def calc_puretor_gradient(epsilon, q, Aupar=np.NaN, Autor=np.NaN, gammaE=np.NaN)
         Aupar = calc_puretor_Aupar_from_gammaE(gammaE, epsilon, q)
         Autor = calc_puretor_Autor_from_gammaE(gammaE, epsilon, q)
     return [Aupar, Autor, gammaE]
+
+def calc_epsilon_from_parts(x, Rmin, Ro):
+    epsilon = x * Rmin / Ro
+    return epsilon

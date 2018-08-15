@@ -13,7 +13,7 @@ import os
 
 import numpy as np
 
-from qualikiz_tools.misc.conversion import calc_te_from_nustar, calc_nustar_from_parts, calc_zeff, calc_puretor_absolute, calc_puretor_gradient
+from qualikiz_tools.misc.conversion import calc_te_from_nustar, calc_nustar_from_parts, calc_zeff, calc_puretor_absolute, calc_puretor_gradient, calc_epsilon_from_parts
 
 
 def allequal(lst):
@@ -280,7 +280,7 @@ class QuaLiKizXpoint(dict):
 
     def calc_epsilon(self):
         """ Calculate epsilon """
-        return self['geometry']['x'] * self['geometry']['Rmin'] / self['geometry']['Ro']
+        return calc_epsilon_from_parts(self['geometry']['x'], self['geometry']['Rmin'], self['geometry']['Ro'])
 
     def set_puretor(self):
         with catch_warnings():
