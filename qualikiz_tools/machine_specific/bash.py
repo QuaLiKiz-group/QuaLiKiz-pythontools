@@ -256,7 +256,7 @@ class Batch(Batch):
 
         if overwrite_batch_script:
             try:
-                os.path.remove(path)
+                os.remove(path)
             except FileNotFoundError:
                 pass
 
