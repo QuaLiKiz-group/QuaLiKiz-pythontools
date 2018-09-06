@@ -15,6 +15,12 @@ import numpy as np
 
 from qualikiz_tools.misc.conversion import calc_te_from_nustar, calc_nustar_from_parts, calc_zeff, calc_puretor_absolute, calc_puretor_gradient, calc_epsilon_from_parts
 
+def json_serializer(obj):
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, np.integer):
+        return int(obj)
+    raise ValueError('Could not serialize %s' % obj)
 
 def allequal(lst):
     return lst[1:] == lst[:-1]
@@ -735,7 +741,7 @@ class QuaLiKizPlan(dict):
         recontructed later using the from_json function
         """
         with open(filename, 'w') as file_:
-            json.dump(self, file_, indent=4)
+            json.dump(self, file_, indent=4, default=json_serializer)
 
     @classmethod
     def from_json(cls, filename):
