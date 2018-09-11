@@ -16,7 +16,7 @@
         "meta": {
             "phys_meth": 1,
             "coll_flag": true,
-            "rot_flag": false,
+            "rot_flag": 0,
             "verbose": true,
             "separateflux": true,
             "write_primi": true,

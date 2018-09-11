@@ -354,7 +354,7 @@ class QuaLiKizXpoint(dict):
         in_args = OrderedDict([
             ('phys_meth'    , 2),
             ('coll_flag'    , True),
-            ('rot_flag'     , False),
+            ('rot_flag'     , 0),
             ('verbose'      , True),
             ('separateflux' , False),
             ('write_primi'  , True),
@@ -374,7 +374,7 @@ class QuaLiKizXpoint(dict):
             kwargs:
                 phys_meth:    Flag for additional calculation of output parameters
                 coll_flag:    Flag for collisionality
-                rot_flag:     Flag for rotation
+                rot_flag:     Flag for rotation [0, 1, 2]
                 verbose:      Flag for level of output verbosity
                 separateflux: Flag for toggling output of separate
                               ITG, TEM, ETG fluxes
