@@ -9,6 +9,7 @@ import json
 import itertools
 from collections import OrderedDict
 from warnings import warn
+import os
 
 import numpy as np
 import scipy as sc
@@ -21,7 +22,7 @@ def allequal(lst):
 class Particle(dict):
     """ Particle (ion or electron)
     """
-    keynames = ['T', 'n', 'At', 'An', 'type', 'anis', 'danisdr']
+    in_args = ['T', 'n', 'At', 'An', 'type', 'anis', 'danisdr']
 
     def __init__(self, **kwargs):
         """ Initialize a Particle.
@@ -45,8 +46,8 @@ class Particle(dict):
             Ai: Ion mass in amu
             Zi: Ion charge in e
         """
-        values = [kwargs[arg] for arg in Particle.keynames]
-        super().__init__(zip(Particle.keynames, values))
+        key_values = [(arg, kwargs[arg]) for arg in Particle.in_args]
+        super().__init__(key_values)
 
 
 class Electron(Particle):
@@ -56,7 +57,7 @@ class Electron(Particle):
 
 
 class Ion(Particle):
-    keynames = ['A', 'Z']
+    in_args = ['A', 'Z']
 
     def __init__(self, **kwargs):
         """ See Particle.__init__ """
@@ -81,7 +82,7 @@ class IonList(list):
     def __getitem__(self, key):
         if isinstance(key, int) or isinstance(key, slice):
             return super().__getitem__(key)
-        if key in Ion.keynames + Particle.keynames:
+        if key in Ion.in_args + Particle.in_args:
             valuelist = [ion[key] for ion in self]
             if allequal(valuelist):
                 return self[0][key]
@@ -110,7 +111,7 @@ class QuaLiKizXpoint(dict):
                    when writing to binary
         geometric: a Geometry instance with all values that change for
                    different radial points
-        norm:      information about how to normalize input.
+        options:   information about different rescalings, assumptions, etc.
 
     """
     def __init__(self, kthetarhos, electrons, ions, **kwargs):
@@ -127,73 +128,68 @@ class QuaLiKizXpoint(dict):
 
         Kwargs:
             all kwargs described in the Meta, Special and Geometry classes
-            ninorm1:          Flag to normalize main ion concentration to maintain
-                              quasineutrality
-            Ani1:             Flag to normalize main ion gradient to maintain
-                              quasineutrality
-            QN_grad:          Flag for maintaining quasineutrality of gradients
-            x_rho:            Flag to keep rho and x equal if set with __setitem__
-            recalc_Nustar:    Flag to recalculate Nustar after scanning over
-                              values. Needed when setting Nustar and either
-                              Zeff, ne, q, Ro, Rmin, x, rho, ni, ni0 or ni1
-            recalc_Ti_Te_rel: Flag to recalculate Ti after setting Te
-
-
         """
         super().__init__()
 
         dimn = len(kthetarhos)
         nions = len(ions)
-        self['meta'] = self.Meta(dimn=dimn, nions=nions, **kwargs)
-        self['special'] = self.Special(kthetarhos)
-        self['geometry'] = self.Geometry(**kwargs)
         self['elec'] = electrons
         self['ions'] = ions
+        self['meta'] = self.Meta(**{name: kwargs.pop(name)
+                                    for name in self.Meta.in_args
+                                    if name in kwargs})
+        self['special'] = self.Special(kthetarhos)
+        self['geometry'] = self.Geometry(**{name: kwargs.pop(name)
+                                            for name in self.Geometry.in_args
+                                            if name in kwargs})
+        self['options'] = self.Options(**{name: kwargs.pop(name)
+                                          for name in self.Options.in_args
+                                          if name in kwargs})
+        assert len(kwargs) == 0, "unrecognized params: %s" % ", ".join(kwargs.keys())
 
-        self['norm'] = {}
-        self['norm']['ninorm1'] = kwargs.get('ninorm1', True)
-        #if self['norm']['ninorm1']:),
-        #    self.normalize_density()
-        self['norm']['Ani1'] = kwargs.get('Ani1', True)
-        #if self['norm']['Ani1']:
-        #    self.normalize_gradient()
-        self['norm']['QN_grad'] = kwargs.get('QN_grad', True)
-        #if self['norm']['QN_grad']:
-        #    self.check_quasi()
-        self['norm']['x_rho'] = kwargs.get('x_rho', True)
-        self['norm']['recalc_Nustar'] =  kwargs.get('recalc_Nustar', False)
-        self['norm']['recalc_Ti_Te_rel'] =  kwargs.get('recalc_Ti_Te_rel', False)
+    def get_other_non_trace_ions(self, ion_index):
+        if ion_index > len(self['ions']) - 1:
+            warn(' '.join(['Ion', str(ion_index),
+                           'out of range for IonList length',
+                           str(len(self['ions'])),
+                           'Changing Ion',
+                           str(len(self['ions']) - 1),
+                           'instead']))
+            ion_index = len(self['ions']) - 1
+        ions = [ion for ii, ion in enumerate(self['ions'])
+                if ion['type'] != 3 and ii != ion_index]
+        return ion_index, ions
 
-    def normalize_density(self):
-        """ Set density of 1st ion to maintian quasineutrality """
-        if len(self['ions']) > 1:
-            ions = filter(lambda x: x['type'] < 3, self['ions'][1:])
-            n0 = ((1 - sum(ion['n'] * ion['Z'] for ion in ions)) /
-                  self['ions'][0]['Z'])
-            if 0 > n0 or n0 > 1:
-                raise Exception('Quasineutrality results in unphysical n_0/n_e = ' +
-                                str(n0) +
-                                ' with Z = ' +
-                                str([ion['Z'] for ion in self['ions']]) +
-                                ' and n = ' +
-                                str([ion['n'] for ion in self['ions']]))
-            self['ions'][0]['n'] = n0
+    def set_qn_normni_ion_n(self):
+        """ Set density of nth ion to maintian quasineutrality """
+        var_ion, ions = self.get_other_non_trace_ions(self['options']['set_qn_normni_ion'])
+        var_normni = ((1 - sum(ion['n'] * ion['Z'] for ion in ions)) /
+              self['ions'][var_ion]['Z'])
 
-    def normalize_gradient(self):
-        """ Set density gradient of 1st ion to maintian quasineutrality """
-        if len(self['ions']) > 1:
-            ions = filter(lambda x: x['type'] < 3, self['ions'][1:])
-            self['ions'][0]['An'] = ((self['elec']['An'] -
-                                      sum(ion['n'] * ion['An'] * ion['Z']
-                                          for ion in ions)) /
-                                     (self['ions'][0]['Z'] *
-                                      self['ions'][0]['n']))
+        if 0 > var_normni or var_normni > 1:
+            raise Exception('Quasineutrality results in unphysical n_0/n_e = ' +
+                            str(var_normni) +
+                            ' with Z = ' +
+                            str([ion['Z'] for ion in self['ions']]) +
+                            ' and n = ' +
+                            str([ion['n'] for ion in self['ions']]))
+        self['ions'][var_ion]['n'] = var_normni
+
+    def set_qn_An_ion_n(self):
+        """ Set density gradient of nth ion to maintian quasineutrality """
+        var_ion, ions = self.get_other_non_trace_ions(self['options']['set_qn_An_ion'])
+        var_An = ((self['elec']['An'] -
+                                  sum(ion['n'] * ion['An'] * ion['Z']
+                                      for ion in ions)) /
+                                 (self['ions'][var_ion]['Z'] *
+                                  self['ions'][var_ion]['n']))
+        self['ions'][var_ion]['An'] = var_An
 
     def check_quasi(self):
         """ Check if quasineutrality is maintained """
-        ions = filter(lambda x: x['type'] < 3, self['ions'])
+        ions = filter(lambda x: x['type'] != 3, self['ions'])
         quasicheck = abs(sum(ion['n'] * ion['Z'] for ion in ions) - 1)
-        ions = filter(lambda x: x['type'] < 3, self['ions'])
+        ions = filter(lambda x: x['type'] != 3, self['ions'])
         quasicheck_grad = abs(sum(ion['n'] * ion['An'] * ion['Z']
                                   for ion in ions) - self['elec']['An'])
         quasitol = 1e-5
@@ -205,9 +201,9 @@ class QuaLiKizXpoint(dict):
     def match_zeff(self, zeff):
         """ Adjust ni1 to match the given Zeff """
         if len(self['ions']) > 1:
-            ions = filter(lambda x: x['type'] < 3, self['ions'][2:])
+            ions = filter(lambda x: x['type'] != 3, self['ions'][2:])
             sum1 = sum(ion['n'] * ion['Z'] ** 2 for ion in ions)
-            ions = filter(lambda x: x['type'] < 3, self['ions'][2:])
+            ions = filter(lambda x: x['type'] != 3, self['ions'][2:])
             sum2 = (sum(ion['n'] * ion['Z'] for ion in ions) * 
                     self['ions'][0]['Z'])
             n1 = ((zeff - self['ions'][0]['Z'] - sum1 + sum2) /
@@ -222,7 +218,7 @@ class QuaLiKizXpoint(dict):
                                 ' and n = ' +
                                 str([ion['n'] for ion in self['ions']]))
             self['ions'][1]['n'] = n1
-            self.normalize_density() #Set n0
+            self.set_qn_normni_ion_n() #Set ion n for
             #self.normalize_gradient()
         # Sanity check
         # print ('Zeff = ' + str(zeff))
@@ -231,14 +227,11 @@ class QuaLiKizXpoint(dict):
 
     def calc_zeff(self):
         """ Calculate Zeff """
-        ions = filter(lambda x: x['type'] < 3, self['ions'])
+        ions = filter(lambda x: x['type'] != 3, self['ions'])
         return sum(ion['n'] * ion['Z'] ** 2 for ion in ions)
 
-    def match_nustar(self, nustar):
-        """ Set Te to match the given Nustar """
-        # First set everything needed for nustar: Zeff, Ne, q, R0, Rmin, x
+    def calc_te_from_nustar(self, zeff, nustar):
         # Rewrite formula for nustar to form nustar = c1 / Te^2 (c2 + ln(Te))
-        zeff = self.calc_zeff()
         c1 = (6.9224e-5 * zeff * self['elec']['n'] * self['geometry']['q'] *
               self['geometry']['Ro'] *
               (self['geometry']['Rmin'] * self['geometry']['x'] /
@@ -249,21 +242,33 @@ class QuaLiKizXpoint(dict):
 
         # Initial guess
         Tex0 = np.sqrt(c1 * c2 / nustar)
-        self['elec']['T'] = sc.optimize.newton(Tex, Tex0)
+        Te = sc.optimize.newton(Tex, Tex0)
+        return Te
+
+    def match_nustar(self, nustar):
+        """ Set Te to match the given Nustar """
+        # First set everything needed for nustar: Zeff, Ne, q, R0, Rmin, x
+        zeff = self.calc_zeff()
+        self['elec']['T'] = self.calc_te_from_nustar(zeff, nustar)
 
         # nustar_calc = c1 / Te ** 2 * (c2 + np.log(Te))
         # Sanity check
         # print(np.isclose(nustar_calc, nustar))
 
+    @staticmethod
+    def calc_nustar_from_parts(zeff, ne, Te, q, Ro, Rmin, x):
+        c1 = (6.9224e-5 * zeff * ne *q * Ro * (Rmin * x / Ro) ** -1.5)
+        c2 = 15.2 - 0.5 * np.log(0.1 * ne)
+        nustar = c1 / Te ** 2 * (c2 + np.log(Te))
+        return nustar
+
     def calc_nustar(self):
         """ Calculate Nustar """
         zeff = self.calc_zeff()
-        c1 = (6.9224e-5 * zeff * self['elec']['n'] * self['geometry']['q'] *
-              self['geometry']['Ro'] *
-              (self['geometry']['Rmin'] * self['geometry']['x'] /
-               self['geometry']['Ro']) ** -1.5)
-        c2 = 15.2 - 0.5 * np.log(0.1 * self['elec']['n'])
-        return c1 / self['elec']['T'] ** 2 * (c2 + np.log(self['elec']['T']))
+        nustar = self.calc_nustar_from_parts(
+            zeff, self['elec']['n'], self['elec']['T'], self['geometry']['q'],
+            self['geometry']['Ro'], self['geometry']['Rmin'], self['geometry']['x'])
+        return nustar
 
     def match_tite(self, tite):
         """ Set all Ions temperature to match the given Ti/Te """
@@ -284,12 +289,107 @@ class QuaLiKizXpoint(dict):
         """ Calculate epsilon """
         return self['geometry']['x'] * self['geometry']['Rmin'] / self['geometry']['Ro']
 
+    @staticmethod
+    def calc_puretor_Machpar_from_parts(Machtor, epsilon, q):
+        if Machtor == 0:
+            warn('Machtor is zero! Machpar will be zero too')
+        return Machtor / np.sqrt(1 + (epsilon / q)**2)
+
+    def set_puretor_Machpar(self):
+        Machpar = self.calc_puretor_Machpar_from_parts(self['Machtor'], self.calc_epsilon(), self['q'])
+        self['geometry']['Machpar'] = Machpar
+
+    @staticmethod
+    def calc_puretor_Autor_from_parts(gammaE, epsilon, q):
+        if gammaE == 0:
+            warn('gammaE is zero! Autor will be zero too')
+        return -gammaE * q / epsilon
+
+    def set_puretor_Autor(self):
+        Autor = self.calc_puretor_Autor_from_parts(self['gammaE'], self.calc_epsilon(), self['q'])
+        self['geometry']['Autor'] = Autor
+
+    @staticmethod
+    def calc_puretor_Aupar_from_parts(Autor, epsilon, q):
+        if Autor == 0:
+            warn('Autor is zero! Aupar will be zero too')
+        return Autor / np.sqrt(1 + (epsilon / q)**2)
+
+    def set_puretor_Aupar(self):
+        Autor = self.calc_puretor_Autor_from_parts(self['gammaE'], self.calc_epsilon(), self['q'])
+        Aupar = self.calc_puretor_Aupar_from_parts(Autor, self.calc_epsilon(), self['q'])
+        self['geometry']['Aupar'] = Aupar
+
+    def set_puretor(self):
+        self.set_puretor_Machpar()
+        self.set_puretor_Autor()
+        self.set_puretor_Aupar()
+
+    class Options(dict):
+        """ Wraps options for normalization, assumptions, etc."""
+        in_args = OrderedDict([
+            ('set_qn_normni', True),
+            ('set_qn_normni_ion', 0),
+            ('set_qn_An', True),
+            ('set_qn_An_ion', 0),
+            ('check_qn', True),
+            ('x_eq_rho', True),
+            ('recalc_Nustar', False),
+            ('recalc_Ti_Te_rel', False),
+            ('assume_tor_rot', True)
+        ])
+
+        def __init__(self, **kwargs):
+            """ Initialize Options class
+            kwargs:
+                set_qn_normni:    Flag to set ion concentration to maintain
+                                  quasineutrality
+                set_qn_normni_ion:Index of ion to adjust if set_qn_normni is True
+                set_qn_An:        Flag to set ion gradient to maintain
+                                  quasineutrality
+                set_qn_An_ion:    Index of ion to adjust if set_qn_An is True
+                check_qn:         Flag for maintaining quasineutrality of gradients
+                x_eq_rho:         Flag to keep rho and x equal if set with __setitem__
+                recalc_Nustar:    Flag to recalculate Nustar after scanning over
+                                  values. Needed when setting Nustar and either
+                                  Zeff, ne, q, Ro, Rmin, x, rho, ni, ni0 or ni1
+                recalc_Ti_Te_rel: Flag to recalculate Ti after setting Te
+                assume_tor_rot:   Assume pure toroidal rotation. Auto-calculate
+                                  Autor, Machpar, and Aupar from gammaE and Machtor
+            """
+
+            key_values = [(arg, kwargs.pop(arg, default)) for arg, default in self.in_args.items()]
+            super().__init__(key_values)
+            assert len(kwargs) == 0, "unrecognized params: %s" % ", ".join(kwargs.keys())
+
     class Meta(dict):
         """ Wraps variables that stay constant during the QuaLiKiz run """
-        keynames = ['phys_meth', 'coll_flag',
-                    'rot_flag', 'verbose', 'separateflux',
-                    'numsols', 'relacc1', 'relacc2',
-                    'maxruns', 'maxpts', 'timeout', 'ETGmult', 'collmult', 'R0']
+        in_args = OrderedDict([
+            ('phys_meth'    , 2),
+            ('coll_flag'    , True),
+            ('rot_flag'     , False),
+            ('verbose'      , True),
+            ('separateflux' , False),
+            ('write_primi'  , True),
+            ('numsols'      , 3),
+            ('relacc1'      , 1e-3),
+            ('relacc2'      , 2e-2),
+            ('maxruns'      , 1),
+            ('maxpts'       , 5e5),
+            ('timeout'      , 60),
+            ('ETGmult'      , 1),
+            ('collmult'     , 1),
+            ('R0'           , None),
+            ('reqrelacc'    , 8e-2),
+            ('reqrelacc_newt',1e-2),
+            ('reqabsacc_newt',0),
+            ('reqabsacc'    , 5e-2),
+            ('int_method'   , 0),
+            ('newt_method'  , 0),
+            ('newt_conv'    , 0),
+            ('int_split'    , 0),
+            ('norm'         , 2)
+        ])
 
         def __init__(self, **kwargs):
             """ Initialize Meta class
@@ -300,6 +400,7 @@ class QuaLiKizXpoint(dict):
                 verbose:      Flag for level of output verbosity
                 separateflux: Flag for toggling output of separate
                               ITG, TEM, ETG fluxes
+                write_primi:  Flag to write QuaLiKiz primitives to file
                 numsols:      Number of requested solutions
                 relacc1:      Relative accuracy of 1D integrals
                 relacc2:      Relative accuracy of 2D integrals
@@ -312,24 +413,9 @@ class QuaLiKizXpoint(dict):
                 collmult:     Multiplier for collisionality
                 R0:           Geometric major radius [m] used for normalizations
             """
-            defaults = {
-                'phys_meth'    : 2,
-                'coll_flag'    : True,
-                'rot_flag'     : False,
-                'verbose'      : True,
-                'separateflux' : False,
-                'numsols'      : 3,
-                'relacc1'      : 1e-3,
-                'relacc2'      : 2e-2,
-                'maxruns'      : 1,
-                'maxpts'       : 5e5,
-                'timeout'      : 60,
-                'ETGmult'      : 1,
-                'collmult'     : 1,
-                'R0'           : None
-            }
-            values = [kwargs.get(arg, defaults[arg]) for arg in self.keynames]
-            super().__init__(zip(self.keynames, values))
+            key_values = [(arg, kwargs.pop(arg, default)) for arg, default in self.in_args.items()]
+            super().__init__(key_values)
+            assert len(kwargs) == 0, "unrecognized params: %s" % ", ".join(kwargs.keys())
 
     class Special(dict):
         """ Wraps variables that need special convertion to binary"""
@@ -343,8 +429,8 @@ class QuaLiKizXpoint(dict):
     class Geometry(dict):
         """ Wraps variables that change per scan point """
         in_args =    ['x', 'rho', 'Ro', 'Rmin', 'Bo', 'q', 'smag',
-                      'alpha', 'Machtor', 'Autor']
-        extra_args = ['Machpar', 'Aupar', 'gammaE']
+                      'alpha', 'Machtor', 'Autor', 'Machpar', 'Aupar',
+                      'gammaE']
 
         def __init__(self, **kwargs):
             """ Initialize Geometry class
@@ -358,23 +444,16 @@ class QuaLiKizXpoint(dict):
                 smag:    Local magnetic shear s def rq'/q
                 alpha:   Local MHD alpha
                 Machtor: Normalized toroidal velocity
-                Autor:   Toroidal velocity gradient
+                gammaE:  Normalized perpendicular ExB flow shear
 
-            internally calculated:
+            Overwritten if assume_tor_rot is True:
                 Machpar: Normalized parallel velocity
                 Aupar:   Parallel velocity gradient
-                gammaE:  Normalized perpendicular ExB flow shear
+                Autor:   Toroidal velocity gradient
             """
-            super().__init__()
-            for arg in self.in_args:
-                self[arg] = kwargs[arg]
-            Machtor = self['Machtor']
-            Autor = self['Autor']
-            q = self['q']
-            epsilon = self['x']/self['Ro']
-            self['Machpar'] = Machtor / np.sqrt(1+(epsilon/q)**2)
-            self['Aupar'] = Autor / np.sqrt(1+(epsilon/q)**2)
-            self['gammaE'] = -epsilon/q*Autor
+            key_values = [(key, kwargs.pop(key)) for key in self.in_args]
+            super().__init__(key_values)
+            assert len(kwargs) == 0, "unrecognized params: %s" % ", ".join(kwargs.keys())
 
     def __getitem__(self, key):
         """ Get value from nested dict
@@ -393,17 +472,17 @@ class QuaLiKizXpoint(dict):
             return self.calc_tite()
         elif key == 'epsilon':
             return self.calc_epsilon()
-        elif key in self.Geometry.in_args + self.Geometry.extra_args:
+        elif key in self.Geometry.in_args:
             return self['geometry'].__getitem__(key)
         elif key in ['kthetarhos']:
             return self['special'].__getitem__(key)
-        elif key in self.Meta.keynames:
+        elif key in self.Meta.in_args:
             return self['meta'].__getitem__(key)
-        elif key in ['ninorm1', 'Ani1', 'QN_grad', 'x_rho']:
-            return self['norm'].__getitem__(key)
-        elif key in ['geometry', 'special', 'meta', 'norm', 'ions', 'elec']:
+        elif key in self.Options.in_args:
+            return self['options'].__getitem__(key)
+        elif key in ['geometry', 'special', 'meta', 'options', 'ions', 'elec']:
             return super().__getitem__(key)
-        elif key in Particle.keynames:
+        elif key in Particle.in_args:
             ionval = self['ions'].__getitem__(key)
             elecval = self['elec'].__getitem__(key)
             if ionval == elecval:
@@ -442,17 +521,17 @@ class QuaLiKizXpoint(dict):
             self.match_tite(value)
         elif key == 'epsilon':
             self.match_epsilon(value)
-        elif key in self.Geometry.in_args + self.Geometry.extra_args:
+        elif key in self.Geometry.in_args:
             self['geometry'].__setitem__(key, value)
         elif key in ['kthetarhos']:
             self['special'].__setitem__(key, value)
-        elif key in self.Meta.keynames:
+        elif key in self.Meta.in_args:
             self['meta'].__setitem__(key, value)
-        elif key in ['ninorm1', 'Ani1', 'QN_grad', 'x_rho']:
-            self['norm'].__setitem__(key, value)
-        elif key in ['geometry', 'special', 'meta', 'norm', 'ions', 'elec']:
+        elif key in self.Options.in_args:
+            self['options'].__setitem__(key, value)
+        elif key in ['geometry', 'special', 'meta', 'options', 'ions', 'elec']:
             super().__setitem__(key, value)
-        elif key in Particle.keynames:
+        elif key in Particle.in_args:
             self['ions'].__setitem__(key, value)
             self['elec'].__setitem__(key, value)
         elif key.endswith('i') or (key[-1].isdigit() and key[-2] == 'i'):
@@ -464,7 +543,7 @@ class QuaLiKizXpoint(dict):
                 key = key[:-1]
                 self['ions'].__setitem__(key, value)
 
-            if (key not in Ion.keynames) and (key not in Particle.keynames):
+            if (key not in Ion.in_args) and (key not in Particle.in_args):
                 raise NotImplementedError('setting of ' + key + '=' + str(value))
         elif key.endswith('e'):
             key = key[:-1]
@@ -507,6 +586,11 @@ class QuaLiKizPlan(dict):
             dimx = int(np.sum(lenlist))
         elif self['scan_type'] == 'hyperrect':
             dimx = int(np.product(lenlist))
+        elif self['scan_type'] == 'parallel':
+            if lenlist[:-1] == lenlist[1:]:
+                dimx = int(lenlist[0])
+            else:
+                raise Exception('scan_disc lists of unequal lenght: {!s}'.format(lenlist))
         else:
             raise Exception('Unknown scan_type \'' + self['scan_type'] + '\'')
         return dimx
@@ -542,12 +626,17 @@ class QuaLiKizPlan(dict):
             values = itertools.product(*self['scan_dict'].values())
             names = list(self['scan_dict'].keys())
             bytes = self.setup_scan(names, values)
+        elif self['scan_type'] == 'parallel':
+            names = list(self['scan_dict'].keys())
+            bytes = self.setup_scan(names, zip(*self['scan_dict'].values()))
         else:
             raise Exception('Unknown scan_type \'' + self['scan_type'] + '\'')
         return bytes
 
     def _sanity_check_setup(self, scan_names):
         """ Check if the order of scan_names is correct """
+        if len(scan_names) == 0:
+            raise Exception('Scan list is empty!')
         try:
             index = scan_names.index('Zeff')
         except ValueError:
@@ -584,21 +673,24 @@ class QuaLiKizPlan(dict):
         """
         self._sanity_check_setup(scan_names)
         dimxpoint = copy.deepcopy(self['xpoint_base'])
+        if any(name in scan_names for name in ['Nustar', 'Te', 'T']) and dimxpoint['options']['recalc_Nustar']:
+            warn('Warning! Nustar, Te or T in scan and Nustar is being recalculated from base!')
+        if (('T' in scan_names) or any(name.startswith('Ti') for name in scan_names)) and dimxpoint['options']['recalc_Ti_Te_rel']:
+            warn('Warning! Ti*, T or Ti_Te_rel in scan and Ti_Te_rel is being recalculated from base!')
 
         # Initialize all the arrays that will eventually be written to file
         dimx = self.calculate_dimx()
         dimn = len(dimxpoint['special']['kthetarhos'])
         nions = len(dimxpoint['ions'])
 
-        bytes = dict(zip(QuaLiKizXpoint.Geometry.in_args +
-                         QuaLiKizXpoint.Geometry.extra_args,
+        bytes = dict(zip(QuaLiKizXpoint.Geometry.in_args,
                          [array.array('d', [0] * dimx) for i in range(13)]))
-        bytes.update(dict(zip([x + 'e' for x in Electron.keynames],
+        bytes.update(dict(zip([x + 'e' for x in Electron.in_args],
                               [array.array('d', [0] * dimx)
                                for i in range(7)])))
         dimxi = dimx * nions
-        bytes.update(dict(zip([x + 'i' for x in Electron.keynames +
-                               Ion.keynames],
+        bytes.update(dict(zip([x + 'i' for x in Electron.in_args +
+                               Ion.in_args],
                               [array.array('d', [0] * dimxi)
                                for i in range(9)])))
         calc = {'dimx': dimx,
@@ -618,23 +710,25 @@ class QuaLiKizPlan(dict):
         for scan_values in scan_list:
             numscan += 1
             # Set the dimxn point value to the value in the list.
-            if dimxpoint['norm']['recalc_Nustar']:
+            if dimxpoint['options']['recalc_Nustar']:
                 nustar = dimxpoint.calc_nustar()
-            if dimxpoint['norm']['recalc_Ti_Te_rel']:
+            if dimxpoint['options']['recalc_Ti_Te_rel']:
                 Ti_Te_rel = dimxpoint.calc_tite()
             for scan_name, scan_value in zip(scan_names, scan_values):
                 dimxpoint[scan_name] = scan_value
-            if dimxpoint['norm']['x_rho']:
+            if dimxpoint['options']['assume_tor_rot']:
+                dimxpoint.set_puretor()
+            if dimxpoint['options']['x_eq_rho']:
                 dimxpoint['geometry'].__setitem__('rho', dimxpoint['x'])
-            if dimxpoint['norm']['ninorm1']:
-                dimxpoint.normalize_density()
-            if dimxpoint['norm']['Ani1']:
-                dimxpoint.normalize_gradient()
-            if dimxpoint['norm']['recalc_Nustar']:
+            if dimxpoint['options']['set_qn_normni']:
+                dimxpoint.set_qn_normni_ion_n()
+            if dimxpoint['options']['set_qn_An']:
+                dimxpoint.set_qn_An_ion_n()
+            if dimxpoint['options']['recalc_Nustar']:
                 dimxpoint.match_nustar(nustar)
-            if dimxpoint['norm']['recalc_Ti_Te_rel']:
+            if dimxpoint['options']['recalc_Ti_Te_rel']:
                 dimxpoint.match_tite(Ti_Te_rel)
-            if dimxpoint['norm']['QN_grad']:
+            if dimxpoint['options']['check_qn']:
                 dimxpoint.check_quasi()
 
 
@@ -699,3 +793,8 @@ class QuaLiKizPlan(dict):
 
             xpoint_base = QuaLiKizXpoint(kthetarhos, elec, ions, **dict_)
             return QuaLiKizPlan(scan_dict, scan_type, xpoint_base)
+
+    @classmethod
+    def from_defaults(cls):
+        return cls.from_json(os.path.join(os.path.dirname(__file__),
+                                          'parameters_template.json'))
