@@ -63,9 +63,15 @@ def run(args):
 
     kwargs = {}
     if args['<command>'] == 'launch':
+        if isinstance(qlk_instance, Run):
+            qlk_instance.prepare(overwrite=False)
+        elif isinstance(qlk_instance, Batch):
+            qlk_instance.prepare(overwrite_batch=False, overwrite_batch_script=True)
+        else:
+            raise Exception('Unrecognized instance {!s} for machine {!s}'.format(qlk_instance, args['<machine>']))
         qlk_instance.generate_input()
         qlk_instance.launch()
     elif args['<target_path>'] in ['help', None] or args['<command>'] in ['help', None]:
-        exit(call([sys.executable, os.path.join(ROOT, 'commands', 'output.py'), '--help']))
+        exit(call([sys.executable, __file__, '--help']))
     else:
-        exit("%r is not a valid target. See 'qualikiz_tools output help'." % args['<target_path>'])
+        exit("%r is not a valid target. See 'qualikiz_tools launcher help'." % args['<target_path>'])

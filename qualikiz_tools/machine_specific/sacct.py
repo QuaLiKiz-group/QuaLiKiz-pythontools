@@ -13,9 +13,8 @@ from warnings import warn
 import datetime
 
 from tabulate import tabulate
-
-from ..qualikz_io.qualikizrun import QuaLiKizRun, QuaLiKizBatch
-from .basicpoll import database_exists
+from qualikiz_tools.qualikz_io.qualikizrun import QuaLiKizRun, QuaLiKizBatch
+from qualikiz_tools.machine_specific.basicpoll import database_exists
 
 
 def poll_sacct(batch):

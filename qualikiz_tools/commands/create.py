@@ -118,7 +118,7 @@ def run(args):
             batch = Batch(parent_dir, name, [run], **kwargs)
             batch.prepare()
     elif args['<target>'] in ['help', None]:
-        exit(call([sys.executable, os.path.join(ROOT, 'commands', 'create.py'), '--help']))
+        exit(call([sys.executable, __file__, '--help']))
     else:
         exit("%r is not a valid target. See 'qualikiz_tools create help'." % args['<target>'])
 

@@ -3,20 +3,19 @@ Copyright Dutch Institute for Fundamental Energy Research (2016-2017)
 Contributors: Karel van de Plassche (karelvandeplassche@gmail.com)
 License: CeCILL v2.1
 """
-import xarray as xr
-import pandas as pd
-import matplotlib.pyplot as plt
-import numpy as np
-import scipy as sc
 import os
-from matplotlib.widgets import Slider, Button
 import time
 from cycler import cycler
 from collections import OrderedDict
 from math import ceil
 
+import numpy as np
+import scipy as sc
+import pandas as pd
+import xarray as xr
+import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-from IPython import embed
+from matplotlib.widgets import Slider, Button
 
 def takespread(sequence, num):
     length = float(len(sequence))
@@ -30,8 +29,6 @@ def find_nearest(array,value):
 starttime = time.time()
 
 ds = xr.open_dataset('runs/Zeff1.0.compressed.nc')
-
-
 
 scan_dims = [name for name in ds.dims if name not in ['nions', 'numsols', 'kthetarhos']]
 

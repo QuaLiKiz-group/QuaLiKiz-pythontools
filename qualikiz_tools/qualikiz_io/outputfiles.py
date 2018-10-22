@@ -10,6 +10,7 @@ from collections import OrderedDict
 from itertools import chain
 import sys
 import array
+import gc
 
 import pandas as pd
 import numpy as np
@@ -283,6 +284,47 @@ def determine_sizes(rundir, folder='debug', keepfile=True):
     else:
         raise Exception('Could not read sizes from ' + os.path.join(rundir, folder, name + suffix))
 
+def determine_dims_debug(name):
+    if name in debug_eleclike:
+        dims = ['dimx']
+    elif name in debug_ionlike:
+        dims = ['dimx', 'nions']
+    elif name in debug_single:
+        dims = None
+    elif name in ['kthetarhos']:
+        dims = ['dimn']
+    elif name in ['phi']:
+        dims = ['ntheta', 'dimx']
+    else:
+        raise Exception("Could not find dims for " + name + "'")
+    return dims
+
+def load_file(rundir, folder, filename, verbose=False, genfromtxt=False):
+    dir = os.path.join(rundir, folder)
+    basename = filename + suffix
+    path_ = os.path.join(dir, basename)
+    with open(path_, 'rb') as file:
+        if verbose:
+            print('loading ' + basename.ljust(20) + ' from ' + dir)
+        try:
+            if genfromtxt:
+                data = np.genfromtxt(file)
+            else:
+                data = np.loadtxt(file)
+        except Exception as ee:
+            print('Exception loading ' + file.name)
+            raise
+    return data
+
+def add_missing_dims(sizes, data, dims):
+    dimx, dimn, nions, numsols = sizes.values()
+    if dims is not None:
+        for dim, dim_size in sizes.items():
+            if dim_size == 1 and dim in dims:
+                di = dims.index(dim)
+                if len(data.shape) != len(dims):
+                    data = np.expand_dims(data, axis=di)
+    return data
 
 def convert_debug(sizes, rundir, folder='debug', verbose=False,
                   genfromtxt=False, keepfile=True):
@@ -312,50 +354,24 @@ def convert_debug(sizes, rundir, folder='debug', verbose=False,
     dimx, dimn, nions, numsols = sizes.values()
     for name in debug_subsets:
         try:
-            dir = os.path.join(rundir, folder)
-            basename = name + suffix
-            path_ = os.path.join(dir, basename)
-            with open(path_, 'rb') as file:
-                if verbose:
-                    print('loading ' + basename.ljust(20) + ' from ' + dir)
-                try:
-                    if genfromtxt:
-                        data = np.genfromtxt(file)
-                    else:
-                        data = np.loadtxt(file)
-                except Exception as ee:
-                    print('Exception loading ' + file.name)
-                    raise
-                # Skip loading these, as they will be saved implicitly
-                if name in ['dimx', 'dimn', 'nions', 'numsols']:
-                    continue
-                elif name in debug_eleclike:
-                    dims = ['dimx']
-                elif name in debug_ionlike:
-                    dims = ['dimx', 'nions']
-                    if nions == 1:
-                        data = np.expand_dims(data, axis=1)
-                elif name in debug_single:
-                    dims = None
-                elif name in ['kthetarhos']:
-                    dims = ['dimn']
-                elif name in ['phi']:
-                    dims = ['ntheta', 'dimx']
-                else:
-                    raise Exception('Could not process \'' + name + '\'')
-                try:
-                    if name == 'modeflag':
-                        ds[name] = xr.DataArray(data, dims=dims)
-                    else:
-                        ds.coords[name] = xr.DataArray(data, dims=dims)
-                except Exception as e:
-                    raise type(e)(str(e) +
-                                  ' happens at %s' % name).with_traceback(sys.exc_info()[2])
-            if not keepfile:
-                os.remove(path_)
-
+            data = load_file(rundir, folder, name, verbose=verbose, genfromtxt=genfromtxt)
         except FileNotFoundError:
-            print('not found' + path_)
+            print('not found' + os.path.join(rundir, folder, name + suffix))
+            continue
+        # Skip loading these, as they will be saved implicitly
+        if name in ['dimx', 'dimn', 'nions', 'numsols']:
+            continue
+        dims = determine_dims_debug(name)
+        # Add 'missing' dimensions squeezed out by loading from disk
+        data = add_missing_dims(sizes, data, dims)
+
+        if name == 'modeflag':
+            ds[name] = xr.DataArray(data, dims=dims)
+        else:
+            ds.coords[name] = xr.DataArray(data, dims=dims)
+        if not keepfile:
+            os.remove(path_)
+
     # Nothing in debug depends on numsols, but add it for later use
     ds.coords['numsols'] = xr.DataArray(list(range(0, numsols)), dims='numsols')
     return ds
@@ -395,67 +411,56 @@ def convert_output(ds, sizes, rundir, folder='output', verbose=False,
             names = [name]
         for name in names:
             try:
-                dir = os.path.join(rundir, folder)
-                basename = name + suffix
-                path_ = os.path.join(dir, basename)
-                with open(path_, 'rb') as file:
-                    if verbose:
-                        print('loading ' + basename.ljust(20) + ' from ' + dir)
-                    try:
-                        if genfromtxt:
-                            data = np.genfromtxt(file)
-                        else:
-                            data = np.loadtxt(file)
-                    except Exception as ee:
-                        print('Exception loading ' + file.name)
-                        raise
-                    if name.startswith('gam') or name.startswith('ome'):
-                        data = data.reshape(numsols, dimx, dimn)
-                        ds[name] = xr.DataArray(data, dims=['numsols', 'dimx', 'dimn'],
-                                                name=name).transpose('dimx', 'dimn', 'numsols')
-                    elif name in ['cke', 'ceke']:
-                        ds[name] = xr.DataArray(data, dims=['dimx'], name=name)
-                    elif  name in ['cki', 'ceki', 'ion_type']:
-                        if nions == 1:
-                            data = np.expand_dims(data, axis=1)
-                        ds[name] = xr.DataArray(data, dims=['dimx', 'nions'], name=name)
-                    elif name.endswith('i_cm'):
-                        data = data.reshape(nions, dimx, dimn)
-                        ds[name] = xr.DataArray(data, dims=['nions', 'dimx', 'dimn'],
-                                                name=name).transpose('dimx', 'dimn', 'nions')
-                    elif name.endswith('e_cm'):
-                        data = data.reshape(dimx, dimn)
-                        ds[name] = xr.DataArray(data, dims=['dimx', 'dimn'],
-                                                name=name).transpose('dimx', 'dimn')
-                    elif name == 'ecoefs':
-                        tmp = xr.DataArray(data.reshape(dimx, nions+1, numecoefs),
-                                           dims=['dimx', 'ionelec', 'ecoefs'], name=name)
-                        ds[name + 'e'] = tmp.sel(ionelec=0)
-                        ds[name + 'i'] = tmp.sel(ionelec=slice(1, None)).rename({'ionelec': 'nions'})
-                    elif name == 'npol':
-                        ds[name] = xr.DataArray(data.reshape(dimx, ntheta, nions),
-                                                dims=['dimx', 'ntheta', 'nions'], name=name)
-                    elif name == 'cftrans':
-                        ds[name] = xr.DataArray(data.reshape(dimx, nions, numicoefs),
-                                                dims=['dimx', 'nions', 'numicoefs'], name=name)
-                    else:
-                        subname = name[:-3]
-                        if (subname.endswith('ETG') or
-                            subname.endswith('ITG') or
-                            subname.endswith('TEM')):
-                            subname = subname[:-3]
-                        if subname.endswith('e'):
-                            ds[name] = xr.DataArray(data, dims=['dimx'], name=name)
-                        elif subname.endswith('i'):
-                            if nions == 1:
-                                data = np.expand_dims(data, axis=1)
-                            ds[name] = xr.DataArray(data, dims=['dimx', 'nions'], name=name)
-                        else:
-                            raise Exception('Could not process \'' + name + '\'')
-                if not keepfile:
-                    os.remove(path_)
+                data = load_file(rundir, folder, name, verbose=verbose, genfromtxt=genfromtxt)
             except FileNotFoundError:
-                print('not found' + path_)
+                print('not found' + os.path.join(rundir, folder, name + suffix))
+                continue
+            if name == 'ecoefs':
+                dims = ['dimx', 'ionelec', 'ecoefs']
+                tmp = xr.DataArray(data.reshape(dimx, nions+1, numecoefs),
+                                   dims=dims, name=name)
+                ds[name + 'e'] = tmp.sel(ionelec=0)
+                ds[name + 'i'] = tmp.sel(ionelec=slice(1, None)).rename({'ionelec': 'nions'})
+            else:
+                if name.startswith('gam') or name.startswith('ome'):
+                    #dims_orig = ['numsols', 'dimx', 'dimn']
+                    data = data.reshape(numsols, dimx, dimn)
+                    data =  data.transpose(1, 2, 0)
+                    dims = ['dimx', 'dimn', 'numsols']
+                elif name in ['cke', 'ceke']:
+                    dims = ['dimx']
+                elif  name in ['cki', 'ceki', 'ion_type']:
+                    dims = ['dimx', 'nions']
+                elif name.endswith('i_cm'):
+                    #dims_orig = ['nions', 'dimx', 'dimn']
+                    data = data.reshape(nions, dimx, dimn)
+                    data = data.transpose(1, 2, 0)
+                    dims = ['dimx', 'dimn', 'nions']
+                elif name.endswith('e_cm'):
+                    #dims_orig = ['dimx', 'dimn']
+                    data = data.reshape(dimx, dimn)
+                    dims = ['dimx', 'dimn']
+                elif name == 'npol':
+                    dims = ['dimx', 'ntheta', 'nions']
+                    data = data.reshape(dimx, ntheta, nions)
+                elif name == 'cftrans':
+                    dims = ['dimx', 'nions', 'numicoefs']
+                    data = data.reshape(dimx, nions, numicoefs)
+                else:
+                    basename = name[:-3]
+                    if any([basename.endswith(mode) for mode in ['ETG', 'ITG', 'TEM']]):
+                        basename = basename[:-3]
+                    if basename.endswith('e'):
+                        dims = ['dimx']
+                    elif basename.endswith('i'):
+                        dims = ['dimx', 'nions']
+                    else:
+                        raise Exception('Could not process \'' + name + '\'')
+
+                data = add_missing_dims(sizes, data, dims)
+                ds[name] = xr.DataArray(data, dims=dims, name=name)
+            if not keepfile:
+                os.remove(path_)
     return ds
 
 
@@ -483,7 +488,6 @@ def convert_primitive(ds, sizes, rundir, folder='output/primitive', verbose=Fals
     Returns:
         ds:         The netcdf dataset
     """
-    reshapes = ['rfdsol', 'ifdsol', 'isol', 'rsol']
     dimx, dimn, nions, numsols = sizes.values()
     for name in primi_subsets:
         if name in ['fdsol', 'jonsolflu', 'modeshift', 'modewidth', 'sol', 'solflu']:
@@ -492,36 +496,28 @@ def convert_primitive(ds, sizes, rundir, folder='output/primitive', verbose=Fals
             names = [name]
         for name in names:
             try:
-                dir = os.path.join(rundir, folder)
-                basename = name + suffix
-                path_ = os.path.join(dir, basename)
-                with open(path_, 'rb') as file:
-                    if verbose:
-                        print ('loading ' + basename.ljust(20) + ' from ' + dir)
-                    try:
-                        if genfromtxt:
-                            data = np.genfromtxt(file)
-                        else:
-                            data = np.loadtxt(file)
-                    except Exception as ee:
-                        print('Exception loading ' + file.name)
-                        raise type(ee)(str(ee) + ' happens at %s' % file.name).with_traceback(sys.exc_info()[2])
-                    if name.endswith('i'):
-                        data = data.reshape(numsols,nions,dimx,dimn)
-                        ds[name] = xr.DataArray(data, dims=['numsols', 'nions', 'dimx', 'dimn'],
-                                                name=name).transpose('dimx', 'dimn', 'nions', 'numsols')
-                    elif name.endswith('e') or name in reshapes:
-                        data = data.reshape(numsols, dimx, dimn)
-                        ds[name] = xr.DataArray(data, dims=['numsols', 'dimx', 'dimn'],
-                                                name=name).transpose('dimx', 'dimn', 'numsols')
-                    elif name in ['kymaxETG', 'kymaxITG']:
-                        ds[name] = xr.DataArray(data, dims=['dimx'], name=name)
-                    else:
-                        ds[name] = xr.DataArray(data, dims=['dimx', 'dimn'], name=name)
-                if not keepfile:
-                    os.remove(path_)
+                data = load_file(rundir, folder, name, verbose=verbose, genfromtxt=genfromtxt)
             except FileNotFoundError:
-                print('not found' + path_)
+                print('not found' + os.path.join(rundir, folder, name + suffix))
+                continue
+            if name.endswith('i'):
+                #dims_orig = ['numsols', 'nions', 'dimx', 'dimn']
+                data = data.reshape(numsols,nions,dimx,dimn)
+                data = data.transpose(2, 3, 1, 0)
+                dims = ['dimx', 'dimn', 'nions', 'numsols']
+            elif name.endswith('e') or name in ['rfdsol', 'ifdsol', 'isol', 'rsol']:
+                #dims_orig = ['numsols', 'dimx', 'dimn']
+                data = data.reshape(numsols, dimx, dimn)
+                data = data.transpose(1, 2, 0)
+                dims = ['dimx', 'dimn', 'numsols']
+            elif name in ['kymaxETG', 'kymaxITG']:
+                dims = ['dimx']
+            else:
+                dims = ['dimx', 'dimn']
+            data = add_missing_dims(sizes, data, dims)
+            ds[name] = xr.DataArray(data, dims=dims, name=name)
+            if not keepfile:
+                os.remove(path_)
     return ds
 
 
@@ -565,7 +561,7 @@ def squeeze_coords(ds, dim):
     return ds
 
 
-def remove_dependent_axes(ds):
+def remove_dependent_axes(ds, Te_var='Te'):
     """ Remove Coordinates that depend on eachother
 
     Normally, a dataset loaded from a QuaLiKizRun contains some coordinates
@@ -576,9 +572,15 @@ def remove_dependent_axes(ds):
     Args:
         ds: Dataset with dependent Coordinates to remove
 
+    Kwargs:
+        Te_var: Which variable to use as Te measure: Nustar or Te [Default: 'Te']
+
     Returns:
         xarray.DataSet with dependent Coordinates removed
     """
+    Te_vars = ['Te', 'Nustar']
+    if Te_var not in Te_vars:
+        raise ValueError('Te_var {!s} should be one of {!s}'.format(Te_var, Te_vars))
     # Ni is captured in Zeff
     if 'normni' in ds.coords:
         ds = ds.reset_coords('normni')
@@ -590,8 +592,15 @@ def remove_dependent_axes(ds):
         ds = ds.reset_coords('Ti')
 
     # Tex is already captured in Nustar
-    if 'Te' in ds.coords:
-        ds = ds.reset_coords('Te')
+    if 'Te' in ds.coords and 'Nustar' in ds.coords:
+        if Te_var == 'Nustar':
+            ds = ds.reset_coords('Te')
+        elif Te_var == 'Te':
+            ds = ds.reset_coords('Nustar')
+
+    # rho and x are the same thing
+    if 'rho' in ds.coords and 'x' in ds.coords:
+        ds = ds.reset_coords('rho')
 
     # Remove placeholder for kthetarhos
     if 'dimn' in ds.dims and 'kthetarhos' in ds.coords:
@@ -603,7 +612,7 @@ def remove_dependent_axes(ds):
     return ds
 
 
-def squeeze_dataset(ds):
+def squeeze_dataset(ds, Te_var='Te', extra_squeeze=None):
     """ Remove Coordinates that depend on eachother and squeeze duplicates
 
     Normally, a dataset loaded from a QuaLiKizRun contains some coordinates
@@ -618,13 +627,17 @@ def squeeze_dataset(ds):
     Args:
         ds: Dataset with dependent Coordinates to remove
 
+    Kwargs:
+        Te_var: See `remove_dependent_axes`
+        extra_squeeze: List of coordinates to move to data_vars
+
     Returns:
         xarray.DataSet with data_vars squeezed
     """
     ds.load()
 
     # Move some axes we know depend on eachother to data.
-    ds = remove_dependent_axes(ds)
+    ds = remove_dependent_axes(ds, Te_var=Te_var)
 
     ds = squeeze_coords(ds, 'dimx')
 
@@ -646,10 +659,15 @@ def squeeze_dataset(ds):
     ds = squeeze_coords(ds, 'dimx')
 
     # Move metadata to attrs
-    for name, item in ds.coords.items():
-        if name in debug_single and name not in ds.dims:
-            ds.attrs[name] = float(item)
-            ds = ds.drop(name)
+    ds = to_meta_0d(ds)
+    if extra_squeeze is not None:
+        for coord in extra_squeeze:
+            if coord in ds.coords:
+                ds.reset_coords(names=coord, inplace=True)
+            else:
+                warn('{!s} not in dataset, cannot be squeezed'.format(coord))
+                from IPython import embed
+                embed()
     return ds
 
 def to_meta_0d(ds):
@@ -783,7 +801,7 @@ def orthogonalize_dataset(ds, verbose=False):
 
         # To save memory, we delete the old ds entry
         del ds[name]
-        newds[name] = xr.DataArray(placeholder, coords=newcoords)
+        newds[name] = xr.DataArray(placeholder, coords=newcoords, dims=newcoords.keys())
 
     # Copy temporarly converted coordinates back to coordinates
     newds.set_coords(duo_coords.keys(), inplace=True)
@@ -827,20 +845,64 @@ def add_dims(ds, newdims):
         newcoords = OrderedDict()
         newitemdims = item.dims + tuple(newdims)
         olddims = item.dims
-        for dimname in newdims:
-            item = np.expand_dims(item, -1)
-            newcoords[dimname] = newds[dimname]
+        for dim in newdims:
+            if dim in olddims:
+                raise Exception('Cannot add dimension {!s}. Already a dimension of {!s}'.format(dim, name))
+
         for dimname in olddims:
             newcoords[dimname] = ds[dimname]
 
-        newds[name] = xr.DataArray(item, dims=newitemdims, coords=newcoords,
-                                   name=ds[name].name, attrs=ds[name].attrs,
-                                   encoding=ds[name].encoding)
+        for dimname in newdims:
+            item = np.expand_dims(item, -1)
+            newcoords[dimname] = newds[dimname]
+
+        try:
+            newds[name] = xr.DataArray(item, dims=newitemdims, coords=newcoords,
+                                       name=ds[name].name, attrs=ds[name].attrs,
+                                       encoding=ds[name].encoding)
+        except:
+            print('Something wrong with creating new-dimmed DataArray. Debugging..')
+            from IPython import embed
+            embed()
 
     # Copy the attributes
     for name, item in ds.attrs.items():
         newds.attrs[name] = item
 
+
+    return newds
+
+def merge_many_lazy_snakes(path, dss, datavars=None, verbose=False, netcdf_kwargs=None, **kwargs):
+    if os.path.exists(path):
+        raise OSError('{!s} exists! Refusing to overwrite')
+
+    if netcdf_kwargs is None:
+        netcdf_kwargs = {}
+
+    if datavars is None:
+        datavars = list(dss[0].data_vars.keys())
+
+    xr.Dataset().to_netcdf(path, 'w', **netcdf_kwargs)
+
+    for name in datavars:
+        if verbose:
+            print('Merging {!s}'.format(name))
+        vars = [ds[name] for ds in dss]
+        ds = xr.concat(vars, dim='snakedim')
+        ds.to_netcdf(path, 'a', **netcdf_kwargs)
+        del vars
+        gc.collect()
+    return xr.open_dataset(path)
+
+def merge_many_orthogonal(dss, datavars=None, verbose=False, **kwargs):
+    newds = dss[0]
+    newds.load()
+    for ds in dss[1:]:
+        ds.load()
+        newds = merge_orthogonal(newds, ds)
+        ds.close()
+
+    newds = sort_dims(newds)
 
     return newds
 
@@ -853,8 +915,8 @@ def find_nonmatching_coords(ds1, ds2):
 
     return nonmatching
 
-def merge_orthogonal(dss, datavars=None, verbose=False):
-    """ Merge two orthogonal datasets
+def merge_orthogonal(ds1, ds2, datavars=None, verbose=False):
+    """ Left join two orthogonal datasets.
 
     Merge two datasets together. These datasets should only contain
     orthogonal dimensions, so first orthogonalize with orthogonalize_dataset.
@@ -862,26 +924,21 @@ def merge_orthogonal(dss, datavars=None, verbose=False):
     and tries to merge smartly when more dimensions are different. Note that
     the second method is slow and uses a lot of RAM
 
-    Currently can only merge two datasets.
-
     Args:
-        dss: List of datasets to merge
+        ds1: First datasets to merge
+        ds2: Datasets to merge ds1 with
 
     Kwargs:
         datavars: DataVariables to keep in the merged dataset
         verbose:  Print message for each variables to be merged
     """
-    if len(dss) > 2:
-        raise NotImplementedError
-    ds1 = dss[0]
-    ds2 = dss[1]
     nonmatching = find_nonmatching_coords(ds1, ds2)
     if len(nonmatching) == 0:
         raise NotImplementedError
     elif len(nonmatching) == 1:
         if datavars:
             raise NotImplementedError
-        newds = xr.concat(dss, dim=nonmatching[0])
+        newds = xr.concat([ds1, ds2], dim=nonmatching[0])
     else:
         if not datavars:
             datavars = list(ds1.data_vars.keys())

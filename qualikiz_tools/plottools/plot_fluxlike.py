@@ -3,14 +3,16 @@ Copyright Dutch Institute for Fundamental Energy Research (2016-2017)
 Contributors: Karel van de Plassche (karelvandeplassche@gmail.com)
 License: CeCILL v2.1
 """
+import warnings
+from collections import OrderedDict
+
+import numpy as np
+import pandas as pd
 import xarray as xr
 import matplotlib.pyplot as plt
 from matplotlib import gridspec, cycler
-from collections import OrderedDict
-import numpy as np
-import pandas as pd
+
 from qualikiz_tools.qualikiz_io.outputfiles import squeeze_dataset, orthogonalize_dataset, xarray_to_pandas
-import warnings
 
 try:
     from .discrete_slider import DiscreteSlider
@@ -113,8 +115,7 @@ def build_plot(datasets, flux_type, normalization, instability_tag='', sum_hydro
     #grow_ax.set_ylabel(grow_name)
 
     # Initialize dimx slider
-    dfs[('dimx', )]['dimx'] = dfs[('dimx', )].index
-    dimx = dfs[('dimx', )]['dimx'].values
+    dimx = dfs[('set', 'dimx')].index.get_level_values(level='dimx')
     dimx_slider = DiscreteSlider(axes['dimx_slider'],
                                  'dimx',
                                  dimx[0],

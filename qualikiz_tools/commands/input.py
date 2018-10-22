@@ -4,7 +4,7 @@ Usage:
   qualikiz_tools input [-v | -vv] help
 
   For example, create input binaries for QuaLiKiz batch or run contained in <target_path>
-      qualikiz_tools input create <target_path>
+      qualikiz_tools input generate <target_path>
 
 Options:
   --version <version>               Version of QuaLiKiz to generate input for [default: current]
@@ -12,7 +12,7 @@ Options:
   [-v | -vv]                        Verbosity 
 
 Often used commands:
-  qualikiz_tools output to_netcdf <target_path>
+  qualikiz_tools input generate <target_path>
 
 """
 from docopt import docopt
@@ -57,6 +57,6 @@ def run(args):
             qlk_instance.generate_input(**kwargs)
 
     elif args['<target_path>'] in ['help', None] or args['<command>'] in ['help', None]:
-        exit(call([sys.executable, os.path.join(ROOT, 'commands', 'output.py'), '--help']))
+        exit(call([sys.executable, __file__, '--help']))
     else:
-        exit("%r is not a valid target. See 'qualikiz_tools output help'." % args['<target_path>'])
+        exit("%r is not a valid target. See 'qualikiz_tools input help'." % args['<target_path>'])

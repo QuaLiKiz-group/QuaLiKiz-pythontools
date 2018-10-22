@@ -18,7 +18,7 @@
     "xpoint_base": {
         "meta": {
             "phys_meth": 1,
-            "coll_flag": true,
+            "coll_flag": false,
             "rot_flag": false,
             "verbose": true,
             "separateflux": true,
@@ -68,20 +68,20 @@
             "gammaE": 0.0
         },
         "elec": {
-            "T": 8.0,
-            "n": 5.0,
-            "At": 9.0,
-            "An": 3.0,
+            "T": 3.0,
+            "n": 3.1,
+            "At": 5.5,
+            "An": 3.3,
             "type": 1,
             "anis": 1.0,
             "danisdr": 0.0
         },
         "ions": [
             {
-                "T": 8.0,
+                "T": 4.2,
                 "n": 1.0,
-                "At": 0.0,
-                "An": 3.0,
+                "At": 6.3,
+                "An": 3.3,
                 "type": 1,
                 "anis": 1.0,
                 "danisdr": 0.0,
@@ -89,11 +89,11 @@
                 "Z": 1.0
             }
         ],
-        "norm": {
-            "Ani1": true,
-            "ninorm1": true,
-            "QN_grad": true,
-            "x_rho": true
+        "settings": {
+            "set_qn_An": true,
+            "set_qn_normni": true,
+            "check_qn": true,
+            "x_eq_rho": true
         }
     }
 }

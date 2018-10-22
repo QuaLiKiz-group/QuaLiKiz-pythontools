@@ -3,21 +3,50 @@ Copyright Dutch Institute for Fundamental Energy Research (2016-2017)
 Contributors: Karel van de Plassche (karelvandeplassche@gmail.com)
 License: CeCILL v2.1
 """
-from warnings import warn
-import os
-import stat
-from .system import Run, Batch
-from ..qualikiz_io.qualikizrun import QuaLiKizRun, QuaLiKizBatch
 import subprocess
 import multiprocessing as mp
+import os
+import stat
+from warnings import warn
+
+from qualikiz_tools.machine_specific.system import Run, Batch
+from qualikiz_tools.qualikiz_io.inputfiles import QuaLiKizPlan
+from qualikiz_tools.qualikiz_io.qualikizrun import QuaLiKizRun, QuaLiKizBatch
+
+def get_num_threads():
+    """Returns amount of threads/virtual cores on current system"""
+    return mp.cpu_count()
+
+def get_vcores():
+    """Get a list of virtual cores from /proc/cpuinfo"""
+    with open('/proc/cpuinfo', 'r') as file_:
+        vcores = []
+        for line in file_:
+            if line.startswith('physical id'):
+                phys_id = int(line.split(':')[1])
+            if line.startswith('core id'):
+                core_id = int(line.split(':')[1])
+                vcores.append((phys_id, core_id))
+    if len(vcores) != get_num_threads():
+        raise Exception('Amount of threads != amount of virtual cores. Probably error in reading /proc/cpuinfo')
+    return vcores
+
+def get_num_cores():
+    """Get the amount of physical cores of the current machine"""
+    return len(set(get_vcores()))
 
 class Run(Run):
     """ Defines the run command """
     runstring = 'mpirun'
+    defaults = {'cores_per_node': get_num_cores(),
+                'threads_per_core': 2,
+                'HT': False
+               }
 
     def __init__(self, parent_dir, name, binaryrelpath,
                  qualikiz_plan=None, stdout=None, stderr=None,
-                 verbose=False, tasks=None, HT=True, **kwargs):
+                 verbose=False, nodes=1, HT=False,
+                 **kwargs):
         """ Initializes the Run class
 
         Args:
@@ -26,8 +55,6 @@ class Run(Run):
             binaryrelpath:  Path of the binary relative to the run dir
         Kwargs:
             qualikiz_plan:  The QuaLiKizPlan instance used to generate input
-            tasks:          Amount of MPI tasks needed for the job. Number of
-                            virtual cores by default.
             HT:             Use hyperthreading. [Default: True]
             stdout:         Standard target of redirect of STDOUT [default: terminal]
             stderr:         Standard target of redirect of STDERR [default: terminal]
@@ -42,34 +69,41 @@ class Run(Run):
                          qualikiz_plan=qualikiz_plan,
                          stdout=stdout, stderr=stderr,
                          verbose=verbose, **kwargs)
-        if tasks is None:
-            ncpu = mp.cpu_count()
-            self.tasks = self.calculate_tasks(ncpu, HT=HT)
-        else:
-            self.tasks = tasks
 
-    def to_batch_string(self, batch_parent_dir):
+        self.nodes = nodes
+        for name in ['HT', 'threads_per_core']:
+            if name in self.defaults:
+                setattr(self, name, self.defaults[name])
+            else:
+                setattr(self, name, None)
+
+    @property
+    def tasks(self):
+        ncores = self.defaults['cores_per_node'] * self.nodes
+        return self.calculate_tasks(ncores, HT=self.HT, threads_per_core=self.threads_per_core)
+
+    def to_batch_string(self, batch_dir):
         """ Create string to include in batch job
 
         This string will be used in the batch script file that runs the jobs.
 
         Args:
-            batch_parent_dir: Directory the batch script lives in. Needed to
-                              generate the relative paths.
+            batch_dir: Directory the batch script lives in. Needed to
+                       generate the relative paths.
         """
         paths = []
         for path in [self.stdout, self.stderr]:
             if os.path.isabs(path):
                 pass
             else:
-                path = os.path.normpath(os.path.join(os.path.relpath(self.rundir, batch_parent_dir), path))
+                path = os.path.normpath(os.path.join(os.path.relpath(self.rundir, batch_dir), path))
             paths.append(path)
         if self.binaryrelpath is None:
             raise FileNotFoundError('No binary rel path specified, could not find link to QuaLiKiz binary in {!s}'.format(self.rundir))
 
         string = ' '.join([self.runstring ,
                            '-n'     , str(self.tasks) ,
-                           '-wdir'  , self.rundir     ,
+                           '-wdir'  , os.path.normpath(os.path.relpath(self.rundir, batch_dir)),
                                       './' + os.path.basename(self.binaryrelpath)])
         if self.stdout != 'STDOUT':
             string += ' > ' + paths[0]
@@ -78,13 +112,14 @@ class Run(Run):
         return string
 
     @classmethod
-    def from_batch_string(cls, string):
+    def from_batch_string(cls, string, batchdir):
         """ Reconstruct the Run from a batch string
 
         Reverse of to_batch_string. Used to reconstruct the run from a batch script.
 
         Args:
             string:     The string to parse
+            batchdir:   The directory of the containing batch script
 
         Returns:
             The reconstructed Run instance
@@ -93,7 +128,7 @@ class Run(Run):
         dict_ = {}
 
         tasks = int(split[2])
-        rundir = split[4]
+        rundir = os.path.join(batchdir, split[4])
         binary_name = split[5].strip()
         binaryrelpath = os.readlink(os.path.join(rundir, binary_name))
         paths = []
@@ -104,15 +139,16 @@ class Run(Run):
                 path = None
             else:
                 if not os.path.isabs(path):
-                    path = os.path.relpath(path, rundir)
+                    path = os.path.relpath(os.path.join(batchdir, path), rundir)
             paths.append(path)
-        return Run(os.path.dirname(rundir), os.path.basename(rundir),
-                   binaryrelpath, stdout=paths[0], stderr=paths[1])
+        return cls.from_dir(rundir,
+                   stdout=paths[0], stderr=paths[1])
 
     @classmethod
-    def from_dir(cls, dir, tasks=None, **kwargs):
+    def from_dir(cls, dir, **kwargs):
         stdout = kwargs.pop('stdout', None)
         stderr = kwargs.pop('stderr', None)
+        parameterspath = os.path.join(dir, cls.parameterspath)
         qualikiz_run = QuaLiKizRun.from_dir(dir, stdout=stdout, stderr=stderr, **kwargs)
         parent_dir = os.path.dirname(qualikiz_run.rundir)
         name = os.path.basename(qualikiz_run.rundir)
@@ -120,8 +156,8 @@ class Run(Run):
             qualikiz_run.stdout = None
         if qualikiz_run.stderr == QuaLiKizRun.default_stderr:
             qualikiz_run.stderr = None
-        return Run(parent_dir, name, qualikiz_run.binaryrelpath, tasks=tasks,
-                   stdout=qualikiz_run.stdout, stderr=qualikiz_run.stderr,
+        return cls(parent_dir, name, qualikiz_run.binaryrelpath,
+                   stdout=qualikiz_run.stdout, stderr=qualikiz_run.stderr, qualikiz_plan=qualikiz_run.qualikiz_plan,
                    **kwargs)
 
     def launch(self):
@@ -158,7 +194,7 @@ class Batch(Batch):
     shell = '/bin/bash'
     run_class = Run
 
-    def __init__(self, parent_dir, name, runlist, tasks=None,
+    def __init__(self, parent_dir, name, runlist,
                  stdout=None, stderr=None,
                  style='sequential',
                  verbose=False):
@@ -170,8 +206,6 @@ class Batch(Batch):
             runlist:        List of runs contained in this batch
 
         Kwargs:
-            tasks:          Amount of MPI tasks needed PER RUN. Number of
-                            virtual cores by default.
             stdout:         Standard target of redirect of STDOUT [default: terminal]
             stderr:         Standard target of redirect of STDERR [default: terminal]
             style:          How to glue the different runs together. Currently
@@ -198,18 +232,33 @@ class Batch(Batch):
         else:
             raise NotImplementedError('Style {!s} not implemented yet.'.format(style))
 
-    def to_batch_file(self, path):
+    def to_batch_file(self, path, overwrite_batch_script=False):
         """ Writes batch script to file
 
         Args:
             path:       Path of the sbatch script file.
         """
+        if overwrite_batch_script:
+            try:
+                os.remove(path)
+            except FileNotFoundError:
+                pass
+
         batch_lines = ['#!' + self.shell + '\n\n']
 
         # Write sruns to file
+        batch_lines.append('export OMP_NUM_THREADS=2\n\n')
+        batch_lines.append('echo "Starting job {:d}/{:d}"\n'.format(1, len(self.runlist)))
         batch_lines.append(self.runlist[0].to_batch_string(os.path.dirname(path)))
-        for run in self.runlist[1:]:
+        for ii, run in enumerate(self.runlist[1:]):
+            batch_lines.append(' &&\necho "Starting job {:d}/{:d}"'.format(ii + 2, len(self.runlist)))
             batch_lines.append(' &&\n' + run.to_batch_string(os.path.dirname(path)))
+
+        if overwrite_batch_script:
+            try:
+                os.remove(path)
+            except FileNotFoundError:
+                pass
 
         with open(path, 'w') as file:
             file.writelines(batch_lines)
@@ -230,7 +279,7 @@ class Batch(Batch):
 
         runlist = []
         for run_string in run_strings:
-            runlist.append(Run.from_batch_string(run_string))
+            runlist.append(Run.from_batch_string(run_string, os.path.join(parent_dir, name)))
         batch = Batch(parent_dir, name, runlist, **kwargs)
 
         return batch
@@ -238,6 +287,9 @@ class Batch(Batch):
     def launch(self):
         """ Launch QuaLiKizBatch using a batch script with mpirun
         """
+        dirname = os.path.basename(os.path.abspath(os.curdir))
+        if self.name != dirname:
+            warn("Warning! Launching from outside the batch folder! Experimental!")
         self.inputbinaries_exist()
         # Check if batch script is generated
         batchdir = os.path.join(self.parent_dir, self.name)

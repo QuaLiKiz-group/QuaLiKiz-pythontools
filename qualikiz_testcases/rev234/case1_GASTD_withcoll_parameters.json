@@ -89,11 +89,11 @@
                 "Z": 1.0
             }
         ],
-        "norm": {
-            "Ani1": true,
-            "ninorm1": true,
-            "QN_grad": true,
-            "x_rho": true
+        "settings": {
+            "set_qn_An": true,
+            "set_qn_normni": true,
+            "check_qn": true,
+            "x_eq_rho": true
         }
     }
 }

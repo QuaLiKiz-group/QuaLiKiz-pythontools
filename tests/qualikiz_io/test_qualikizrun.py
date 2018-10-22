@@ -66,16 +66,29 @@ class TestQuaLiKizRun(TestCase):
                  'q':2.,
                  'smag':1.,
                  'alpha':0.,
+                 'gammaE': 0.,
+                 'Machpar': 0.,
                  'Machtor': 0.,
+                 'Aupar': 0.,
                  'Autor':0.}
 
     defaults = {}
     defaults.update(meta)
     defaults.update(geometric)
-    norm = {'ninorm1': False,
-            'Ani1':    False,
-            'QN_grad': False,
-            'x_rho':   False}
+    norm = {
+            'set_qn_normni': True,
+            'set_qn_normni_ion': 0,
+            'set_qn_An': True,
+            'set_qn_An_ion': 0,
+            'check_qn': True,
+            'x_eq_rho': True,
+            'recalc_Nustar': False,
+            'recalc_Ti_Te_rel': False,
+            'assume_tor_rot': True,
+            'recalc_Nustar': False,
+            'recalc_Ti_Te_rel': False,
+            'assume_tor_rot': False
+    }
     defaults.update(norm)
     baseXpoint = QuaLiKizXpoint(kthetarhos,
                             elec, ions, **defaults)
@@ -128,7 +141,7 @@ class TestQuaLiKizRun(TestCase):
         self.qualikizrun.generate_input()
         rundir = self.qualikizrun.rundir
         in_input = os.listdir(os.path.join(rundir, 'input'))
-        self.assertEqual(len(in_input), 47)
+        self.assertEqual(len(in_input), 48)
 
     def test_inputbinaries_exist(self):
          self.qualikizrun.prepare()
@@ -176,6 +189,7 @@ class TestQuaLiKizRun(TestCase):
 
 class TestQuaLiKizBatch(TestCase):
     def setUp(self):
+        shutil.rmtree('testbatchsdir', ignore_errors=True)
         TestQuaLiKizRun.setUp(self)
         with open('./testQuaLiKiz', 'w+') as __:
             pass
@@ -215,7 +229,7 @@ class TestQuaLiKizBatch(TestCase):
         batchdir = os.path.join(self.qualikizbatch.parent_dir,
                                 self.qualikizbatch.name)
         runlist = self.qualikizbatch.runlist_from_subdirs(batchdir)
-        self.assertEqual(runlist, self.qualikizbatch.runlist)
+        self.assert_equal_ignore_order(runlist, self.qualikizbatch.runlist)
 
     def test_from_subdirs(self):
         with warnings.catch_warnings():
@@ -265,3 +279,12 @@ class TestQuaLiKizBatch(TestCase):
             pass
         os.remove('./testQuaLiKiz')
 
+    def assert_equal_ignore_order(self, a, b):
+        """ Use only when elements are neither hashable nor sortable! """
+        unmatched = list(b)
+        for element in a:
+            try:
+                unmatched.remove(element)
+            except ValueError:
+                return False
+        self.assertTrue(not unmatched)

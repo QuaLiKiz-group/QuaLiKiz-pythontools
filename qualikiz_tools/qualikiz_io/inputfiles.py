@@ -8,13 +8,19 @@ import copy
 import json
 import itertools
 from collections import OrderedDict
-from warnings import warn
+from warnings import warn, simplefilter, catch_warnings
 import os
 
 import numpy as np
-import scipy as sc
-import scipy.optimize
 
+from qualikiz_tools.misc.conversion import calc_te_from_nustar, calc_nustar_from_parts, calc_zeff, calc_puretor_absolute, calc_puretor_gradient, calc_epsilon_from_parts
+
+def json_serializer(obj):
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, np.integer):
+        return int(obj)
+    raise ValueError('Could not serialize %s' % obj)
 
 def allequal(lst):
     return lst[1:] == lst[:-1]
@@ -178,11 +184,17 @@ class QuaLiKizXpoint(dict):
     def set_qn_An_ion_n(self):
         """ Set density gradient of nth ion to maintian quasineutrality """
         var_ion, ions = self.get_other_non_trace_ions(self['options']['set_qn_An_ion'])
+        Z_var_ion = self['ions'][var_ion]['Z']
+        n_var_ion = self['ions'][var_ion]['n']
+        if Z_var_ion == 0 or n_var_ion == 0:
+            raise Exception('Z = {:.0f} and n = {:.0f} for ion {:d}. Unable to'
+                            ' set Ani to match quasineutrality'.format(Z_var_ion,
+                                                                       n_var_ion,
+                                                                       var_ion))
         var_An = ((self['elec']['An'] -
                                   sum(ion['n'] * ion['An'] * ion['Z']
                                       for ion in ions)) /
-                                 (self['ions'][var_ion]['Z'] *
-                                  self['ions'][var_ion]['n']))
+                                 (Z_var_ion * n_var_ion))
         self['ions'][var_ion]['An'] = var_An
 
     def check_quasi(self):
@@ -228,44 +240,31 @@ class QuaLiKizXpoint(dict):
     def calc_zeff(self):
         """ Calculate Zeff """
         ions = filter(lambda x: x['type'] != 3, self['ions'])
-        return sum(ion['n'] * ion['Z'] ** 2 for ion in ions)
-
-    def calc_te_from_nustar(self, zeff, nustar):
-        # Rewrite formula for nustar to form nustar = c1 / Te^2 (c2 + ln(Te))
-        c1 = (6.9224e-5 * zeff * self['elec']['n'] * self['geometry']['q'] *
-              self['geometry']['Ro'] *
-              (self['geometry']['Rmin'] * self['geometry']['x'] /
-               self['geometry']['Ro']) ** -1.5)
-        c2 = 15.2 - 0.5 * np.log(0.1 * self['elec']['n'])
-
-        def Tex(x): return c1 / x ** 2 * (c2 + np.log(x)) - nustar
-
-        # Initial guess
-        Tex0 = np.sqrt(c1 * c2 / nustar)
-        Te = sc.optimize.newton(Tex, Tex0)
-        return Te
+        return calc_zeff(ions)
 
     def match_nustar(self, nustar):
         """ Set Te to match the given Nustar """
         # First set everything needed for nustar: Zeff, Ne, q, R0, Rmin, x
         zeff = self.calc_zeff()
-        self['elec']['T'] = self.calc_te_from_nustar(zeff, nustar)
+        Te = calc_te_from_nustar(
+            zeff,
+            self['elec']['n'],
+            nustar,
+            self['geometry']['q'],
+            self['geometry']['Ro'],
+            self['geometry']['Rmin'],
+            self['geometry']['x']
+        )
+        self['elec']['T'] = Te
 
         # nustar_calc = c1 / Te ** 2 * (c2 + np.log(Te))
         # Sanity check
         # print(np.isclose(nustar_calc, nustar))
 
-    @staticmethod
-    def calc_nustar_from_parts(zeff, ne, Te, q, Ro, Rmin, x):
-        c1 = (6.9224e-5 * zeff * ne *q * Ro * (Rmin * x / Ro) ** -1.5)
-        c2 = 15.2 - 0.5 * np.log(0.1 * ne)
-        nustar = c1 / Te ** 2 * (c2 + np.log(Te))
-        return nustar
-
     def calc_nustar(self):
         """ Calculate Nustar """
         zeff = self.calc_zeff()
-        nustar = self.calc_nustar_from_parts(
+        nustar = calc_nustar_from_parts(
             zeff, self['elec']['n'], self['elec']['T'], self['geometry']['q'],
             self['geometry']['Ro'], self['geometry']['Rmin'], self['geometry']['x'])
         return nustar
@@ -287,43 +286,24 @@ class QuaLiKizXpoint(dict):
 
     def calc_epsilon(self):
         """ Calculate epsilon """
-        return self['geometry']['x'] * self['geometry']['Rmin'] / self['geometry']['Ro']
-
-    @staticmethod
-    def calc_puretor_Machpar_from_parts(Machtor, epsilon, q):
-        if Machtor == 0:
-            warn('Machtor is zero! Machpar will be zero too')
-        return Machtor / np.sqrt(1 + (epsilon / q)**2)
-
-    def set_puretor_Machpar(self):
-        Machpar = self.calc_puretor_Machpar_from_parts(self['Machtor'], self.calc_epsilon(), self['q'])
-        self['geometry']['Machpar'] = Machpar
-
-    @staticmethod
-    def calc_puretor_Autor_from_parts(gammaE, epsilon, q):
-        if gammaE == 0:
-            warn('gammaE is zero! Autor will be zero too')
-        return -gammaE * q / epsilon
-
-    def set_puretor_Autor(self):
-        Autor = self.calc_puretor_Autor_from_parts(self['gammaE'], self.calc_epsilon(), self['q'])
-        self['geometry']['Autor'] = Autor
-
-    @staticmethod
-    def calc_puretor_Aupar_from_parts(Autor, epsilon, q):
-        if Autor == 0:
-            warn('Autor is zero! Aupar will be zero too')
-        return Autor / np.sqrt(1 + (epsilon / q)**2)
-
-    def set_puretor_Aupar(self):
-        Autor = self.calc_puretor_Autor_from_parts(self['gammaE'], self.calc_epsilon(), self['q'])
-        Aupar = self.calc_puretor_Aupar_from_parts(Autor, self.calc_epsilon(), self['q'])
-        self['geometry']['Aupar'] = Aupar
+        return calc_epsilon_from_parts(self['geometry']['x'], self['geometry']['Rmin'], self['geometry']['Ro'])
 
     def set_puretor(self):
-        self.set_puretor_Machpar()
-        self.set_puretor_Autor()
-        self.set_puretor_Aupar()
+        with catch_warnings():
+            if not self['rot_flag']:
+                simplefilter("ignore")
+            epsilon = self.calc_epsilon()
+            q = self['q']
+            abs_var = self['puretor_abs_var']
+            grad_var = self['puretor_grad_var']
+            [Machtor, Machpar] = calc_puretor_absolute(epsilon, q, **{abs_var: self[abs_var]})
+            [Aupar, Autor, gammaE] = calc_puretor_gradient(epsilon, q, **{grad_var: self[grad_var]})
+            self['Machtor'] = Machtor
+            self['Machpar'] = Machpar
+            self['Aupar'] = Aupar
+            self['Autor'] = Autor
+            self['gammaE'] = gammaE
+
 
     class Options(dict):
         """ Wraps options for normalization, assumptions, etc."""
@@ -336,7 +316,9 @@ class QuaLiKizXpoint(dict):
             ('x_eq_rho', True),
             ('recalc_Nustar', False),
             ('recalc_Ti_Te_rel', False),
-            ('assume_tor_rot', True)
+            ('assume_tor_rot', True),
+            ('puretor_abs_var', 'Machtor'),
+            ('puretor_grad_var', 'gammaE'),
         ])
 
         def __init__(self, **kwargs):
@@ -355,7 +337,12 @@ class QuaLiKizXpoint(dict):
                                   Zeff, ne, q, Ro, Rmin, x, rho, ni, ni0 or ni1
                 recalc_Ti_Te_rel: Flag to recalculate Ti after setting Te
                 assume_tor_rot:   Assume pure toroidal rotation. Auto-calculate
-                                  Autor, Machpar, and Aupar from gammaE and Machtor
+                                  Autor, Machpar, and Aupar from puretor_abs_var and
+                                  puretor_grad_var
+                puretor_abs_var:  Variable name to use as fixed for pure toroidal
+                                  rotation absolute value
+                puretor_grad_var: Variable name to use as fixed for pure toroidal
+                                  rotation gradient
             """
 
             key_values = [(arg, kwargs.pop(arg, default)) for arg, default in self.in_args.items()]
@@ -367,7 +354,7 @@ class QuaLiKizXpoint(dict):
         in_args = OrderedDict([
             ('phys_meth'    , 2),
             ('coll_flag'    , True),
-            ('rot_flag'     , False),
+            ('rot_flag'     , 0),
             ('verbose'      , True),
             ('separateflux' , False),
             ('write_primi'  , True),
@@ -396,7 +383,7 @@ class QuaLiKizXpoint(dict):
             kwargs:
                 phys_meth:    Flag for additional calculation of output parameters
                 coll_flag:    Flag for collisionality
-                rot_flag:     Flag for rotation
+                rot_flag:     Flag for rotation [0, 1, 2]
                 verbose:      Flag for level of output verbosity
                 separateflux: Flag for toggling output of separate
                               ITG, TEM, ETG fluxes
@@ -443,13 +430,13 @@ class QuaLiKizXpoint(dict):
                 q:       Local q-profile value
                 smag:    Local magnetic shear s def rq'/q
                 alpha:   Local MHD alpha
-                Machtor: Normalized toroidal velocity
-                gammaE:  Normalized perpendicular ExB flow shear
 
-            Overwritten if assume_tor_rot is True:
+            Might be overwritten if assume_tor_rot is True:
+                Machtor: Normalized toroidal velocity
+                Autor:   Toroidal velocity gradient
                 Machpar: Normalized parallel velocity
                 Aupar:   Parallel velocity gradient
-                Autor:   Toroidal velocity gradient
+                gammaE:  Normalized perpendicular ExB flow shear
             """
             key_values = [(key, kwargs.pop(key)) for key in self.in_args]
             super().__init__(key_values)
@@ -763,7 +750,7 @@ class QuaLiKizPlan(dict):
         recontructed later using the from_json function
         """
         with open(filename, 'w') as file_:
-            json.dump(self, file_, indent=4)
+            json.dump(self, file_, indent=4, default=json_serializer)
 
     @classmethod
     def from_json(cls, filename):

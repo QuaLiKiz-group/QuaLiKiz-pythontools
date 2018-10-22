@@ -54,7 +54,7 @@ setup(
     keywords = 'cli',
     packages = find_packages(exclude=['docs', 'tests*']),
     python_requires='>=3.5',
-    install_requires = ['xarray', 'docopt', 'tabulate', 'scipy', 'matplotlib'],
+    install_requires = ['xarray', 'docopt', 'scipy', 'matplotlib'],
     extras_require = {
         'test': ['coverage', 'pytest', 'pytest-cov'],
         'netCDF4': ['netCDF4']

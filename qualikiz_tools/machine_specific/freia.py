@@ -10,24 +10,19 @@ import subprocess
 import numpy as np
 from IPython import embed
 
-from qualikiz_tools.machine_specific.bash import Run
 from qualikiz_tools.machine_specific.system import Batch
+from qualikiz_tools.machine_specific.bash import Run
 from qualikiz_tools.qualikiz_io.qualikizrun import QuaLiKizRun, QuaLiKizBatch
 from qualikiz_tools.qualikiz_io.inputfiles import QuaLiKizPlan
 
-class Run(Run):
-    def __init__(self, parent_dir, name, binaryrelpath,
-                 stdout=None, stderr=None,
-                 **kwargs):
-
-        if stdout is None:
-            stdout = QuaLiKizRun.default_stdout
-        if stderr is None:
-            stderr = QuaLiKizRun.default_stderr
-        super().__init__(parent_dir, name, binaryrelpath,
-                         stdout=stdout, stderr=stderr,
-                         **kwargs)
-
+THISUSER='whoami'
+BATCHSHARE='ypmatch kplass batchshare'
+MAILADDRESS=THISUSER
+RAM=0
+LINENUMBER=0
+SHELL=0
+NUMPROC=0
+JOBNAME='basename $CMDFILE'
 
 class Batch(Batch):
     """ Defines a batch job
@@ -41,37 +36,17 @@ class Batch(Batch):
         - shell:            The shell to use for sbatch scripts. Usually bash
     """
     # pylint: disable=too-many-instance-attributes
-    attr = ['nodes',
-            'maxtime',
-            'partition',
-            'tasks_per_node',
-            #'vcores_per_task',
-            'filesystem',
-            'name',
-            'repo',
-            'stderr',
-            'stdout',
-            'qos']
-    sbatch = ['nodes',
-              'time',
-              'partition',
-              'ntasks-per-node',
-              #'cpus-per-task',
-              'license',
-              'job-name',
-              'account',
-              'error',
-              'output',
-              'qos']
     shell = '/bin/bash'
     run_class = Run
     defaults = {'stdout': 'stdout.batch',
                 'stderr': 'stderr.batch'}
 
-    def __init__(self, parent_dir, name, runlist, maxtime=None,
+    def __init__(self, parent_dir, name, runlist, tasks=None, maxtime=None,
                  stdout=None, stderr=None,
-                 safetytime=1.5, style='sequential',
-                 **kwargs):
+                 filesystem=None, partition=None,
+                 qos=None, repo=None, HT=None,
+                 vcores_per_task=2,
+                 safetytime=1.5, style='sequential'):
         """ Initialize Edison batch job
 
         Args:
@@ -104,42 +79,63 @@ class Batch(Batch):
             - cores_per_socket: Amount of physical CPU cores in one socket
             - cores_per_node:   Amount of physical CPU cores in one node
         """
-        # Fill (needed) attribute with defaults or None
-        for attribute in self.attr:
-            if attribute  != 'nodes':
-                if attribute in kwargs:
-                    setattr(self, attribute, kwargs[attribute])
-                elif attribute in self.defaults:
-                    setattr(self, attribute, self.defaults[attribute])
-                else:
-                    setattr(self, attribute, None)
+        self.parent_dir = parent_dir
 
-        super().__init__(parent_dir, name, runlist,
-                         stdout=self.stdout, stderr=self.stderr)
+        self.filesystem = filesystem
+        self.repo = repo
+        self.qos = qos
+        self.maxtime = maxtime
+        self.partition = partition
+        self.name = name
+        self.runlist = runlist
+        self.stdout = stdout
+        self.stderr = stderr
+        for name in ['filesystem', 'repo', 'qos', 'maxtime', 'partition', 'name', 'runlist', 'stdout', 'stderr']:
+            if getattr(self, name) is None:
+                if name in self.defaults:
+                    setattr(self, name, self.defaults[name])
 
+        if HT:
+            vcores_per_core = 2  # Per definition, not for KNL..
+        else:
+            vcores_per_core = 1
+        # HT 48 or no HT 24
+        self.vcores_per_node = Run.cores_per_node * vcores_per_core
+        self.vcores_per_task = vcores_per_task  # 2, as per QuaLiKiz
+        self.tasks_per_node = int(self.vcores_per_node / self.vcores_per_task)
         if style == 'sequential':
-            task_array = np.array([run.tasks for run in self.runlist])
-            cores_per_node = self.run_class.defaults['cores_per_node']
-            nodes_array = np.array([run.nodes for run in self.runlist])
-            cores_array = cores_per_node * nodes_array
-            if any(cores_array != task_array):
-                warn('Warning! More than 1 task per physical core! Walltime might be inaccurate')
+            task_list = [run.tasks for run in self.runlist]
+            if tasks is None:
+                tasks = np.max(task_list)
 
-            totwallsec = np.sum([run.estimate_walltime(run.nodes * cores_per_node) for run in self.runlist])
+            vcores = self.vcores_per_task * tasks
+
+            totwallsec = np.sum([run.estimate_walltime(vcores) for run in self.runlist])
             totwallsec *= safetytime
             m, s = divmod(totwallsec, 60)
             h, m = divmod((m + 1), 60)
 
             # TODO: generalize for non-edison machines
-            if self.partition == 'debug' and (h >= 1 or m >= 30):
+            if partition == 'debug' and (h >= 1 or m >= 30):
                 warn('Walltime requested too high for debug partition')
             self.maxtime = ("%d:%02d:%02d" % (h, m, s))
+
+            self.nodes = self.calc_nodes(tasks, self.tasks_per_node)
+
         else:
             raise NotImplementedError('Style {!s} not implemented yet.'.format(style))
 
-    @property
-    def nodes(self):
-        return max([run.nodes for run in self.runlist])
+    @staticmethod
+    def calc_nodes(tasks, tasks_per_node):
+        nodes, remainder = divmod(tasks, tasks_per_node)
+        nodes = int(nodes)
+        if remainder != 0:
+            nodes += 1
+            warn(str(tasks) + ' tasks not evenly divisible over ' +
+                 str(tasks_per_node) + ' tasks per node. Using ' +
+                 str(nodes) + ' nodes.')
+
+        return nodes
 
     def launch(self):
         self.inputbinaries_exist()
@@ -147,19 +143,21 @@ class Batch(Batch):
         paths = []
         batch_dir = os.path.join(self.parent_dir, self.name)
 
-        cmd = ' '.join(['cd', batch_dir, '&&',
-                        'sbatch', self.scriptname])
+        cmd = ' '.join(['sbatch'    ,
+                           '--chdir'  , batch_dir     ,
+                                        self.scriptname])
         out = subprocess.check_output(cmd, shell=True)
         print(out.strip().decode('ascii'))
 
-    def to_batch_file(self, script_path, overwrite_batch_script=False, **kwargs):
+    def to_batch_file(self, filename=None, **kwargs):
         """ Writes sbatch script to file
 
         Args:
             - path: Path of the sbatch script file.
         """
-        if os.path.isfile(script_path) and not overwrite_batch_script:
-            raise OSError("Script path '{!s}' already exists".format(script_path))
+        if filename is None:
+            filename = self.scriptname
+
         sbatch_lines = ['#!' + self.shell + ' -l\n']
         for attr, sbatch in zip(self.attr, self.sbatch):
             value = getattr(self, attr)
@@ -167,16 +165,16 @@ class Batch(Batch):
                 line = '#SBATCH --' + sbatch + '=' + str(value) + '\n'
                 sbatch_lines.append(line)
 
-        sbatch_lines.append('\nexport OMP_NUM_THREADS=2\n\n')
+        sbatch_lines.append('\nexport OMP_NUM_THREADS=' +
+                            str(self.vcores_per_task) + '\n')
 
         # Write sruns to file
-        batchdir = os.path.join(self.parent_dir, self.name)
-        for ii, run_instance in enumerate(self.runlist):
-            sbatch_lines.append('\necho "Starting job {:d}/{:d}"'.format(ii + 1, len(self.runlist)))
-            sbatch_lines.append('\n' + run_instance.to_batch_string(batchdir))
-        sbatch_lines.append('\necho "All jobs done!"\n')
+        for run_instance in self.runlist:
+            sbatch_lines.append('\n' + run_instance.to_batch_string())
+        sbatch_lines.append('\n')
 
-        with open(script_path, 'w') as file:
+        batchdir = os.path.join(self.parent_dir, self.name)
+        with open(os.path.join(batchdir, filename), 'w') as file:
             file.writelines(sbatch_lines)
 
     @classmethod
@@ -193,7 +191,7 @@ class Batch(Batch):
                     if name in cls.sbatch:
                         batch_dict[cls.attr[cls.sbatch.index(name)]] = value
                         #setattr(new, cls.attr[cls.sbatch.index(name)], value)
-                if line.startswith(cls.run_class.runstring):
+                if line.startswith('srun'):
                     srun_strings.append(line)
 
         #try:
@@ -208,7 +206,7 @@ class Batch(Batch):
         try:
             runlist = []
             for srun_string in srun_strings:
-                runlist.append(cls.run_class.from_batch_string(srun_string, batch_dir))
+                runlist.append(cls.run_class.from_batch_string(batch_dir, srun_string))
         except FileNotFoundError:
             raise Exception('Could not reconstruct run from string: {!s}'.format(srun_string))
 
@@ -221,7 +219,7 @@ class Batch(Batch):
         return batch
 
     @classmethod
-    def from_dir(cls, batchdir, run_kwargs=None, batch_kwargs=None, **kwargs):
+    def from_dir(cls, batchdir, run_kwargs=None, batch_kwargs=None):
         if batch_kwargs is None:
             batch_kwargs = {}
         if run_kwargs is None:

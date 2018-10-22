@@ -78,8 +78,12 @@ class TestGeometric(TestCase):
                  'q':3.,
                  'smag':2.,
                  'alpha':0.,
+                 'gammaE': 0.,
+                 'Machpar': 0.,
                  'Machtor': 0.,
-                 'Autor':0.}
+                 'Aupar': 0.,
+                 'Autor':0.,
+                 }
     def SetUp(TestCase):
         Geometric(**geometric)
     def test_initialization(self):
@@ -91,55 +95,66 @@ class TestQuaLiKizXpoint(TestCase):
         defaults = {}
         defaults.update(TestMeta.meta)
         defaults.update(TestGeometric.geometric)
-        norm = {'ninorm1': False,
-                'Ani1':    False,
-                'QN_grad': False,
-                'x_rho':   False}
-        defaults.update(norm)
+        options = {
+                'set_qn_normni': False,
+                'set_qn_normni_ion': 0,
+                'set_qn_An': False,
+                'set_qn_An_ion': 0,
+                'check_qn': False,
+                'x_eq_rho': False,
+                'recalc_Nustar': False,
+                'recalc_Ti_Te_rel': False,
+                'assume_tor_rot': False,
+                'recalc_Nustar': False,
+                'recalc_Ti_Te_rel': False,
+                'assume_tor_rot': False
+        }
+        defaults.update(options)
         self.baseXpoint = QuaLiKizXpoint(TestSpecial.kthetarhos,
                                          self.elec, self.ions, **defaults)
 
     def test_initialize(self):
-        TestParticles.setUp(self)
-        defaults = {}
-        defaults.update(TestMeta.meta)
-        defaults.update(TestGeometric.geometric)
-        norm = {'ninorm1': True,
-                'Ani1':    True,
-                'QN_grad': True,
-                'x_rho':   True}
-        defaults.update(norm)
-        self.baseXpoint = QuaLiKizXpoint(TestSpecial.kthetarhos,
-                                         self.elec, self.ions, **defaults)
+        pass
 
-    def test_normalize_density(self):
-        self.baseXpoint['ninorm'] = True
+    def test_set_qn_normni_ion_n(self):
+        self.baseXpoint['options']['set_qn_normni'] = True
+        self.baseXpoint['options']['set_qn_normni_ion'] = 0
+
         self.baseXpoint['ions'][0]['Z'] = 2
+        self.baseXpoint['ions'][1]['Z'] = 6
+        self.baseXpoint['ions'][2]['Z'] = 4
         n0s = [0.05, 0.2, 0.365, 0.497]
         n1s = [0.15, 0.1, 0.045, 0.001]
+        print('test set_qn')
         for n0, n1 in zip(n0s, n1s):
             self.baseXpoint['ions'][0]['n'] = 0.
             self.baseXpoint['ions'][1]['n'] = n1
-            self.baseXpoint.normalize_density()
+            self.baseXpoint.set_qn_normni_ion_n()
             self.assertAlmostEqual(self.baseXpoint['ions'][0]['n'], n0)
-            
+
         self.baseXpoint['ions'][2]['type'] = 1
         for n0, n1 in zip(n0s, n1s):
             self.baseXpoint['ions'][0]['n'] = 0.
             self.baseXpoint['ions'][1]['n'] = n1/3
-            self.baseXpoint['ions'][2]['n'] = 2*n1/3
-            self.baseXpoint.normalize_density()
+            self.baseXpoint['ions'][2]['n'] = n1
+            self.baseXpoint.set_qn_normni_ion_n()
             self.assertAlmostEqual(self.baseXpoint['ions'][0]['n'], n0)
 
-    def test_normalize_density_sanity(self):
+    def test_set_qn_An_ion_n_sanity(self):
+        self.baseXpoint['options']['set_qn_normni'] = True
+        self.baseXpoint['options']['set_qn_normni_ion'] = 0
+
         self.baseXpoint['ions'][1]['n'] = .9
+        self.baseXpoint.set_qn_An_ion_n()
         self.assertRaisesRegex(Exception,
                                'Quasineutrality results in*',
-                               self.baseXpoint.normalize_density)
+                               self.baseXpoint.set_qn_An_ion_n())
 
 
-    def test_normalize_density(self):
-        self.baseXpoint['Ani1'] = True
+    def test_set_qn_An_ion_n(self):
+        self.baseXpoint['options']['set_qn_An'] = True
+        self.baseXpoint['options']['set_qn_An_ion'] = 0
+
         self.baseXpoint['ions'][0]['Z'] = 2
         An0s = [(5-0.09)/1.8, (5-0.06)/1.8,
                 (5-0.027)/1.8, (5-0.0006)/1.8]
@@ -147,7 +162,7 @@ class TestQuaLiKizXpoint(TestCase):
         for An0, An1 in zip(An0s, An1s):
             self.baseXpoint['ions'][0]['An'] = 0.
             self.baseXpoint['ions'][1]['An'] = An1
-            self.baseXpoint.normalize_gradient()
+            self.baseXpoint.set_qn_An_ion_n()
             self.assertAlmostEqual(self.baseXpoint['ions'][0]['An'], An0)
 
         self.baseXpoint['ions'][2]['type'] = 1
@@ -155,11 +170,11 @@ class TestQuaLiKizXpoint(TestCase):
             self.baseXpoint['ions'][0]['An'] = 0.
             self.baseXpoint['ions'][1]['An'] = An1/3
             self.baseXpoint['ions'][2]['An'] = 3*An1/3
-            self.baseXpoint.normalize_gradient()
+            self.baseXpoint.set_qn_An_ion_n()
             self.assertAlmostEqual(self.baseXpoint['ions'][0]['An'], An0)
 
     def test_check_quasi(self):
-        self.baseXpoint['norm']['QN_grad'] = True
+        self.baseXpoint['options']['check_qn'] = True
         self.assertRaisesRegex(Exception,
                                'Quasineutrality violated!',
                                self.baseXpoint.check_quasi)
@@ -179,10 +194,9 @@ class TestQuaLiKizXpoint(TestCase):
                        'anise','anisi1',
                        'danisdre', 'danisdri1',
                        'Ai1', 'Zi1']
-        test_params += (QuaLiKizXpoint.Meta.keynames +
+        test_params += (list(QuaLiKizXpoint.Meta.in_args.keys()) +
                         QuaLiKizXpoint.Geometry.in_args +
-                        QuaLiKizXpoint.Geometry.extra_args +
-                        ['ninorm1', 'Ani1', 'QN_grad', 'x_rho'])
+                        list(QuaLiKizXpoint.Options.in_args.keys()))
 
         for param in test_params:
             self.baseXpoint[param] = 50
@@ -201,12 +215,12 @@ class TestQuaLiKizXpoint(TestCase):
         self.assertRaisesRegex(NotImplementedError,
                                'getting of*',
                                self.baseXpoint.__getitem__,
-                               'made upi')
-        self.baseXpoint['norm']['ninorm1'] = True
+                               'made up')
+        self.baseXpoint['options']['set_qn_normni'] = True
         self.baseXpoint.__setitem__('ni2', 5)
-        self.baseXpoint['norm']['Ani1'] = True
+        self.baseXpoint['options']['set_qn_An'] = True
         self.baseXpoint.__setitem__('ni2', 5)
-        self.baseXpoint['norm']['QN_grad'] = True
+        self.baseXpoint['options']['check_qn'] = True
         self.baseXpoint.__setitem__('ni2', 5)
 
     def test_setitem_arrays(self):
