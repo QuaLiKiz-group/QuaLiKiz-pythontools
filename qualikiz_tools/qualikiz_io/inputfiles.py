@@ -571,7 +571,7 @@ class QuaLiKizPlan(dict):
             if lenlist[:-1] == lenlist[1:]:
                 dimx = int(lenlist[0])
             else:
-                raise Exception('scan_disc lists of unequal lenght: {!s}'.format(lenlist))
+                raise Exception('scan_disc lists of unequal length: {!s}'.format(lenlist))
         else:
             raise Exception('Unknown scan_type \'' + self['scan_type'] + '\'')
         return dimx
