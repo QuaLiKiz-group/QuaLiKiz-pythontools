@@ -48,6 +48,7 @@ class QuaLiKizRun:
         default_stderr: Default name to write STDERR to
     """
     parameterspath = 'parameters.json'
+    labellistpath = 'labels.txt'
     outputdir = 'output'
     primitivedir = 'output/primitive'
     debugdir = 'debug'
@@ -60,7 +61,8 @@ class QuaLiKizRun:
                  qualikiz_plan=None,
                  stdout=None,
                  stderr=None,
-                 verbose=False):
+                 verbose=False,
+                 labellist=None):
         """ Initialize an empty QuaLiKiz run
         Args:
             parent_dir:    Parent of where the run folder will be.
@@ -99,6 +101,12 @@ class QuaLiKizRun:
             templatepath = os.path.join(ROOT, 'parameters_template.json')
             qualikiz_plan = QuaLiKizPlan.from_json(templatepath)
         self.qualikiz_plan = qualikiz_plan
+
+        self.labellist = labellist
+        if self.labellist is not None:
+            dimx = self.qualikiz_plan.calculate_dimx()
+            if dimx != len(self.labellist):
+                warn('Length of labellist ({!s}) does not match dimx ({!s}) of qualikiz_plan.'.format(len(self.labellist), dimx))
 
     def prepare(self, overwrite=None):
         """ Write all Run folders to file
@@ -162,6 +170,13 @@ class QuaLiKizRun:
 
         if conversion is not None:
             conversion(inputdir)
+
+        if self.labellist is not None:
+            dimx = self.qualikiz_plan.calculate_dimx()
+            if dimx != len(self.labellist):
+                raise Exception('Length of labellist ({!s}) does not match dimx ({!s}) of qualikiz_plan.'.format(len(self.labellist), dimx))
+            with open(os.path.join(self.rundir, self.labellistpath), 'w') as f:
+                f.writelines([str(lbl) + '\n' for lbl in self.labellist])
 
     def inputbinaries_exist(self):
         """ Check if the input binaries exist
@@ -275,9 +290,19 @@ class QuaLiKizRun:
             warn('Could not find link to QuaLiKiz binary. Please supply \'binaryrelpath\'')
         #binarybasepath = os.path.basename(binaryrelpath)
         #binaryrelpath = os.readlink(os.path.join(rundir, binarybasepath))
+        llp = os.path.join(rundir, cls.labellistpath)
+        if os.path.isfile(llp):
+            with open(llp) as f:
+                labellist = [line.strip() for line in f]
+        else:
+            labellist = None
+        dimx = qualikiz_plan.calculate_dimx()
+        if dimx != len(labellist):
+            warn('Length of labellist ({!s}) does not match dimx ({!s}) of qualikiz_plan.'.format(len(labellist), dimx))
         return QuaLiKizRun(parent_dir, name, binaryrelpath,
                            qualikiz_plan=qualikiz_plan,
-                           stdout=stdout, stderr=stderr)
+                           stdout=stdout, stderr=stderr,
+                           labellist=labellist)
 
     def clean(self):
         """ Cleans run folder to state before it was run """
@@ -779,6 +804,11 @@ def run_to_netcdf(path, runmode='dimx', overwrite=None,
         ds = convert_debug(sizes, path, genfromtxt=genfromtxt, keepfile=keepfile)
         ds = convert_output(ds, sizes, path, genfromtxt=genfromtxt, keepfile=keepfile)
         ds = convert_primitive(ds, sizes, path, genfromtxt=genfromtxt, keepfile=keepfile)
+        llp = os.path.join(path, QuaLiKizRun.labellistpath)
+        if os.path.isfile(llp):
+            with open(llp) as f:
+                labellist = [line.strip() for line in f]
+            ds.coords['labels'] = xr.DataArray(labellist, dims=('dimx'))
         if runmode == 'orthogonal':
             ds = squeeze_dataset(ds, extra_squeeze=extra_squeeze, Te_var=Te_var)
             ds = orthogonalize_dataset(ds)

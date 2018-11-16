@@ -157,7 +157,7 @@ class Run(Run):
         if qualikiz_run.stderr == QuaLiKizRun.default_stderr:
             qualikiz_run.stderr = None
         return cls(parent_dir, name, qualikiz_run.binaryrelpath,
-                   stdout=qualikiz_run.stdout, stderr=qualikiz_run.stderr, qualikiz_plan=qualikiz_run.qualikiz_plan,
+                   stdout=qualikiz_run.stdout, stderr=qualikiz_run.stderr, qualikiz_plan=qualikiz_run.qualikiz_plan, labellist=qualikiz_run.labellist,
                    **kwargs)
 
     def launch(self):
