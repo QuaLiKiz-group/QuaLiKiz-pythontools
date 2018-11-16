@@ -284,6 +284,10 @@ class Batch(Batch):
 
         return batch
 
+    @classmethod
+    def from_dir(cls, dir, *args, **kwargs):
+        return cls.from_subdirs(dir, *args, **kwargs)
+
     def launch(self):
         """ Launch QuaLiKizBatch using a batch script with mpirun
         """
