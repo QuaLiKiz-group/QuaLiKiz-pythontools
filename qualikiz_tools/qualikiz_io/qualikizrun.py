@@ -294,11 +294,11 @@ class QuaLiKizRun:
         if os.path.isfile(llp):
             with open(llp) as f:
                 labellist = [line.strip() for line in f]
+            dimx = qualikiz_plan.calculate_dimx()
+            if dimx != len(labellist):
+                warn('Length of labellist ({!s}) does not match dimx ({!s}) of qualikiz_plan.'.format(len(labellist), dimx))
         else:
             labellist = None
-        dimx = qualikiz_plan.calculate_dimx()
-        if dimx != len(labellist):
-            warn('Length of labellist ({!s}) does not match dimx ({!s}) of qualikiz_plan.'.format(len(labellist), dimx))
         return QuaLiKizRun(parent_dir, name, binaryrelpath,
                            qualikiz_plan=qualikiz_plan,
                            stdout=stdout, stderr=stderr,
