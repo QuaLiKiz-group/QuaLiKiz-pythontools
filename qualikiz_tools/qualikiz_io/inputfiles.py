@@ -179,6 +179,9 @@ class QuaLiKizXpoint(dict):
                             str([ion['Z'] for ion in self['ions']]) +
                             ' and n = ' +
                             str([ion['n'] for ion in self['ions']]))
+        if var_normni == 0:
+            raise Exception('Quasineutrality results in 0 density for ion {!s}'.format(var_ion))
+
         self['ions'][var_ion]['n'] = var_normni
 
     def set_qn_An_ion_n(self):
