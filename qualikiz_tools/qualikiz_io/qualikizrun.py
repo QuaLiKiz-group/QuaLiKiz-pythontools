@@ -820,7 +820,7 @@ def qlk_from_dir(dir, batch_class=QuaLiKizBatch, run_class=None, verbose=False, 
         if verbose:
             print('Trying to reconstruct run')
         if prioritize_batch:
-            raise OSError('Dummy error')
+            raise OSError('Error to trigger creation from Batch instead of Run')
         qlk_instance = run_class.from_dir(dir, **kwargs)
         dirtype = 'run'
     except OSError:
