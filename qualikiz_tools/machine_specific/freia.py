@@ -12,17 +12,51 @@ from IPython import embed
 
 from qualikiz_tools.machine_specific.system import Batch
 from qualikiz_tools.machine_specific.bash import Run
-from qualikiz_tools.qualikiz_io.qualikizrun import QuaLiKizRun, QuaLiKizBatch
-from qualikiz_tools.qualikiz_io.inputfiles import QuaLiKizPlan
+from qualikiz_tools.qualikiz_io.qualikizrun import QuaLiKizRun
 
-THISUSER='whoami'
-BATCHSHARE='ypmatch kplass batchshare'
-MAILADDRESS=THISUSER
-RAM=0
-LINENUMBER=0
-SHELL=0
-NUMPROC=0
-JOBNAME='basename $CMDFILE'
+class Run(Run):
+    def __init__(self, parent_dir, name, binaryrelpath,
+                 stdout=None, stderr=None,
+                 **kwargs):
+
+        if stdout is None:
+            stdout = Run.default_stdout
+        if stderr is None:
+            stderr = Run.default_stderr
+        super().__init__(parent_dir, name, binaryrelpath,
+                         stdout=stdout, stderr=stderr,
+                         **kwargs)
+        self.runstring = 'mpiexec'
+
+    def to_batch_string(self, batch_dir):
+        """ Create string to include in batch job
+
+        This string will be used in the batch script file that runs the jobs.
+
+        Args:
+            batch_dir: Directory the batch script lives in. Needed to
+                       generate the relative paths.
+        """
+        paths = []
+        for path in [self.stdout, self.stderr]:
+            if os.path.isabs(path):
+                pass
+            else:
+                path = os.path.normpath(os.path.join(os.path.relpath(self.rundir, batch_dir), path))
+            paths.append(path)
+        if self.binaryrelpath is None:
+            raise FileNotFoundError('No binary rel path specified, could not find link to QuaLiKiz binary in {!s}'.format(self.rundir))
+
+        string = ' '.join([self.runstring ,
+                           '-np $NSLOTS',
+                           '-wdir'  , os.path.normpath(os.path.relpath(self.rundir, batch_dir)),
+                                      './' + os.path.basename(self.binaryrelpath)])
+        if self.stdout != 'STDOUT':
+            string += ' > ' + paths[0]
+        if self.stderr != 'STDERR':
+            string += ' 2> ' + paths[1]
+        return string
+
 
 class Batch(Batch):
     """ Defines a batch job
@@ -36,35 +70,37 @@ class Batch(Batch):
         - shell:            The shell to use for sbatch scripts. Usually bash
     """
     # pylint: disable=too-many-instance-attributes
+    attr = [
+        'name',
+        'stdout',
+        'stderr'
+    ]
     shell = '/bin/bash'
     run_class = Run
-    defaults = {'stdout': 'stdout.batch',
-                'stderr': 'stderr.batch'}
+    defaults = {'stdout': 'qualikiz.batch.o*',
+                'stderr': 'qualikiz.batch.e*',
+                'cores_per_node': 16,
+                }
 
-    def __init__(self, parent_dir, name, runlist, tasks=None, maxtime=None,
+    def __init__(self, parent_dir, name, runlist, tasks=None,
                  stdout=None, stderr=None,
-                 filesystem=None, partition=None,
-                 qos=None, repo=None, HT=None,
+                 HT=False,
                  vcores_per_task=2,
-                 safetytime=1.5, style='sequential'):
-        """ Initialize Edison batch job
+                 safetytime=1.5, style='sequential',
+                 **kwargs):
+        """ Initialize Freia batch job
 
         Args:
-            - srun_instances: List of Srun instances included in the Sbatch job
-            - name:           Name of the Sbatch job
-            - tasks:          Amount of MPI tasks
-            - maxtime:        Maximum walltime needed
-            - ncpu:      Amount of cpus to be used
+            - parent_dir:     Path to the directory this batchs folder
+                              will be created
+            - name:           Name of the Batch job. Will be the name
+                              of the folder created
+            - runlist:        List of Run instances included in this Batch
 
         Kwargs:
             - stdout:     File to write stdout to. By default 'stdout.batch'
             - stderr:     File to write stderr to. By default 'stderr.batch'
-            - filesystem: The default filesystem to use. Usually SCRATCH
-            - partition:  Partition to run on, for example 'debug'. By default
-                          'regular'
-            - qos:        Priority in the queue. By default 'normal'
-            - repo:       The default repo to bill hours to. Usually None
-            - HT:         Hyperthreading on/off. Default=True
+            - HT:         Hyperthreading on/off. Default=False
             - vcores_per_task: Amount of cores to use per task
             - safetytime: An extra factor that will be used in the calculation
                           of requested runtime. 1.5x by default
@@ -73,34 +109,28 @@ class Batch(Batch):
 
 
         Calculated:
-            - threads_per_core: amount of OMP threads per physical core
-            - threads_per_node: amount of OMP threads per compute node
-            - sockets_per_node: Amount of sockets in one compute node
-            - cores_per_socket: Amount of physical CPU cores in one socket
-            - cores_per_node:   Amount of physical CPU cores in one node
+            - vcores_per_node: Amount of virtual cores per compute node.
+            - vcores_per_task: Amount of virtual cores per MPI task. Should be 2
+            - tasks_per_node:  Amount of MPI tasks per node
+            - nodes:           Amount of nodes needed for this batch
+            - maxtime:         Amount of time to request from submission system
         """
-        self.parent_dir = parent_dir
+        for attribute in self.attr:
+            if attribute  != 'nodes':
+                if attribute in kwargs:
+                    setattr(self, attribute, kwargs[attribute])
+                elif attribute in self.defaults:
+                    setattr(self, attribute, self.defaults[attribute])
+                else:
+                    setattr(self, attribute, None)
 
-        self.filesystem = filesystem
-        self.repo = repo
-        self.qos = qos
-        self.maxtime = maxtime
-        self.partition = partition
-        self.name = name
-        self.runlist = runlist
-        self.stdout = stdout
-        self.stderr = stderr
-        for name in ['filesystem', 'repo', 'qos', 'maxtime', 'partition', 'name', 'runlist', 'stdout', 'stderr']:
-            if getattr(self, name) is None:
-                if name in self.defaults:
-                    setattr(self, name, self.defaults[name])
+        super().__init__(parent_dir, name, runlist,
+                         stdout=self.stdout, stderr=self.stderr)
 
-        if HT:
-            vcores_per_core = 2  # Per definition, not for KNL..
-        else:
-            vcores_per_core = 1
+        if HT is True:
+            warn('No hyperthreading on Freia! Ignoring..')
         # HT 48 or no HT 24
-        self.vcores_per_node = Run.cores_per_node * vcores_per_core
+        self.vcores_per_node = Run.defaults['cores_per_node']
         self.vcores_per_task = vcores_per_task  # 2, as per QuaLiKiz
         self.tasks_per_node = int(self.vcores_per_node / self.vcores_per_task)
         if style == 'sequential':
@@ -115,9 +145,6 @@ class Batch(Batch):
             m, s = divmod(totwallsec, 60)
             h, m = divmod((m + 1), 60)
 
-            # TODO: generalize for non-edison machines
-            if partition == 'debug' and (h >= 1 or m >= 30):
-                warn('Walltime requested too high for debug partition')
             self.maxtime = ("%d:%02d:%02d" % (h, m, s))
 
             self.nodes = self.calc_nodes(tasks, self.tasks_per_node)
@@ -143,95 +170,45 @@ class Batch(Batch):
         paths = []
         batch_dir = os.path.join(self.parent_dir, self.name)
 
-        cmd = ' '.join(['sbatch'    ,
-                           '--chdir'  , batch_dir     ,
-                                        self.scriptname])
+        cmd = ' '.join([
+            'cd',
+            batch_dir,
+            '&& qsub',
+            self.scriptname,
+        ])
         out = subprocess.check_output(cmd, shell=True)
         print(out.strip().decode('ascii'))
 
     def to_batch_file(self, filename=None, **kwargs):
         """ Writes sbatch script to file
 
-        Args:
-            - path: Path of the sbatch script file.
+        Kwargs:
+            - filename: Name of the generated Batch file
+                        [Default: qualikiz.batch]
         """
         if filename is None:
             filename = self.scriptname
 
-        sbatch_lines = ['#!' + self.shell + ' -l\n']
-        for attr, sbatch in zip(self.attr, self.sbatch):
-            value = getattr(self, attr)
-            if value is not None:
-                line = '#SBATCH --' + sbatch + '=' + str(value) + '\n'
-                sbatch_lines.append(line)
+        #sbatch_lines = ['#!' + self.shell + ' -l\n']
+        #for attr, sbatch in zip(self.attr, self.sbatch):
+        #    value = getattr(self, attr)
+        #    if value is not None:
+        #        line = '#SBATCH --' + sbatch + '=' + str(value) + '\n'
+        #        sbatch_lines.append(line)
+        lines = ['#$ -cwd\n']
+        lines.append('#$ -pe openmpi {0:d}-{0:d}\n'.format(self.nodes * self.tasks_per_node))
 
-        sbatch_lines.append('\nexport OMP_NUM_THREADS=' +
+        lines.append('\nexport OMP_NUM_THREADS=' +
                             str(self.vcores_per_task) + '\n')
 
         # Write sruns to file
-        for run_instance in self.runlist:
-            sbatch_lines.append('\n' + run_instance.to_batch_string())
-        sbatch_lines.append('\n')
-
         batchdir = os.path.join(self.parent_dir, self.name)
+        for run_instance in self.runlist:
+            lines.append('\n' + run_instance.to_batch_string(batchdir))
+        lines.append('\n')
+
         with open(os.path.join(batchdir, filename), 'w') as file:
-            file.writelines(sbatch_lines)
-
-    @classmethod
-    def from_batch_file(cls, path, **kwargs):
-        """ Reconstruct sbatch from sbatch file """
-        srun_strings = []
-        batch_dict = {}
-        with open(path, 'r') as file:
-            for line in file:
-                if line.startswith('#SBATCH --'):
-                    line = line.lstrip('#SBATCH --')
-                    name, value = line.split('=')
-                    value = str_to_number(value.strip())
-                    if name in cls.sbatch:
-                        batch_dict[cls.attr[cls.sbatch.index(name)]] = value
-                        #setattr(new, cls.attr[cls.sbatch.index(name)], value)
-                if line.startswith('srun'):
-                    srun_strings.append(line)
-
-        #try:
-        #    getattr(new, 'repo')
-        #except AttributeError:
-        #    setattr(new, 'repo', None)
-
-        #new.vcores_per_node = new.tasks_per_node * new.vcores_per_task
-        batch_dir = os.path.dirname(os.path.abspath(path))
-        batch_name = os.path.basename(batch_dir)
-        batch_parent = os.path.dirname(batch_dir)
-        try:
-            runlist = []
-            for srun_string in srun_strings:
-                runlist.append(cls.run_class.from_batch_string(batch_dir, srun_string))
-        except FileNotFoundError:
-            raise Exception('Could not reconstruct run from string: {!s}'.format(srun_string))
-
-        check_vars = {}
-        for var in ['nodes', 'tasks_per_node', 'name']:
-            if var in batch_dict:
-                check_vars[var] = batch_dict.pop(var)
-
-        batch = Batch(batch_parent, batch_name, runlist, **batch_dict)
-        return batch
-
-    @classmethod
-    def from_dir(cls, batchdir, run_kwargs=None, batch_kwargs=None):
-        if batch_kwargs is None:
-            batch_kwargs = {}
-        if run_kwargs is None:
-            run_kwargs = {}
-        path = os.path.join(batchdir, cls.scriptname)
-        try:
-            new = cls.from_batch_file(path, **batch_kwargs)
-        except FileNotFoundError:
-            warn('{!s} not found! Falling back to subdirs'.format(path))
-            new = cls.from_subdirs(batchdir, run_kwargs=run_kwargs)
-        return new
-
+            file.writelines(lines)
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
