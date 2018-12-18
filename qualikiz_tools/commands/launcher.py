@@ -26,6 +26,10 @@ from qualikiz_tools.qualikiz_io.qualikizrun import QuaLiKizRun, QuaLiKizBatch, q
 from qualikiz_tools import __version__ as VERSION
 from qualikiz_tools import __path__ as ROOT
 ROOT = ROOT[0]
+try:
+    ModuleNotFoundError
+except NameError:
+    ModuleNotFoundError = ImportError
 
 if __name__ == '__main__':
     print (docopt(__doc__))
