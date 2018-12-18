@@ -151,7 +151,8 @@ class QuaLiKizXpoint(dict):
         self['options'] = self.Options(**{name: kwargs.pop(name)
                                           for name in self.Options.in_args
                                           if name in kwargs})
-        assert len(kwargs) == 0, "unrecognized params: %s" % ", ".join(kwargs.keys())
+        if len(kwargs) != 0:
+            warn("unrecognized params: %s. Ignoring" % ", ".join(kwargs.keys()))
 
     def get_other_non_trace_ions(self, ion_index):
         if ion_index > len(self['ions']) - 1:
