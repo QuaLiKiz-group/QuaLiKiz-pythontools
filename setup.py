@@ -53,7 +53,7 @@ setup(
     ],
     keywords = 'cli',
     packages = find_packages(exclude=['docs', 'tests*']),
-    python_requires='>=3.5',
+    python_requires='>=3.4',
     install_requires = ['xarray', 'docopt', 'scipy', 'matplotlib'],
     extras_require = {
         'test': ['coverage', 'pytest', 'pytest-cov'],
