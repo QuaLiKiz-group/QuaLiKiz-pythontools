@@ -80,14 +80,18 @@ def run(args):
             raise Exception('No datasets found')
         else:
             datasets = []
+            names = []
             for file_path in dataset_paths:
                 ds = xr.open_dataset(file_path)
+                name = os.path.splitext(os.path.basename(file_path))[0]
                 datasets.append(ds)
+                names.append(name)
 
             build_plot(datasets, args['--flux'], args['--norm'],
                        instability_tag=args['--mode'],
                        sum_hydrogen=sum_hydrogen,
-                       drop_non_hydrogen=drop_non_hydrogen
+                       drop_non_hydrogen=drop_non_hydrogen,
+                       names=names,
                        )
 
     elif args['<target_path>'][0] in ['help', None]:

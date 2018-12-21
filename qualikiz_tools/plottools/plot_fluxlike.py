@@ -5,6 +5,7 @@ License: CeCILL v2.1
 """
 import warnings
 from collections import OrderedDict
+from itertools import cycle, chain
 
 import numpy as np
 import pandas as pd
@@ -57,7 +58,7 @@ def change_efeline():
     pass
 
 
-def build_plot(datasets, flux_type, normalization, instability_tag='', sum_hydrogen=True, drop_non_hydrogen=True, lowwave_boundry=2):
+def build_plot(datasets, flux_type, normalization, instability_tag='', sum_hydrogen=True, drop_non_hydrogen=True, lowwave_boundry=2, names=None):
     squeezed = []
     for dataset in datasets:
         squeeze = squeeze_dataset(dataset)
@@ -66,6 +67,7 @@ def build_plot(datasets, flux_type, normalization, instability_tag='', sum_hydro
             squeeze.coords['Zi'] = xr.DataArray(np.tile(squeeze['Zi'], (1, len(squeeze['nions']))), dims=['set', 'nions'])
         if 'dimx' not in squeeze['Zi'].dims:
             squeeze.coords['Zi'] = xr.DataArray([np.tile(squeeze['Zi'].data, (len(squeeze['dimx']), 1))], dims=['set', 'dimx', 'nions'])
+        squeeze.reset_coords('Zi', inplace=True)
         squeezed.append(squeeze)
 
     try:
@@ -140,12 +142,18 @@ def build_plot(datasets, flux_type, normalization, instability_tag='', sum_hydro
 
     # Extract part of dataset and plot it
     idx = pd.IndexSlice
+    cmap = plt.get_cmap('tab10')
+    colors = {set: color for set, color in zip(chain([-1], ds.nions.values), cycle(cmap.colors))}
+    linestyles = {set: style for set, style in zip(chain(ds.set.values), cycle(['-', '--', '-.', ':']))}
     try:
         efelike_table = efelike[[target_efelike]].join(scan_dim)
     except KeyError:
         print('No electron data found for {!s}'.format(target_efelike))
     else:
-        efelike_table.plot(x=scan_dim.name, ax=axes['flux'], marker='o')
+        efelike_table.plot(x=scan_dim.name, ax=axes['flux'], marker='o',
+                           color=[colors[-1] for col in efelike_table if isinstance(col, tuple)],
+                           style=[linestyles[col[1]] for col in efelike_table if isinstance(col, tuple)],
+                           )
 
     pd.options.mode.chained_assignment = None # Ignore pandas warnings
     try:
@@ -177,7 +185,10 @@ def build_plot(datasets, flux_type, normalization, instability_tag='', sum_hydro
 
 
         efilike_table = efilike_table.join(scan_dim)
-        efilike_table.plot(x=scan_dim.name, ax=axes['flux'], marker='o')
+        efilike_table.plot(x=scan_dim.name, ax=axes['flux'], marker='o',
+                           color=[colors[col[2]] for col in efilike_table if isinstance(col, tuple)],
+                           style=[linestyles[col[1]] for col in efilike_table if isinstance(col, tuple)],
+                           )
 
     freqlike_table = {
         'freq_high': freqlike['ome_' + normalization].loc[(idx[:,lowwave_boundry:,:]),:],
@@ -186,12 +197,16 @@ def build_plot(datasets, flux_type, normalization, instability_tag='', sum_hydro
         'grow_low':  freqlike['gam_' + normalization].loc[(idx[:,:lowwave_boundry,:]),:],
     }
 
+    colors = {set: color for set, color in zip(ds.numsols.values, cycle(cmap.colors))}
     for type in ['freq', 'grow']:
         for part in ['high', 'low']:
             name = type + '_' + part
             table = freqlike_table[name].loc[0].unstack()
             try:
-                table.plot(ax=axes[name], marker='o')
+                table.plot(ax=axes[name], marker='o',
+                           color=[colors[col[1]] for col in table.columns],
+                           style=[linestyles[col[0]] for col in table.columns],
+                           )
             except TypeError: #Ignore if empty
                 pass
             if part == 'low':
@@ -205,7 +220,12 @@ def build_plot(datasets, flux_type, normalization, instability_tag='', sum_hydro
     #freq_high_table = freq_table[freq_table.index>=2]
     #freq_low_table.plot(ax=freq_low_ax, marker='o')
     #freq_high_table.plot(ax=freq_high_ax, marker='o')
-    #embed()
+    fmt = '({!s}) {!s} ' * len(ds.set)
+    if names is None:
+        names = list(range(len(ds.set)))
+    tuples = [(linestyles[set], names[ii]) for ii, set in enumerate(range(len(ds.set)))]
+    flat_list = [item for sublist in tuples for item in sublist]
+    fig.suptitle(fmt.format(*flat_list))
 
     plt.show()
 
