@@ -140,17 +140,6 @@ class TestQuaLiKizXpoint(TestCase):
             self.baseXpoint.set_qn_normni_ion_n()
             self.assertAlmostEqual(self.baseXpoint['ions'][0]['n'], n0)
 
-    def test_set_qn_An_ion_n_sanity(self):
-        self.baseXpoint['options']['set_qn_normni'] = True
-        self.baseXpoint['options']['set_qn_normni_ion'] = 0
-
-        self.baseXpoint['ions'][1]['n'] = .9
-        self.baseXpoint.set_qn_An_ion_n()
-        self.assertRaisesRegex(Exception,
-                               'Quasineutrality results in*',
-                               self.baseXpoint.set_qn_An_ion_n())
-
-
     def test_set_qn_An_ion_n(self):
         self.baseXpoint['options']['set_qn_An'] = True
         self.baseXpoint['options']['set_qn_An_ion'] = 0
