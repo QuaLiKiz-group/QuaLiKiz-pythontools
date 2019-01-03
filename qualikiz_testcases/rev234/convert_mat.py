@@ -11,10 +11,10 @@ import matplotlib.pyplot as plt
 from qualikiz_tools.qualikiz_io.outputfiles import convert_debug, convert_output, determine_sizes
 from qualikiz_tools.qualikiz_io.inputfiles  import QuaLiKizPlan
 
-mat = loadmat('./rev234testcases_andromede.mat')
+mat = loadmat('./testcases_andromede.mat')
 cases = {}
 for name in mat:
-    if name.startswith('case'):
+    if not name.startswith('__'):
         casedat = mat[name]
         case = OrderedDict()
         for varname, var in zip(casedat.dtype.names, casedat[0,0]):
@@ -39,7 +39,6 @@ for name in mat:
         shutil.rmtree(name, ignore_errors=True)
         os.mkdir(name)
         for varname, var in case.items():
-            print(varname)
             var.tofile(name + '/' + varname + '.dat', sep=' ')
         ds = xr.Dataset()
         sizes = determine_sizes(name, folder='.')
@@ -50,22 +49,9 @@ for name in mat:
         for varname in ['dimx', 'dimn', 'nions']:
             ds.coords[varname] = np.arange(case[varname])
 
-        for file in os.listdir():
-            if file.startswith(name[:5]) and file.endswith('.json'):
-                break
-        plan = QuaLiKizPlan.from_json(file)
+        file = name + '_parameters.json'
+        plan = QuaLiKizPlan.from_json(os.path.join('../casefiles', file))
         ds.coords['smag'] = xr.DataArray(plan['scan_dict']['smag'], dims='dimx')
         cases[name] = ds
         ds.to_netcdf(name + '.nc')
-
-
-
-
-
-        #sortcase = {}
-        #for varname, var in case.items():
-        #    if var.shape not in sortcase:
-        #        sortcase[var.shape] = {}
-        #    sortcase[var.shape] = {varname: var}
-
-embed()
+        shutil.rmtree(name)

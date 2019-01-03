@@ -24,7 +24,7 @@ from qualikiz_tools.qualikiz_io.inputfiles import QuaLiKizXpoint, QuaLiKizPlan, 
 #nu* = 0.0
 
 ## Load the default parameters.json
-qualikiz_plan_base = QuaLiKizPlan.from_json('./parameters.json')
+qualikiz_plan_base = QuaLiKizPlan.from_json('./parameters_base.json')
 xpoint = qualikiz_plan_base['xpoint_base']
 
 
@@ -35,6 +35,7 @@ xpoint['rho'] = xpoint['x']
 # And some options we might want to mess with
 xpoint['phys_meth'] = 2
 xpoint['rot_flag'] = 0
+xpoint['coll_flag'] = True
 xpoint['verbose'] = 1
 xpoint['separateflux'] = 1
 
@@ -48,24 +49,7 @@ xpoint['recalc_Ti_Te_rel'] = False
 xpoint['assume_tor_rot'] = True
 
 xpoint.set_puretor()
-runfolder = 'run'
-run = Run('.', runfolder, '../../../../QuaLiKiz', qualikiz_plan=qualikiz_plan_base)
-batch = Batch('.', runfolder, [run])
-batch.prepare(overwrite_batch=True)
 
-# Run without rotation
-batch.generate_input()
-batch.launch()
-batch.to_netcdf(overwrite_runs=True, overwrite_batch=True)
-os.rename(os.path.join(runfolder, runfolder + '.nc'),
-          'norot.nc')
-
-# Run with rotation
+qualikiz_plan_base.to_json('cyclon_base_case_norot_withcoll.json')
 xpoint['rot_flag'] = 1
-
-batch.prepare(overwrite_batch=True)
-batch.generate_input()
-batch.launch()
-batch.to_netcdf(overwrite_runs=True, overwrite_batch=True)
-os.rename(os.path.join(runfolder, runfolder + '.nc'),
-          'rot.nc')
+qualikiz_plan_base.to_json('cyclon_base_case_withrot_withcoll.json')
