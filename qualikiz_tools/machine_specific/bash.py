@@ -45,7 +45,7 @@ class Run(Run):
 
     def __init__(self, parent_dir, name, binaryrelpath,
                  qualikiz_plan=None, stdout=None, stderr=None,
-                 verbose=False, nodes=1, HT=False,
+                 verbose=False, nodes=1, HT=False, tasks=None,
                  **kwargs):
         """ Initializes the Run class
 
@@ -76,11 +76,10 @@ class Run(Run):
                 setattr(self, name, self.defaults[name])
             else:
                 setattr(self, name, None)
-
-    @property
-    def tasks(self):
-        ncores = self.defaults['cores_per_node'] * self.nodes
-        return self.calculate_tasks(ncores, HT=self.HT, threads_per_core=self.threads_per_core)
+        if tasks is None:
+            ncores = self.defaults['cores_per_node'] * self.nodes
+            tasks = self.calculate_tasks(ncores, HT=self.HT, threads_per_core=self.threads_per_core)
+        self.tasks = tasks
 
     def to_batch_string(self, batch_dir):
         """ Create string to include in batch job
