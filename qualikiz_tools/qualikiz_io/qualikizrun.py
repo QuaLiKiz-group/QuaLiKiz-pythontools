@@ -345,7 +345,7 @@ class QuaLiKizRun:
 
     def to_netcdf(self, **kwargs):
         """ Convert the output and debug to netCDF """
-        run_to_netcdf(self.rundir, **kwargs)
+        return run_to_netcdf(self.rundir, **kwargs)
 
     def is_done(self):
         last_output = os.path.join(self.rundir, 'output/vfi_GB.dat')
@@ -581,8 +581,6 @@ class QuaLiKizBatch():
                   overwrite_runs=None, overwrite_batch=None,
                   run_kwargs=None, gluedim=None):
         """ Convert QuaLiKizBatch output to netcdf
-        iith warnings.catch_warnings():
-            warnings.simplefilter("ignore")
 
         This function converts the output contained in the output and debug
         folders to netcdf. Optionally the datasets are glued together
@@ -831,6 +829,9 @@ def run_to_netcdf(path, runmode='dimx', overwrite=None,
             warn('netCDF4 module not found! Please install by \'pip install ' +
                  'netcdf4\'. Falling back to netCDF3')
             ds.to_netcdf(netcdf_path, encoding=encoding)
+    else:
+        ds = xr.open_dataset(netcdf_path)
+    return ds
 
 def qlk_from_dir(dir, batch_class=QuaLiKizBatch, run_class=None, verbose=False, prioritize_batch=True, **kwargs):
     kwargs['verbose'] = verbose
