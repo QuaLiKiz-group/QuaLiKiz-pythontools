@@ -1,3 +1,4 @@
+QuaLiKiz-pythontools has moved to GitLab: https://gitlab.com/qualikiz-group/QuaLiKiz-pythontools
 # QuaLiKiz-pythontools
 
 *A collection of tools for QuaLiKiz in Python.*
